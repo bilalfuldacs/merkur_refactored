@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#022052"/>
+  <rect x="0" y="0" width="512" height="72" rx="0" fill="#E83181"/>
+  <rect x="0" y="0" width="512" height="112" rx="112" fill="#E83181"/>
+  <rect x="0" y="56" width="512" height="56" fill="#E83181"/>
+  <text x="256" y="300" text-anchor="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="168" font-weight="700" letter-spacing="8">ICE</text>
+  <text x="256" y="392" text-anchor="middle" fill="#009FE3" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="700" letter-spacing="10">2027</text>
+</svg>

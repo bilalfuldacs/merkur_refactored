@@ -1,0 +1,26 @@
+{
+  "id": "/ice2027",
+  "name": "ICE 2027",
+  "short_name": "ICE 2027",
+  "description": "MERKUR ICE 2027 trade-show scouting",
+  "start_url": "/ice2027",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#022052",
+  "theme_color": "#022052",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
