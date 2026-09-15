@@ -9,6 +9,7 @@ import {
   logout as logoutRequest,
   setAccessToken,
   setStoredUser,
+  subscribeSessionExpired,
   updateMyPreferences,
 } from '@/api'
 import type { AuthUser, LoginRequest } from '@/api'
@@ -39,6 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyUser = useCallback((next: AuthUser) => {
     setStoredUser(next)
     setUser(next)
+  }, [])
+
+  useEffect(() => {
+    return subscribeSessionExpired(() => {
+      setUser(null)
+    })
   }, [])
 
   useEffect(() => {

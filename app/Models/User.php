@@ -111,12 +111,25 @@ class User extends Authenticatable
 
     public function isIceAttendant(): bool
     {
-        return (bool) $this->iceattendent2027;
+        return ScoutAttendant::query()->where('user_ID', $this->ID)->exists()
+            || (bool) $this->iceattendent2027;
     }
 
     public function canSeeIce2027(): bool
     {
         return $this->isIceAttendant() || $this->isSuperuser();
+    }
+
+    public function isScoutAttendantFor(int $eventId): bool
+    {
+        if ($this->isSuperuser()) {
+            return true;
+        }
+
+        return ScoutAttendant::query()
+            ->where('user_ID', $this->ID)
+            ->where('event_ID', $eventId)
+            ->exists();
     }
 
     public function displayName(): string

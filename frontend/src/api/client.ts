@@ -1,4 +1,4 @@
-import { getAccessToken } from './session'
+import { expireSession, getAccessToken } from './session'
 
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? '/api').replace(/\/$/, '')
 
@@ -55,6 +55,12 @@ export function subscribeLoading(listener: (count: number) => void): () => void 
   }
 }
 
+function expireIfUnauthorized(response: Response, token: string | null, path?: string): void {
+  if (response.status === 401 && token && path !== '/login') {
+    expireSession()
+  }
+}
+
 async function withLoading<T>(track: boolean, run: () => Promise<T>): Promise<T> {
   if (!track) {
     return run()
@@ -94,6 +100,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     const payload = (await response.json().catch(() => null)) as T | LaravelErrorBody | null
 
     if (!response.ok) {
+      expireIfUnauthorized(response, token, path)
       const errorBody = (payload ?? {}) as LaravelErrorBody
       throw new ApiError(
         errorBody.message ?? 'Request failed.',
@@ -117,6 +124,7 @@ export async function apiFile(path: string): Promise<Blob> {
     })
 
     if (!response.ok) {
+      expireIfUnauthorized(response, token)
       throw new ApiError('File could not be loaded.', response.status)
     }
 
@@ -135,6 +143,7 @@ export async function downloadApiFile(path: string, fallbackName: string): Promi
     })
 
     if (!response.ok) {
+      expireIfUnauthorized(response, token)
       throw new ApiError(await errorMessage(response, 'File could not be downloaded.'), response.status)
     }
 
@@ -166,6 +175,7 @@ export async function openApiPdf(path: string, preview?: Window | null): Promise
     })
 
     if (!response.ok) {
+      expireIfUnauthorized(response, token)
       preview?.close()
       throw new ApiError(await errorMessage(response, 'The PDF could not be opened.'), response.status)
     }

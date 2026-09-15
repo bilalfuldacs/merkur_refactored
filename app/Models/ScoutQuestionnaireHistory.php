@@ -7,23 +7,18 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
-    'event_ID',
+    'questionnaire_ID',
     'user_ID',
     'payload',
-    'submitted_at',
+    'saved_at',
 ])]
-class Ice2027Evaluation extends Model
+class ScoutQuestionnaireHistory extends Model
 {
-    protected $table = 'ice2027_evaluations';
+    protected $table = 'scout_questionnaire_history';
 
     protected $primaryKey = 'ID';
 
     public $timestamps = false;
-
-    public function getRouteKeyName(): string
-    {
-        return 'ID';
-    }
 
     /**
      * @return array<string, string>
@@ -32,8 +27,16 @@ class Ice2027Evaluation extends Model
     {
         return [
             'payload' => 'array',
-            'submitted_at' => 'datetime',
+            'saved_at' => 'datetime',
         ];
+    }
+
+    /**
+     * @return BelongsTo<ScoutQuestionnaire, $this>
+     */
+    public function questionnaire(): BelongsTo
+    {
+        return $this->belongsTo(ScoutQuestionnaire::class, 'questionnaire_ID', 'ID');
     }
 
     /**

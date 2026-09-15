@@ -197,10 +197,7 @@ export async function persistIceQuestionnaire(
   try {
     const result = await saveIceQuestionnaire(competitorId, products)
     await icePendingDelete(questionnaireKey(competitorId))
-    const cached = await iceKvGet<IceQuestionnairePayload>(questionnaireKey(competitorId))
-    if (cached) {
-      await iceKvSet(questionnaireKey(competitorId), { ...cached, products })
-    }
+    await iceKvSet(questionnaireKey(competitorId), result)
     notify()
     return { message: result.message || 'Saved to server.', synced: true }
   } catch (error) {
@@ -245,7 +242,7 @@ export async function persistIceEvaluation(top5: IceEvalRow[]): Promise<IceSaveR
     })
     const cached = await iceKvGet<IceEvaluationPayload>('evaluation')
     if (cached) {
-      await iceKvSet('evaluation', { ...cached, top5, evaluation_done: true })
+      await iceKvSet('evaluation', { ...cached, top5 })
     }
     notify()
     return { message: 'Saved on this phone. It will upload when you are online.', synced: false }
@@ -260,7 +257,7 @@ export async function persistIceEvaluation(top5: IceEvalRow[]): Promise<IceSaveR
     await icePendingDelete('evaluation')
     const cached = await iceKvGet<IceEvaluationPayload>('evaluation')
     if (cached) {
-      await iceKvSet('evaluation', { ...cached, top5, evaluation_done: true })
+      await iceKvSet('evaluation', { ...cached, top5 })
     }
     notify()
     return { message: 'Saved to server.', synced: true }

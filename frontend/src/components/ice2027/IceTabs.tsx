@@ -1,9 +1,19 @@
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
-import { APP_PATHS, useAppPath } from '@/routing'
+import { useAuth } from '@/auth'
+import {
+  APP_PATHS,
+  ice2027AdminPath,
+  ice2027DashboardPath,
+  ice2027EvaluationPath,
+  ice2027HubPath,
+  ice2027ProgressPath,
+  eventSlugFromSearch,
+  useAppPath,
+} from '@/routing'
 import { icePillGroupSx, icePillSx } from './IceChrome'
 
-export type IceTab = 'tasks' | 'questionnaire' | 'evaluation' | 'admin'
+export type IceTab = 'tasks' | 'questionnaire' | 'evaluation' | 'admin' | 'dashboard' | 'progress' | 'events'
 
 export function IceTabs({
   current,
@@ -16,7 +26,10 @@ export function IceTabs({
   admin: boolean
   showTasks?: boolean
 }) {
-  const { navigate } = useAppPath()
+  const { navigate, search } = useAppPath()
+  const eventSlug = eventSlugFromSearch(search)
+  const { user } = useAuth()
+  const superuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
 
   return (
     <ToggleButtonGroup
@@ -24,11 +37,17 @@ export function IceTabs({
       value={current}
       onChange={(_, next: IceTab | null) => {
         if (next === 'tasks' || next === 'questionnaire') {
-          navigate(APP_PATHS.ice2027)
+          navigate(ice2027HubPath(eventSlug))
         } else if (next === 'evaluation') {
-          navigate(APP_PATHS.ice2027Evaluation)
+          navigate(ice2027EvaluationPath(undefined, eventSlug))
         } else if (next === 'admin') {
-          navigate(APP_PATHS.ice2027Admin)
+          navigate(ice2027AdminPath(eventSlug))
+        } else if (next === 'dashboard') {
+          navigate(ice2027DashboardPath(eventSlug))
+        } else if (next === 'progress') {
+          navigate(ice2027ProgressPath(eventSlug))
+        } else if (next === 'events') {
+          navigate(APP_PATHS.scoutEvents)
         }
       }}
       sx={icePillGroupSx}
@@ -51,6 +70,21 @@ export function IceTabs({
       {admin ? (
         <ToggleButton value="admin" sx={icePillSx}>
           Admin
+        </ToggleButton>
+      ) : null}
+      {admin ? (
+        <ToggleButton value="dashboard" sx={icePillSx}>
+          Dashboard
+        </ToggleButton>
+      ) : null}
+      {admin ? (
+        <ToggleButton value="progress" sx={icePillSx}>
+          Managers
+        </ToggleButton>
+      ) : null}
+      {superuser ? (
+        <ToggleButton value="events" sx={icePillSx}>
+          All events
         </ToggleButton>
       ) : null}
     </ToggleButtonGroup>

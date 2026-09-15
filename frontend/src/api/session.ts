@@ -39,3 +39,19 @@ export function clearSession(): void {
   clearAccessToken()
   setStoredUser(null)
 }
+
+const sessionExpiredEvent = 'merkur:session-expired'
+
+export function expireSession(): void {
+  if (!getAccessToken() && !localStorage.getItem(userKey)) {
+    return
+  }
+
+  clearSession()
+  window.dispatchEvent(new Event(sessionExpiredEvent))
+}
+
+export function subscribeSessionExpired(listener: () => void): () => void {
+  window.addEventListener(sessionExpiredEvent, listener)
+  return () => window.removeEventListener(sessionExpiredEvent, listener)
+}

@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
+import ArrowBackOutlinedIcon from '@mui/icons-material/ArrowBackOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { ApiError } from '@/api'
-import type { IceBootstrap, IceCompetitor, IceQuestionnaireProducts } from '@/api/ice2027'
-import { IceHero, IceOfflineBar, IceTabs, iceCrumbSx, iceStickyBarSx } from '@/components/ice2027'
+import type { IceBootstrap, IceCompetitor, IceGame, IceQuestionnaireHistory, IceScoutProduct } from '@/api/ice2027'
+import { IceHero, IceOfflineBar, IceTabs, iceCrumbSx } from '@/components/ice2027'
 import { IceQuestionnaireForm, emptyProducts } from '@/components/ice2027/IceQuestionnaireForm'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
 import { AppButton } from '@/components/ui'
 import { loadIceHub, loadIceQuestionnaire, persistIceQuestionnaire } from '@/offline/iceOffline'
-import { APP_PATHS, ice2027EvaluationPath, ice2027QuestionnairePath, useAppPath } from '@/routing'
+import { APP_PATHS, eventSlugFromSearch, ice2027EvaluationPath, ice2027HubPath, ice2027QuestionnairePath, useAppPath } from '@/routing'
 
 function competitorIdFromSearch(search: string): number | null {
   const id = Number(new URLSearchParams(search).get('c'))
@@ -23,15 +23,25 @@ function gameLabel(count: number): string {
   return count === 1 ? '1 game' : `${count} games`
 }
 
+function statusChip(kind: 'done' | 'started' | 'todo', label: string) {
+  const color = kind === 'done' ? 'success' : kind === 'started' ? 'warning' : 'error'
+  return <Chip size="small" label={label} color={color} sx={{ fontWeight: 700 }} />
+}
+
 export default function Ice2027Page() {
   const { navigate, search } = useAppPath()
   const competitorId = useMemo(() => competitorIdFromSearch(search), [search])
+  const eventSlug = useMemo(() => eventSlugFromSearch(search), [search])
   const [bootstrap, setBootstrap] = useState<IceBootstrap | null>(null)
   const [failed, setFailed] = useState('')
   const [flash, setFlash] = useState('')
   const [competitor, setCompetitor] = useState<IceCompetitor | null>(null)
-  const [products, setProducts] = useState<IceQuestionnaireProducts>(emptyProducts())
-  const [saving, setSaving] = useState(false)
+  const [products, setProducts] = useState<IceScoutProduct[]>([])
+  const [games, setGames] = useState<IceGame[]>([])
+  const [teamMembers, setTeamMembers] = useState<string[]>([])
+  const [updatedBy, setUpdatedBy] = useState<string | null>(null)
+  const [updatedAt, setUpdatedAt] = useState<string | null>(null)
+  const [history, setHistory] = useState<IceQuestionnaireHistory[]>([])
 
   const loadHub = useCallback(async () => {
     try {
@@ -39,16 +49,18 @@ export default function Ice2027Page() {
       const result = await loadIceHub()
       setBootstrap(result.data)
     } catch (error) {
-      setFailed(error instanceof ApiError ? error.message : 'ICE 2027 could not be loaded.')
+      setFailed(error instanceof ApiError ? error.message : 'Scouting could not be loaded.')
     }
-  }, [])
+  }, [search])
+
+  const eventName = bootstrap?.event?.name ?? 'Exhibition'
 
   useEffect(() => {
-    document.title = competitorId ? 'ICE 2027 Questionnaire | MERKURflow' : 'ICE 2027 | MERKURflow'
+    document.title = competitorId ? `${eventName} Questionnaire | MERKURflow` : `${eventName} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [competitorId])
+  }, [competitorId, eventName])
 
   useEffect(() => {
     void loadHub()
@@ -57,7 +69,9 @@ export default function Ice2027Page() {
   useEffect(() => {
     if (!competitorId) {
       setCompetitor(null)
-      setProducts(emptyProducts())
+      setProducts([])
+      setGames([])
+      setHistory([])
       return
     }
     let cancelled = false
@@ -68,6 +82,11 @@ export default function Ice2027Page() {
         }
         setCompetitor(result.data.competitor)
         setProducts(emptyProducts(result.data.products))
+        setGames(result.data.games ?? [])
+        setTeamMembers(result.data.team_members ?? [])
+        setUpdatedBy(result.data.updated_by ?? null)
+        setUpdatedAt(result.data.updated_at ?? null)
+        setHistory(result.data.history ?? [])
         setFailed('')
       })
       .catch((error: unknown) => {
@@ -78,32 +97,50 @@ export default function Ice2027Page() {
     return () => {
       cancelled = true
     }
-  }, [competitorId])
+  }, [competitorId, search])
 
-  async function save() {
+  async function save(next = products, silent = false) {
     if (!competitorId) {
       return
     }
-    setSaving(true)
-    setFlash('')
+    if (!silent) {
+      setFlash('')
+    }
     try {
-      const result = await persistIceQuestionnaire(competitorId, products)
-      setFlash(result.message)
+      const result = await persistIceQuestionnaire(competitorId, next)
+      const loaded = await loadIceQuestionnaire(competitorId)
+      setCompetitor(loaded.data.competitor)
+      setProducts(emptyProducts(loaded.data.products))
+      setGames(loaded.data.games ?? [])
+      setTeamMembers(loaded.data.team_members ?? [])
+      setUpdatedBy(loaded.data.updated_by ?? null)
+      setUpdatedAt(loaded.data.updated_at ?? null)
+      setHistory(loaded.data.history ?? [])
+      if (!silent) {
+        setFlash(result.message)
+      }
       await loadHub()
     } catch (error) {
       setFailed(error instanceof ApiError ? error.message : 'Questionnaire could not be saved.')
-    } finally {
-      setSaving(false)
+      throw error
     }
   }
 
   const me = bootstrap?.me
+  const evalProgress = me?.evaluation_progress
+  const evalKind = evalProgress?.complete ? 'done' : evalProgress?.started ? 'started' : 'todo'
+  const evalLabel = evalProgress?.complete
+    ? `Done · ${evalProgress.rows}/${evalProgress.required}`
+    : evalProgress?.started
+      ? evalProgress.label
+      : 'Not started'
+  const evalButton = evalProgress?.complete ? 'Edit' : evalProgress?.started ? 'Continue' : 'Start'
 
   return (
     <PageBackground>
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
-        <Box sx={{ maxWidth: competitorId ? 1100 : 1100, mx: 'auto', width: '100%' }}>
+        <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
           <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
               Start
@@ -111,11 +148,11 @@ export default function Ice2027Page() {
             <Box component="span" color="text.secondary">/</Box>
             {competitor ? (
               <>
-                <Box component="button" type="button" onClick={() => navigate(APP_PATHS.ice2027)} sx={iceCrumbSx}>
-                  ICE 2027
+                <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
+                  {eventName}
                 </Box>
                 <Box component="span" color="text.secondary">/</Box>
-                <Box component="button" type="button" onClick={() => navigate(APP_PATHS.ice2027)} sx={iceCrumbSx}>
+                <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
                   Questionnaire
                 </Box>
                 <Box component="span" color="text.secondary">/</Box>
@@ -123,7 +160,7 @@ export default function Ice2027Page() {
               </>
             ) : (
               <>
-                <Box component="span">ICE 2027</Box>
+                <Box component="span">{eventName}</Box>
                 <Box component="span" color="text.secondary">/</Box>
                 <Box component="span">Questionnaire</Box>
               </>
@@ -131,11 +168,11 @@ export default function Ice2027Page() {
           </Box>
 
           <IceHero
-            kicker={competitor ? 'Scouting questionnaire' : 'My ICE 2027 tasks'}
-            title={competitor ? competitor.name : 'ICE 2027'}
+            kicker={competitor ? 'Scouting questionnaire' : `My ${eventName} tasks`}
+            title={competitor ? competitor.name : eventName}
           >
             {competitor
-              ? 'Fill in new products and highlights for this competitor.'
+              ? 'Add each product in a dialog. New products get a name; existing ones are chosen from this competitor’s games.'
               : me?.scout
                 ? 'Open your assigned competitor to fill the questionnaire and the evaluation.'
                 : 'Evaluation is optional. Questionnaires are only for scouting team members.'}
@@ -165,7 +202,7 @@ export default function Ice2027Page() {
 
           {!competitorId && bootstrap && me && !me.attendant ? (
             <Alert severity="info">
-              ICE 2027 questionnaires and evaluation are only available to attendants. Use Admin to mark ICE 2027 attendants.
+              {eventName} questionnaires and evaluation are only available to attendants. Use Admin to mark attendants.
             </Alert>
           ) : null}
 
@@ -173,66 +210,84 @@ export default function Ice2027Page() {
             <>
               <Typography sx={{ color: 'text.secondary', mb: 2 }}>
                 Your team: <Box component="strong" sx={{ color: 'secondary.main' }}>{me.team?.name}</Box>
+                {me.team_members && me.team_members.length > 0 ? (
+                  <Box component="span" sx={{ ml: 1.5, color: 'text.secondary', fontSize: 13 }}>
+                    {me.team_members.join(' & ')}
+                  </Box>
+                ) : null}
                 <Box component="span" sx={{ mx: 1.5 }}>
-                  Questionnaires <strong>{me.questionnaires_done}/{me.questionnaires_total}</strong>
+                  Questionnaires <strong>{me.questionnaires_started ?? me.questionnaires_done}/{me.questionnaires_total}</strong> started
+                  {me.questionnaires_done ? ` · ${me.questionnaires_done} done` : ''}
                 </Box>
-                Evaluation{' '}
-                <Chip
-                  size="small"
-                  label={me.evaluation_done ? 'Done' : 'Required'}
-                  color={me.evaluation_done ? 'success' : 'error'}
-                  sx={{ fontWeight: 700 }}
-                />
+                Evaluation {statusChip(evalKind, evalLabel)}
               </Typography>
+              {evalProgress?.started && !evalProgress.complete ? (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  {evalProgress.detail}{' '}
+                  <Box component="button" type="button" onClick={() => navigate(ice2027EvaluationPath(undefined, eventSlug))} sx={{ ...iceCrumbSx, display: 'inline' }}>
+                    Continue evaluation
+                  </Box>
+                </Alert>
+              ) : null}
               {bootstrap.competitors.length === 0 ? (
                 <Alert severity="info">No competitors are assigned to your team yet.</Alert>
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
-                  {bootstrap.competitors.map((item) => (
-                    <Paper
-                      key={item.ID}
-                      elevation={0}
-                      sx={{
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderLeft: '4px solid',
-                        borderLeftColor: 'primary.main',
-                        borderRadius: 2,
-                        p: 2.5,
-                      }}
-                    >
-                      <Typography component="h2" sx={{ fontWeight: 800, fontSize: 22, mb: 0.5 }}>
-                        {item.name}
-                      </Typography>
-                      <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>{gameLabel(item.game_count)}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-                        <Box>
-                          <Typography sx={{ fontWeight: 700 }}>Questionnaire</Typography>
-                          <Chip size="small" label={item.questionnaire_done ? 'Done' : 'Required'} color={item.questionnaire_done ? 'success' : 'error'} sx={{ fontWeight: 700 }} />
+                  {bootstrap.competitors.map((item) => {
+                    const qKind = item.questionnaire_done ? 'done' : item.questionnaire_started ? 'started' : 'todo'
+                    const qLabel = item.questionnaire_done ? 'Done' : item.questionnaire_started ? 'Started' : 'Not started'
+                    const qButton = item.questionnaire_done ? 'Edit' : item.questionnaire_started ? 'Continue' : 'Start'
+                    return (
+                      <Paper
+                        key={item.ID}
+                        elevation={0}
+                        sx={{
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderLeft: '4px solid',
+                          borderLeftColor: 'primary.main',
+                          borderRadius: 2,
+                          p: 2.5,
+                        }}
+                      >
+                        <Typography component="h2" sx={{ fontWeight: 800, fontSize: 22, mb: 0.5 }}>
+                          {item.name}
+                        </Typography>
+                        <Typography sx={{ color: 'text.secondary', mb: 1.5 }}>{gameLabel(item.game_count)}</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                          <Box>
+                            <Typography sx={{ fontWeight: 700 }}>
+                              Questionnaire{' '}
+                              <Box component="span" sx={{ color: 'text.secondary', fontWeight: 400, fontSize: 13 }}>
+                                (shared)
+                              </Box>
+                            </Typography>
+                            {statusChip(qKind, qLabel)}
+                          </Box>
+                          <AppButton
+                            size="small"
+                            variant={item.questionnaire_done ? 'outlined' : 'contained'}
+                            onClick={() => navigate(ice2027QuestionnairePath(item.ID, eventSlug))}
+                          >
+                            {qButton}
+                          </AppButton>
                         </Box>
-                        <AppButton
-                          size="small"
-                          variant={item.questionnaire_done ? 'outlined' : 'contained'}
-                          onClick={() => navigate(ice2027QuestionnairePath(item.ID))}
-                        >
-                          {item.questionnaire_done ? 'Edit' : 'Start'}
-                        </AppButton>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 1.5, mt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-                        <Box>
-                          <Typography sx={{ fontWeight: 700 }}>Evaluation</Typography>
-                          <Chip size="small" label={item.evaluation_done ? 'Done' : 'Required'} color={item.evaluation_done ? 'success' : 'error'} sx={{ fontWeight: 700 }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 1.5, mt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                          <Box>
+                            <Typography sx={{ fontWeight: 700 }}>Evaluation</Typography>
+                            {statusChip(evalKind, evalLabel)}
+                          </Box>
+                          <AppButton
+                            size="small"
+                            variant={evalProgress?.complete ? 'outlined' : 'contained'}
+                            onClick={() => navigate(ice2027EvaluationPath(item.ID, eventSlug))}
+                          >
+                            {evalButton}
+                          </AppButton>
                         </Box>
-                        <AppButton
-                          size="small"
-                          variant={item.evaluation_done ? 'outlined' : 'contained'}
-                          onClick={() => navigate(ice2027EvaluationPath(item.ID))}
-                        >
-                          {item.evaluation_done ? 'Edit' : 'Start'}
-                        </AppButton>
-                      </Box>
-                    </Paper>
-                  ))}
+                      </Paper>
+                    )
+                  })}
                 </Box>
               )}
             </>
@@ -246,12 +301,29 @@ export default function Ice2027Page() {
 
           {competitorId && competitor ? (
             <>
-              <IceQuestionnaireForm products={products} onChange={setProducts} />
-              <Box sx={iceStickyBarSx}>
-                <AppButton startIcon={<SaveOutlinedIcon />} disabled={saving} onClick={() => void save()}>
-                  Save questionnaire
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1, mb: 2 }}>
+                <AppButton size="small" variant="outlined" color="secondary" startIcon={<ArrowBackOutlinedIcon />} onClick={() => navigate(ice2027HubPath(eventSlug))}>
+                  My tasks
                 </AppButton>
+                {statusChip(
+                  competitor.questionnaire_done ? 'done' : competitor.questionnaire_started || products.length > 0 ? 'started' : 'todo',
+                  competitor.questionnaire_done ? 'Done' : competitor.questionnaire_started || products.length > 0 ? 'Started' : 'Not started',
+                )}
+                {(competitor.questionnaire_started || products.length > 0) && !competitor.questionnaire_done ? (
+                  <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>Your teammate can see this questionnaire as started too.</Typography>
+                ) : null}
               </Box>
+              <IceQuestionnaireForm
+                products={products}
+                games={games}
+                competitorId={competitor.ID}
+                teamMembers={teamMembers}
+                updatedBy={updatedBy}
+                updatedAt={updatedAt}
+                history={history}
+                onChange={setProducts}
+                onPersist={(next) => save(next, true)}
+              />
             </>
           ) : null}
         </Box>

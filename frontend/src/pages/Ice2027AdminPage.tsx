@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
+import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
 import Table from '@mui/material/Table'
@@ -18,7 +21,8 @@ import {
   deleteIceGame,
   getIceAdmin,
   renameIceTeam,
-  setIceAttendant,
+  saveIceAttendants,
+  sendIceReminders,
   setIceTeamMembers,
   updateIceCompetitor,
   updateIceGame,
@@ -28,7 +32,7 @@ import { useAuth } from '@/auth'
 import { IceHero, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
 import { AppButton, AppTextField } from '@/components/ui'
-import { APP_PATHS, useAppPath } from '@/routing'
+import { APP_PATHS, eventSlugFromSearch, ice2027HubPath, useAppPath } from '@/routing'
 
 function personLabel(person: { name?: string | null; firstname?: string | null; lastname?: string | null; username?: string | null }): string {
   const name = person.name?.trim() || [person.firstname, person.lastname].filter(Boolean).join(' ')
@@ -36,7 +40,8 @@ function personLabel(person: { name?: string | null; firstname?: string | null; 
 }
 
 export default function Ice2027AdminPage() {
-  const { navigate } = useAppPath()
+  const { navigate, search } = useAppPath()
+  const eventSlug = useMemo(() => eventSlugFromSearch(search), [search])
   const { user, applyUser } = useAuth()
   const [payload, setPayload] = useState<IceAdminPayload | null>(null)
   const [failed, setFailed] = useState('')
@@ -48,13 +53,17 @@ export default function Ice2027AdminPage() {
   const [teamMembers, setTeamMembers] = useState<Record<number, { member_1: string; member_2: string }>>({})
   const [competitorEdits, setCompetitorEdits] = useState<Record<number, { name: string; team_ID: string }>>({})
   const [gameEdits, setGameEdits] = useState<Record<number, { name: string; competitor_ID: string; game_type: string }>>({})
+  const [accessDraft, setAccessDraft] = useState<Record<number, { attendant: boolean; manage: boolean }>>({})
+  const [accessSaving, setAccessSaving] = useState(false)
+
+  const eventName = payload?.event?.name ?? 'Exhibition'
 
   useEffect(() => {
-    document.title = 'ICE 2027 Admin | MERKURflow'
+    document.title = `${eventName} Admin | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [eventName])
 
   useEffect(() => {
     let cancelled = false
@@ -66,13 +75,13 @@ export default function Ice2027AdminPage() {
       })
       .catch((error: unknown) => {
         if (!cancelled) {
-          setFailed(error instanceof ApiError ? error.message : 'ICE 2027 admin could not be loaded.')
+          setFailed(error instanceof ApiError ? error.message : 'Scouting admin could not be loaded.')
         }
       })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [search])
 
   function applyAdmin(next: IceAdminPayload, message?: string) {
     setPayload(next)
@@ -101,6 +110,14 @@ export default function Ice2027AdminPage() {
         ]),
       ),
     )
+    setAccessDraft(
+      Object.fromEntries(
+        next.users.map((person) => [
+          person.ID,
+          { attendant: Boolean(person.iceattendent2027), manage: Boolean(person.may_manage) },
+        ]),
+      ),
+    )
     if (message || next.message) {
       setFlash(message ?? next.message ?? '')
       setFailed('')
@@ -123,6 +140,75 @@ export default function Ice2027AdminPage() {
     }
     return users.filter((person) => personLabel(person).toLowerCase().includes(q) || (person.username ?? '').toLowerCase().includes(q))
   }, [filter, payload])
+
+  function accessFor(userId: number): { attendant: boolean; manage: boolean } {
+    return accessDraft[userId] ?? { attendant: false, manage: false }
+  }
+
+  function setAttendantChecked(userId: number, on: boolean) {
+    setAccessDraft((current) => ({
+      ...current,
+      [userId]: { attendant: on, manage: on ? Boolean(current[userId]?.manage) : false },
+    }))
+  }
+
+  function setManageChecked(userId: number, on: boolean) {
+    setAccessDraft((current) => ({
+      ...current,
+      [userId]: { attendant: on || Boolean(current[userId]?.attendant), manage: on },
+    }))
+  }
+
+  function setVisibleAttendants(on: boolean) {
+    setAccessDraft((current) => {
+      const next = { ...current }
+      for (const person of filteredUsers) {
+        next[person.ID] = { attendant: on, manage: on ? Boolean(next[person.ID]?.manage) : false }
+      }
+      return next
+    })
+  }
+
+  function setVisibleManage(on: boolean) {
+    setAccessDraft((current) => {
+      const next = { ...current }
+      for (const person of filteredUsers) {
+        next[person.ID] = { attendant: on ? true : Boolean(next[person.ID]?.attendant), manage: on }
+      }
+      return next
+    })
+  }
+
+  async function saveAccess() {
+    setAccessSaving(true)
+    try {
+      await run(async () => {
+        const attendantIds = Object.entries(accessDraft)
+          .filter(([, row]) => row.attendant || row.manage)
+          .map(([id]) => Number(id))
+        const manageIds = Object.entries(accessDraft)
+          .filter(([, row]) => row.manage)
+          .map(([id]) => Number(id))
+        const next = await saveIceAttendants(attendantIds, manageIds)
+        if (user) {
+          const me = next.users.find((person) => person.ID === user.ID)
+          if (me && (next.event?.slug ?? eventSlug) === 'ice2027') {
+            applyUser({ ...user, iceattendent2027: Boolean(me.iceattendent2027) })
+          }
+        }
+        return next
+      })
+    } finally {
+      setAccessSaving(false)
+    }
+  }
+
+  const visibleAttendantCount = filteredUsers.filter((person) => accessFor(person.ID).attendant).length
+  const visibleManageCount = filteredUsers.filter((person) => accessFor(person.ID).manage).length
+  const attendantAllChecked = filteredUsers.length > 0 && visibleAttendantCount === filteredUsers.length
+  const attendantAllIndeterminate = visibleAttendantCount > 0 && !attendantAllChecked
+  const manageAllChecked = filteredUsers.length > 0 && visibleManageCount === filteredUsers.length
+  const manageAllIndeterminate = visibleManageCount > 0 && !manageAllChecked
 
   const attendants = (payload?.users ?? []).filter((person) => person.iceattendent2027)
   const takenByTeam = (team: IceTeam) => {
@@ -148,20 +234,22 @@ export default function Ice2027AdminPage() {
               Start
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">ICE 2027</Box>
+            <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
+              {eventName}
+            </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="span">Admin</Box>
           </Box>
 
-          <IceHero kicker="Administration" title="ICE 2027">
-            Mark ICE attendants, assign them to scouting teams, then add competitors and games.
+          <IceHero kicker="Administration" title={eventName}>
+            Mark attendants, assign them to scouting teams, then add competitors and games.
           </IceHero>
 
           <IceTabs
             current="admin"
-            attendant={Boolean(user?.iceattendent2027)}
+            attendant={Boolean(payload?.users.find((person) => person.ID === user?.ID)?.iceattendent2027 ?? user?.iceattendent2027)}
             admin
-            showTasks={Boolean(user?.iceattendent2027)}
+            showTasks={Boolean(payload?.users.find((person) => person.ID === user?.ID)?.iceattendent2027 ?? user?.iceattendent2027)}
           />
 
           {failed ? (
@@ -179,7 +267,7 @@ export default function Ice2027AdminPage() {
             <>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', lg: 'repeat(5, 1fr)' }, gap: 1.5, mb: 3 }}>
                 {[
-                  ['ICE attendants', String(payload.stats.attendants)],
+                  ['Attendants', String(payload.stats.attendants)],
                   ['Teams', `${payload.stats.teams} / ${payload.stats.max_teams}`],
                   ['Members', `${payload.stats.members} / ${payload.stats.max_members}`],
                   ['Competitors', `${payload.stats.competitors} / ${payload.stats.max_competitors}`],
@@ -197,48 +285,177 @@ export default function Ice2027AdminPage() {
               </Box>
 
               <Paper elevation={0} sx={{ mb: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <IceSectionHead title="1. ICE 2027 attendants" />
+                <IceSectionHead
+                  title="Reminder emails"
+                  action={
+                    <AppButton
+                      size="small"
+                      variant="contained"
+                      color="inherit"
+                      disabled={(payload.reminders ?? []).length === 0}
+                      onClick={() => {
+                        if (!window.confirm(`Send reminder emails to ${payload.reminders?.length ?? 0} people now?`)) {
+                          return
+                        }
+                        void run(() => sendIceReminders())
+                      }}
+                      sx={{ color: 'secondary.main', bgcolor: 'common.white' }}
+                    >
+                      Send reminders now
+                    </AppButton>
+                  }
+                />
                 <Box sx={{ p: 2.5 }}>
                   <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                    Only users with this flag can see the ICE 2027 menu and use the forms. Team members must be attendants.
+                    Team members with a missing questionnaire or an unfinished Top 5 (less than 5 games) can be emailed at their company login address.
+                  </Typography>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Person</TableCell>
+                        <TableCell>Company email</TableCell>
+                        <TableCell>Team</TableCell>
+                        <TableCell>Questionnaire</TableCell>
+                        <TableCell>Evaluation</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {(payload.reminders ?? []).length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} sx={{ color: 'text.secondary' }}>
+                            Nobody needs a reminder for {eventName} right now.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        (payload.reminders ?? []).map((person) => {
+                          const qBits = person.questionnaires.map((item) => `${item.name} (${item.started ? 'started' : 'not started'})`)
+                          return (
+                            <TableRow key={person.user_ID}>
+                              <TableCell sx={{ fontWeight: 700 }}>{person.name}</TableCell>
+                              <TableCell>
+                                {person.valid_email ? person.email : <Box component="span" sx={{ color: 'error.main' }}>No company email</Box>}
+                              </TableCell>
+                              <TableCell>{person.team}</TableCell>
+                              <TableCell>
+                                {qBits.length === 0 ? (
+                                  <Chip size="small" color="success" label="Done" />
+                                ) : (
+                                  <>
+                                    <Chip size="small" color="warning" label="Missing" sx={{ mr: 1 }} />
+                                    {qBits.join(', ')}
+                                  </>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                {person.eval.complete ? (
+                                  <Chip size="small" color="success" label="Done" />
+                                ) : (
+                                  <Chip size="small" color="warning" label={person.eval.label} />
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </Box>
+              </Paper>
+
+              <Paper elevation={0} sx={{ mb: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                <IceSectionHead
+                  title={`1. ${eventName} attendants`}
+                  action={
+                    <AppButton
+                      size="small"
+                      variant="contained"
+                      color="inherit"
+                      startIcon={<SaveOutlinedIcon />}
+                      disabled={accessSaving}
+                      onClick={() => void saveAccess()}
+                      sx={{ color: 'secondary.main', bgcolor: 'common.white' }}
+                    >
+                      Save access
+                    </AppButton>
+                  }
+                />
+                <Box sx={{ p: 2.5 }}>
+                  <Typography sx={{ color: 'text.secondary', mb: 2 }}>
+                    Boxes are ticked only for people who already have access. Tick or untick, then click <strong>Save access</strong> once.{' '}
+                    <strong>Full access</strong> opens Admin, Dashboard, and Managers for this event only.
                   </Typography>
                   <AppTextField size="small" label="Filter users…" value={filter} onChange={(event) => setFilter(event.target.value)} sx={{ mb: 2 }} />
                   <Box sx={{ maxHeight: 350, overflow: 'auto' }}>
-                    <Table size="small">
+                    <Table size="small" stickyHeader>
                       <TableHead>
                         <TableRow>
                           <TableCell>Name</TableCell>
                           <TableCell>E-mail</TableCell>
-                          <TableCell>ICE 2027</TableCell>
+                          <TableCell align="center" sx={{ width: 110 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <Checkbox
+                                size="small"
+                                checked={attendantAllChecked}
+                                indeterminate={attendantAllIndeterminate}
+                                onChange={(event) => setVisibleAttendants(event.target.checked)}
+                                inputProps={{ 'aria-label': 'Select or clear visible attendants' }}
+                                sx={{ p: 0.25 }}
+                              />
+                              <Box component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                Attendant
+                              </Box>
+                            </Box>
+                          </TableCell>
+                          <TableCell align="center" sx={{ width: 110 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <Checkbox
+                                size="small"
+                                checked={manageAllChecked}
+                                indeterminate={manageAllIndeterminate}
+                                onChange={(event) => setVisibleManage(event.target.checked)}
+                                inputProps={{ 'aria-label': 'Select or clear visible full access' }}
+                                sx={{ p: 0.25 }}
+                              />
+                              <Box component="span" sx={{ fontSize: 12, color: 'text.secondary' }}>
+                                Full access
+                              </Box>
+                            </Box>
+                          </TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
-                        {filteredUsers.map((person) => (
-                          <TableRow key={person.ID}>
-                            <TableCell>{person.name || [person.firstname, person.lastname].filter(Boolean).join(' ')}</TableCell>
-                            <TableCell>{person.username}</TableCell>
-                            <TableCell>
-                              <AppButton
-                                size="small"
-                                variant={person.iceattendent2027 ? 'contained' : 'outlined'}
-                                color={person.iceattendent2027 ? 'success' : 'secondary'}
-                                onClick={() =>
-                                  void run(async () => {
-                                    const next = await setIceAttendant(person.ID, !person.iceattendent2027)
-                                    if (user && user.ID === person.ID) {
-                                      applyUser({ ...user, iceattendent2027: !person.iceattendent2027 })
-                                    }
-                                    return next
-                                  })
-                                }
-                              >
-                                {person.iceattendent2027 ? 'On' : 'Off'}
-                              </AppButton>
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {filteredUsers.map((person) => {
+                          const access = accessFor(person.ID)
+                          return (
+                            <TableRow key={person.ID}>
+                              <TableCell>{person.name || [person.firstname, person.lastname].filter(Boolean).join(' ')}</TableCell>
+                              <TableCell>{person.username}</TableCell>
+                              <TableCell align="center">
+                                <Checkbox
+                                  size="small"
+                                  checked={access.attendant}
+                                  onChange={(event) => setAttendantChecked(person.ID, event.target.checked)}
+                                  inputProps={{ 'aria-label': `Attendant ${personLabel(person)}` }}
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Checkbox
+                                  size="small"
+                                  checked={access.manage}
+                                  onChange={(event) => setManageChecked(person.ID, event.target.checked)}
+                                  inputProps={{ 'aria-label': `Full access ${personLabel(person)}` }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          )
+                        })}
                       </TableBody>
                     </Table>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                    <AppButton startIcon={<SaveOutlinedIcon />} disabled={accessSaving} onClick={() => void saveAccess()}>
+                      Save access
+                    </AppButton>
                   </Box>
                 </Box>
               </Paper>
@@ -247,7 +464,7 @@ export default function Ice2027AdminPage() {
                 <IceSectionHead title="2. Scouting teams" />
                 <Box sx={{ p: 2.5 }}>
                   <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                    Five teams, two members each. Members must be ICE 2027 attendants. A person can only be on one team.
+                    Five teams, two members each. Members must be attendants for this event. A person can only be on one team.
                   </Typography>
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                     {payload.teams.map((team) => {

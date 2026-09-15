@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Ice2027Controller;
 use App\Http\Controllers\Api\InstallationReportController;
 use App\Http\Controllers\Api\IssuesReportController;
 use App\Http\Controllers\Api\LatestChangesController;
+use App\Http\Controllers\Api\MarsApiController;
 use App\Http\Controllers\Api\ReportsCatalogController;
 use App\Http\Controllers\Api\MerkuriosityController;
 use App\Http\Controllers\Api\MerkuriosityDictionaryController;
@@ -23,6 +24,7 @@ use App\Http\Controllers\Api\ProductGamesListController;
 use App\Http\Controllers\Api\ProductPanoramaController;
 use App\Http\Controllers\Api\RoadmapController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\ScoutEventController;
 use App\Http\Controllers\Api\StaticDocController;
 use App\Http\Controllers\Api\StaticFaqController;
 use App\Http\Controllers\Api\TableAssetsController;
@@ -35,6 +37,13 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'store']);
+
+Route::prefix('mars')->middleware(\App\Http\Middleware\AuthenticateMarsToken::class)->group(function () {
+    Route::get('/', [MarsApiController::class, 'index']);
+    Route::get('business-partners', [MarsApiController::class, 'businessPartners']);
+    Route::get('venues', [MarsApiController::class, 'venues']);
+    Route::get('versions', [MarsApiController::class, 'versions']);
+});
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'show']);
@@ -137,6 +146,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('merkuriosity/dictionary', MerkuriosityDictionaryController::class)
         ->parameters(['dictionary' => 'merkuriosityDictionary']);
 
+    Route::get('scout/events', [ScoutEventController::class, 'menu']);
+    Route::get('scout/admin/events', [ScoutEventController::class, 'index']);
+    Route::post('scout/admin/events', [ScoutEventController::class, 'store']);
+    Route::patch('scout/admin/events/{event}', [ScoutEventController::class, 'update']);
+
     Route::get('ice2027', [Ice2027Controller::class, 'bootstrap']);
     Route::get('ice2027/questionnaire/{competitor}', [Ice2027Controller::class, 'questionnaire'])
         ->whereNumber('competitor');
@@ -144,7 +158,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ->whereNumber('competitor');
     Route::get('ice2027/evaluation', [Ice2027Controller::class, 'evaluation']);
     Route::put('ice2027/evaluation', [Ice2027Controller::class, 'saveEvaluation']);
+    Route::get('ice2027/dashboard', [Ice2027Controller::class, 'dashboard']);
+    Route::get('ice2027/progress', [Ice2027Controller::class, 'progress']);
+    Route::get('ice2027/photo', [Ice2027Controller::class, 'photo']);
+    Route::post('ice2027/photo', [Ice2027Controller::class, 'uploadPhoto']);
+    Route::post('ice2027/photo/delete', [Ice2027Controller::class, 'deletePhoto']);
     Route::get('ice2027/admin', [Ice2027AdminController::class, 'show']);
+    Route::post('ice2027/admin/reminders', [Ice2027AdminController::class, 'sendReminders']);
+    Route::put('ice2027/admin/attendants', [Ice2027AdminController::class, 'saveAttendants']);
     Route::patch('ice2027/admin/attendants/{user}', [Ice2027AdminController::class, 'setAttendant'])
         ->whereNumber('user');
     Route::patch('ice2027/admin/teams/{team}', [Ice2027AdminController::class, 'renameTeam'])

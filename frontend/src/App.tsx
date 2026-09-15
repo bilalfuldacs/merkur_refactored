@@ -9,8 +9,10 @@ import FocusGroupsReportPage from '@/pages/FocusGroupsReportPage'
 import HelpPage from '@/pages/HelpPage'
 import HomePage from '@/pages/HomePage'
 import Ice2027AdminPage from '@/pages/Ice2027AdminPage'
+import Ice2027DashboardPage from '@/pages/Ice2027DashboardPage'
 import Ice2027EvaluationPage from '@/pages/Ice2027EvaluationPage'
 import Ice2027Page from '@/pages/Ice2027Page'
+import Ice2027ProgressPage from '@/pages/Ice2027ProgressPage'
 import InstallationsReportPage from '@/pages/InstallationsReportPage'
 import IssuesReportPage from '@/pages/IssuesReportPage'
 import LatestChangesPage from '@/pages/LatestChangesPage'
@@ -24,6 +26,7 @@ import ProfilePage from '@/pages/ProfilePage'
 import ReportsPage from '@/pages/ReportsPage'
 import RoadmapDocsPage from '@/pages/RoadmapDocsPage'
 import RoadmapPage from '@/pages/RoadmapPage'
+import ScoutEventsPage from '@/pages/ScoutEventsPage'
 import { TableBrowsePage } from '@/pages/TableBrowsePage'
 import TablesPage from '@/pages/TablesPage'
 import TasksPage from '@/pages/TasksPage'
@@ -120,6 +123,18 @@ function renderPage(path: string) {
 
   if (path === APP_PATHS.find) {
     return <FindPage />
+  }
+
+  if (path === APP_PATHS.scoutEvents) {
+    return <ScoutEventsPage />
+  }
+
+  if (path === APP_PATHS.ice2027Dashboard) {
+    return <Ice2027DashboardPage />
+  }
+
+  if (path === APP_PATHS.ice2027Progress) {
+    return <Ice2027ProgressPage />
   }
 
   if (path === APP_PATHS.ice2027Evaluation) {

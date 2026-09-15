@@ -3,12 +3,15 @@
 namespace Database\Seeders;
 
 use App\Models\StaticDoc;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DummyStaticDocSeeder extends Seeder
 {
     public function run(): void
     {
+        $editor = User::query()->where('username', 'admin@dummy.test')->firstOrFail();
+
         $docs = [
             [50, 'Dummy Overview (2022)', 'MERKURflow', 'Overview (2022)', true, 181371],
             [100, 'Dummy The BOOK', 'The BOOK 2026', 'Complete', true, 77058473],
@@ -26,16 +29,14 @@ class DummyStaticDocSeeder extends Seeder
         ];
 
         foreach ($docs as [$id, $title, $subfolder, $file, $complete, $size]) {
-            StaticDoc::query()->updateOrCreate(
-                ['id' => $id],
-                [
-                    'title' => $title,
-                    'subfolder' => $subfolder,
-                    'file' => $file,
-                    'is_complete' => $complete,
-                    'file_size' => $size,
-                ]
-            );
+            $doc = StaticDoc::query()->firstOrNew(['id' => $id]);
+            $doc->title = $title;
+            $doc->subfolder = $subfolder;
+            $doc->file = $file;
+            $doc->is_complete = $complete;
+            $doc->file_size = $size;
+            $doc->mod_by = $editor->ID;
+            $doc->save();
         }
     }
 }

@@ -99,7 +99,7 @@ export function IceHero({
   )
 }
 
-export function IceSectionHead({ icon, title }: { icon?: ReactNode; title: string }) {
+export function IceSectionHead({ icon, title, action }: { icon?: ReactNode; title: string; action?: ReactNode }) {
   return (
     <Box
       sx={{
@@ -114,9 +114,10 @@ export function IceSectionHead({ icon, title }: { icon?: ReactNode; title: strin
       }}
     >
       {icon}
-      <Typography component="h2" sx={{ color: 'merkur.yellow', fontSize: 18, fontWeight: 800, m: 0 }}>
+      <Typography component="h2" sx={{ color: 'merkur.yellow', fontSize: 18, fontWeight: 800, m: 0, flex: 1 }}>
         {title}
       </Typography>
+      {action}
     </Box>
   )
 }

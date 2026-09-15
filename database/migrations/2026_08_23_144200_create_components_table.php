@@ -1,4 +1,4 @@
-c<?php
+<?php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->index('type_ID', 'type');
             $table->foreign('mod_by', 'fk_components_mod_by')
                 ->references('ID')
-                ->on('users')
+                ->on('dynamic__users')
                 ->cascadeOnUpdate()
                 ->restrictOnDelete();
             $table->foreign('type_ID', 'fk_components_type')

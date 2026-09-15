@@ -26,7 +26,8 @@ import TravelExploreOutlinedIcon from '@mui/icons-material/TravelExploreOutlined
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import type { AuthUser } from '@/api'
-import { APP_PATHS } from '@/routing'
+import type { ScoutMenuEvent } from '@/api/scout'
+import { APP_PATHS, ice2027HubPath } from '@/routing'
 
 export const NAV_BREAKPOINTS = {
   desktop: 768,
@@ -47,6 +48,7 @@ export type NavLinkItem = {
   emphasize?: boolean
   action?: NavAction
   path?: string
+  children?: NavChild[]
 }
 
 export type NavDivider = {
@@ -66,24 +68,18 @@ export type NavItem = {
   children?: NavChild[]
 }
 
-export function getMainNavigation(user: AuthUser | null): NavItem[] {
+export function getMainNavigation(user: AuthUser | null, scoutEvents: ScoutMenuEvent[] = []): NavItem[] {
   const displayName =
     user?.name_COMBINED?.trim() ||
     [user?.firstname, user?.lastname].filter(Boolean).join(' ') ||
     user?.username ||
     'Profile'
   const roleName = user?.role?.name ?? 'No role'
-  const isIceAttendant = Boolean(user?.iceattendent2027)
-  const isIceAdmin = Boolean(user?.role?.['may_create-update-delete_system-items'])
-  const iceChildren: NavChild[] = [
-    ...(isIceAttendant
-      ? [
-          { id: 'ice2027-questionnaire', label: 'Questionnaire', path: APP_PATHS.ice2027 },
-          { id: 'ice2027-evaluation', label: 'Evaluation', path: APP_PATHS.ice2027Evaluation },
-        ]
-      : []),
-    ...(isIceAdmin ? [{ id: 'ice2027-admin', label: 'Admin', path: APP_PATHS.ice2027Admin }] : []),
-  ]
+  const exhibitionChildren: NavChild[] = scoutEvents.map((event) => ({
+    id: `scout-${event.slug}`,
+    label: event.active ? event.name : `${event.name} (inactive)`,
+    path: ice2027HubPath(event.slug),
+  }))
 
   return [
     {
@@ -115,15 +111,16 @@ export function getMainNavigation(user: AuthUser | null): NavItem[] {
         { id: 'roadmap-docs', label: 'Roadmap Docs', path: APP_PATHS.roadmapDocs },
       ],
     },
-    ...(isIceAttendant || isIceAdmin
+    ...(exhibitionChildren.length > 0
       ? [
           {
-            id: 'ice2027',
-            label: 'ICE 2027',
+            id: 'exhibition',
+            label: 'Exhibition',
             icon: TravelExploreOutlinedIcon,
+            emphasize: true,
             labelFrom: 'xl' as const,
-            path: isIceAttendant ? APP_PATHS.ice2027 : APP_PATHS.ice2027Admin,
-            children: iceChildren,
+            path: APP_PATHS.ice2027,
+            children: exhibitionChildren,
           },
         ]
       : []),

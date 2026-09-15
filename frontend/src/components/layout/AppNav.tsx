@@ -1,4 +1,4 @@
-import { useCallback, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useState } from 'react'
 import type { MouseEvent } from 'react'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -19,6 +19,8 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import type { AuthUser } from '@/api'
+import { getScoutMenu } from '@/api/scout'
+import type { ScoutMenuEvent } from '@/api/scout'
 import { APP_PATHS, useAppPath } from '@/routing'
 import { useSearch } from '@/search'
 import type { NavChild, NavItem, NavLabelBreakpoint, NavLinkItem } from '@/config/navigation'
@@ -34,19 +36,28 @@ function isDivider(item: NavChild): item is Extract<NavChild, { type: 'divider' 
   return item.type === 'divider'
 }
 
+function navHrefPath(href?: string): string {
+  return href ? href.split('?')[0] : ''
+}
+
+function navChildIsActive(child: NavChild, path: string): boolean {
+  if (isDivider(child)) {
+    return false
+  }
+  const childPath = navHrefPath(child.path)
+  if (childPath && (path === childPath || (childPath !== '/' && path.startsWith(`${childPath}/`)))) {
+    return true
+  }
+  return Boolean(child.children?.some((nested) => navChildIsActive(nested, path)))
+}
+
 function navItemIsActive(item: NavItem, path: string): boolean {
-  if (item.path && (path === item.path || (item.path !== '/' && path.startsWith(`${item.path}/`)))) {
+  const itemPath = navHrefPath(item.path)
+  if (itemPath && (path === itemPath || (itemPath !== '/' && path.startsWith(`${itemPath}/`)))) {
     return true
   }
 
-  return Boolean(
-    item.children?.some(
-      (child) =>
-        !isDivider(child) &&
-        Boolean(child.path) &&
-        (path === child.path || (child.path !== '/' && path.startsWith(`${child.path}/`))),
-    ),
-  )
+  return Boolean(item.children?.some((child) => navChildIsActive(child, path)))
 }
 
 function labelSx(breakpoint?: NavLabelBreakpoint) {
@@ -72,17 +83,42 @@ export function AppNav({ user, onLogout }: AppNavProps) {
   const isDesktop = useMediaQuery(`(min-width:${NAV_BREAKPOINTS.desktop}px)`, {
     noSsr: true,
   })
-  const items = useMemo(() => getMainNavigation(user), [user])
+  const [scoutEvents, setScoutEvents] = useState<ScoutMenuEvent[]>([])
+  const items = useMemo(() => getMainNavigation(user, scoutEvents), [user, scoutEvents])
   const idPrefix = useId()
   const drawerId = `${idPrefix}-drawer`
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
+  const [openNestedId, setOpenNestedId] = useState<string | null>(null)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!user) {
+      setScoutEvents([])
+      return
+    }
+    let cancelled = false
+    void getScoutMenu()
+      .then((result) => {
+        if (!cancelled) {
+          setScoutEvents(result.events)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setScoutEvents([])
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   const closeMenu = useCallback(() => {
     setOpenMenuId(null)
     setMenuAnchor(null)
+    setOpenNestedId(null)
   }, [])
 
   const toggleMenu = useCallback(
@@ -91,11 +127,13 @@ export function AppNav({ user, onLogout }: AppNavProps) {
       if (openMenuId === id) {
         setOpenMenuId(null)
         setMenuAnchor(null)
+        setOpenNestedId(null)
         return
       }
 
       setOpenMenuId(id)
       setMenuAnchor(event.currentTarget)
+      setOpenNestedId(null)
     },
     [openMenuId],
   )
@@ -274,7 +312,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
           onClose={closeMenu}
           slotProps={{
             paper: {
-              sx: { minWidth: 240, maxHeight: 440, mt: 0.5 },
+              sx: { minWidth: 240, maxHeight: 520, mt: 0.5 },
             },
             list: {
               'aria-label': openItem.label,
@@ -285,26 +323,89 @@ export function AppNav({ user, onLogout }: AppNavProps) {
             isDivider(child) ? (
               <Divider key={`${openItem.id}-divider-${index}`} />
             ) : (
-              <MenuItem key={child.id} onClick={() => selectItem(child)}>
+              <DesktopNavChild
+                key={child.id}
+                item={child}
+                expanded={openNestedId === child.id}
+                onToggle={() => setOpenNestedId((current) => (current === child.id ? null : child.id))}
+                onSelect={selectItem}
+              />
+            ),
+          )}
+        </Menu>
+      ) : null}
+    </>
+  )
+}
+
+function DesktopNavChild({
+  item,
+  expanded,
+  onToggle,
+  onSelect,
+}: {
+  item: NavLinkItem
+  expanded: boolean
+  onToggle: () => void
+  onSelect: (item: NavLinkItem) => void
+}) {
+  const hasChildren = Boolean(item.children?.length)
+
+  if (!hasChildren) {
+    return (
+      <MenuItem onClick={() => onSelect(item)}>
+        {item.icon ? (
+          <ListItemIcon>
+            <item.icon fontSize="small" />
+          </ListItemIcon>
+        ) : null}
+        <ListItemText
+          primary={item.label}
+          secondary={item.description}
+          slotProps={{
+            primary: {
+              sx: { fontWeight: item.emphasize ? 800 : 500 },
+            },
+          }}
+        />
+      </MenuItem>
+    )
+  }
+
+  return (
+    <>
+      <MenuItem onClick={onToggle}>
+        {item.icon ? (
+          <ListItemIcon>
+            <item.icon fontSize="small" />
+          </ListItemIcon>
+        ) : null}
+        <ListItemText
+          primary={item.label}
+          slotProps={{
+            primary: {
+              sx: { fontWeight: 800 },
+            },
+          }}
+        />
+        {expanded ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+      </MenuItem>
+      {expanded
+        ? item.children?.map((child, index) =>
+            isDivider(child) ? (
+              <Divider key={`${item.id}-divider-${index}`} />
+            ) : (
+              <MenuItem key={child.id} sx={{ pl: 4 }} onClick={() => onSelect(child)}>
                 {child.icon ? (
                   <ListItemIcon>
                     <child.icon fontSize="small" />
                   </ListItemIcon>
                 ) : null}
-                <ListItemText
-                  primary={child.label}
-                  secondary={child.description}
-                  slotProps={{
-                    primary: {
-                      sx: { fontWeight: child.emphasize ? 800 : 500 },
-                    },
-                  }}
-                />
+                <ListItemText primary={child.label} />
               </MenuItem>
             ),
-          )}
-        </Menu>
-      ) : null}
+          )
+        : null}
     </>
   )
 }
@@ -360,26 +461,75 @@ function MobileNavItem({
             isDivider(child) ? (
               <Divider key={`${item.id}-divider-${index}`} />
             ) : (
-              <ListItemButton
-                key={child.id}
-                sx={{ pl: 4 }}
-                onClick={() => onSelect(child)}
-              >
-                {child.icon ? (
-                  <ListItemIcon>
-                    <child.icon fontSize="small" />
-                  </ListItemIcon>
-                ) : null}
-                <ListItemText
-                  primary={child.label}
-                  secondary={child.description}
-                  slotProps={{
-                    primary: {
-                      sx: { fontWeight: child.emphasize ? 800 : 500 },
-                    },
-                  }}
-                />
-              </ListItemButton>
+              <MobileNavChild key={child.id} item={child} depth={1} onSelect={onSelect} />
+            ),
+          )}
+        </List>
+      </Collapse>
+    </>
+  )
+}
+
+function MobileNavChild({
+  item,
+  depth,
+  onSelect,
+}: {
+  item: NavLinkItem
+  depth: number
+  onSelect: (item: NavLinkItem) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const hasChildren = Boolean(item.children?.length)
+  const panelId = `${item.id}-submenu`
+
+  if (!hasChildren) {
+    return (
+      <ListItemButton sx={{ pl: 2 + depth * 2 }} onClick={() => onSelect(item)}>
+        {item.icon ? (
+          <ListItemIcon>
+            <item.icon fontSize="small" />
+          </ListItemIcon>
+        ) : null}
+        <ListItemText
+          primary={item.label}
+          secondary={item.description}
+          slotProps={{
+            primary: {
+              sx: { fontWeight: item.emphasize ? 800 : 500 },
+            },
+          }}
+        />
+      </ListItemButton>
+    )
+  }
+
+  return (
+    <>
+      <ListItemButton
+        sx={{ pl: 2 + depth * 2 }}
+        onClick={() => setExpanded((current) => !current)}
+        aria-expanded={expanded}
+        aria-controls={panelId}
+      >
+        {item.icon ? (
+          <ListItemIcon>
+            <item.icon fontSize="small" />
+          </ListItemIcon>
+        ) : null}
+        <ListItemText
+          primary={item.label}
+          slotProps={{ primary: { sx: { fontWeight: 700 } } }}
+        />
+        {expanded ? <ExpandLessIcon aria-hidden /> : <ExpandMoreIcon aria-hidden />}
+      </ListItemButton>
+      <Collapse id={panelId} in={expanded} timeout="auto" unmountOnExit>
+        <List disablePadding>
+          {item.children?.map((child, index) =>
+            isDivider(child) ? (
+              <Divider key={`${item.id}-divider-${index}`} />
+            ) : (
+              <MobileNavChild key={child.id} item={child} depth={depth + 1} onSelect={onSelect} />
             ),
           )}
         </List>

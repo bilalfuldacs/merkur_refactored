@@ -8,28 +8,33 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'event_ID',
-    'team_ID',
     'user_ID',
+    'may_manage',
 ])]
-class Ice2027TeamMember extends Model
+class ScoutAttendant extends Model
 {
-    protected $table = 'ice2027_team_members';
+    protected $table = 'scout_attendants';
 
     protected $primaryKey = 'ID';
 
     public $timestamps = false;
 
-    public function getRouteKeyName(): string
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
     {
-        return 'ID';
+        return [
+            'may_manage' => 'boolean',
+        ];
     }
 
     /**
-     * @return BelongsTo<Ice2027Team, $this>
+     * @return BelongsTo<ScoutEvent, $this>
      */
-    public function team(): BelongsTo
+    public function event(): BelongsTo
     {
-        return $this->belongsTo(Ice2027Team::class, 'team_ID', 'ID');
+        return $this->belongsTo(ScoutEvent::class, 'event_ID', 'ID');
     }
 
     /**

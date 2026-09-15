@@ -162,10 +162,12 @@ export type { StaticDoc, StaticDocCreator, StaticDocInput } from './docs'
 export {
   clearAccessToken,
   clearSession,
+  expireSession,
   getAccessToken,
   getStoredUser,
   setAccessToken,
   setStoredUser,
+  subscribeSessionExpired,
 } from './session'
 export {
   addIceCompetitor,
@@ -174,9 +176,12 @@ export {
   deleteIceGame,
   getIce2027,
   getIceAdmin,
+  getIceDashboard,
   getIceEvaluation,
+  getIceProgress,
   getIceQuestionnaire,
   renameIceTeam,
+  saveIceAttendants,
   saveIceEvaluation,
   saveIceQuestionnaire,
   setIceAttendant,
@@ -184,6 +189,8 @@ export {
   updateIceCompetitor,
   updateIceGame,
 } from './ice2027'
+export { createScoutEvent, getScoutAdminEvents, getScoutMenu, updateScoutEvent } from './scout'
+export type { ScoutEventRecord, ScoutMenuEvent } from './scout'
 export type {
   IceAdminPayload,
   IceAdminStats,
@@ -195,9 +202,19 @@ export type {
   IceMe,
   IceMultigameProduct,
   IcePerson,
+  IceProgressPhoto,
+  IceQuestionnaireHistory,
   IceQuestionnairePayload,
   IceQuestionnaireProducts,
+  IceScoutProduct,
   IceStandardProduct,
+  IceEvent,
   IceTeam,
   IceTeamMember,
+  IceProgressGameCheck,
+  IceProgressGameRow,
+  IceProgressPayload,
+  IceProgressPerson,
+  IceProgressPhoto,
+  IceProgressTeam,
 } from './ice2027'
