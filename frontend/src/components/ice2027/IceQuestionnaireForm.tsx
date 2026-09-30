@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined'
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
@@ -21,8 +21,11 @@ import Switch from '@mui/material/Switch'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import { ApiError } from '@/api'
 import type {
+  IceCompetitor,
   IceGame,
   IceMultigameProduct,
   IceProgressPhoto,
@@ -32,19 +35,29 @@ import type {
   IceScoutProduct,
   IceStandardProduct,
 } from '@/api/ice2027'
-import { deleteIcePhoto, ICE_GAME_TYPES, uploadIcePhoto } from '@/api/ice2027'
+import { deleteIcePhoto, ICE_GAME_TYPES, ICE_MECHANICS_OPTIONS, uploadIcePhoto } from '@/api/ice2027'
 import { useAuthFileUrl } from '@/components/docs/format'
 import { AppButton, AppTextField } from '@/components/ui'
+import Autocomplete from '@mui/material/Autocomplete'
+import VideocamOutlinedIcon from '@mui/icons-material/VideocamOutlined'
+import {
+  clearIceProductDraft,
+  iceProductDraftHasContent,
+  readIceProductDraft,
+  saveIceProductDraft,
+} from '@/offline/iceOffline'
 import { IceSectionHead } from './IceChrome'
 
 const STAR = '#c4002a'
 
-const FUNCTIONS = [
-  { value: 'hold_and_spin', label: 'Hold & Spin' },
-  { value: 'perceived_persistence', label: 'Perceived Persistence' },
-  { value: 'combination_persist_hold', label: 'Combination Perceived Persistence / Hold & Spin' },
-  { value: 'feature_in_feature', label: 'Feature in Feature' },
-] as const
+/** Touch-friendly inputs: 16px avoids iOS zoom; 42px matches scout.php mobile. */
+const mobileFieldSx = {
+  '& .MuiInputBase-root': { minHeight: { xs: 42 } },
+  '& .MuiInputBase-input': { fontSize: { xs: 16 } },
+  '& .MuiSelect-select': { fontSize: { xs: 16 }, display: 'flex', alignItems: 'center' },
+} as const
+
+const MECHANICS = Object.entries(ICE_MECHANICS_OPTIONS).map(([value, label]) => ({ value, label }))
 
 const CATEGORIES = [
   { value: 'mlp', label: 'MLP' },
@@ -57,11 +70,20 @@ const emptyDraft = (): IceScoutProduct => ({
   is_new_product: false,
   game_name: '',
   category: '',
+  competitor_ID: '',
+  competitor_name: '',
   game_ids: [],
   photos: [],
   progressive_jp: 'no',
   integrated_jp: 'no',
   functionality: [],
+  mechanics_description: '',
+  bets: '',
+  number_of_monitors: '',
+  monitor_size: '',
+  uhd: 'no',
+  video_button_panel: 'no',
+  vbp_functions: '',
 })
 
 export function emptyProducts(
@@ -129,12 +151,17 @@ function YesNo({
       <FieldLabel required={required}>{label}</FieldLabel>
       <ToggleButtonGroup
         exclusive
+        fullWidth
         size="small"
         value={current}
         onChange={(_, next: 'yes' | 'no' | null) => {
           if (next) {
             onChange(next)
           }
+        }}
+        sx={{
+          maxWidth: { sm: 280 },
+          '& .MuiToggleButton-root': { minHeight: { xs: 42 }, flex: 1 },
         }}
       >
         <ToggleButton value="no">No</ToggleButton>
@@ -147,18 +174,73 @@ function YesNo({
 function StandardFields({
   product,
   onChange,
+  themeWorlds,
+  cabinet,
 }: {
   product: IceStandardProduct
   onChange: (next: IceStandardProduct) => void
+  themeWorlds: string[]
+  cabinet?: boolean
 }) {
   const functions = Array.isArray(product.functionality) ? product.functionality : []
   const jpYes = product.progressive_jp === 'yes'
   const theme = String(product.theme ?? '')
-  const [themeOther, setThemeOther] = useState(theme !== '')
+  const vbpYes = product.video_button_panel === 'yes'
 
   function toggleFn(value: string, checked: boolean) {
     const next = checked ? [...functions.filter((item) => item !== value), value] : functions.filter((item) => item !== value)
     onChange({ ...product, functionality: next })
+  }
+
+  if (cabinet) {
+    return (
+      <>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 2 }}>
+          <Box>
+            <FieldLabel required>Number of monitors</FieldLabel>
+            <AppTextField
+              type="number"
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              value={product.number_of_monitors ?? ''}
+              onChange={(event) => onChange({ ...product, number_of_monitors: event.target.value })}
+            />
+          </Box>
+          <Box>
+            <FieldLabel required>Monitor size</FieldLabel>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="e.g. 27 inch"
+              value={product.monitor_size ?? ''}
+              onChange={(event) => onChange({ ...product, monitor_size: event.target.value })}
+            />
+          </Box>
+        </Box>
+        <YesNo required label="UHD" value={String(product.uhd ?? 'no')} onChange={(next) => onChange({ ...product, uhd: next })} />
+        <YesNo
+          required
+          label="Video Button Panel"
+          value={String(product.video_button_panel ?? 'no')}
+          onChange={(next) => onChange({ ...product, video_button_panel: next, vbp_functions: next === 'yes' ? product.vbp_functions : '' })}
+        />
+        {vbpYes ? (
+          <Box sx={{ mb: 2 }}>
+            <FieldLabel required>Functions of VBP</FieldLabel>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="Functions of the Video Button Panel"
+              value={product.vbp_functions ?? ''}
+              onChange={(event) => onChange({ ...product, vbp_functions: event.target.value })}
+            />
+          </Box>
+        ) : null}
+      </>
+    )
   }
 
   return (
@@ -170,23 +252,25 @@ function StandardFields({
         onChange={(next) => onChange({ ...product, progressive_jp: next })}
       />
       {jpYes ? (
-        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5, mb: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mb: 2 }}>
           <Box>
-            <FieldLabel required>No. Progressives</FieldLabel>
+            <FieldLabel required>Progressives</FieldLabel>
             <AppTextField
               type="number"
               size="small"
               fullWidth
+              sx={mobileFieldSx}
               value={product.no_progressives ?? ''}
               onChange={(event) => onChange({ ...product, no_progressives: event.target.value })}
             />
           </Box>
           <Box>
-            <FieldLabel required>No. Static</FieldLabel>
+            <FieldLabel required>Static</FieldLabel>
             <AppTextField
               type="number"
               size="small"
               fullWidth
+              sx={mobileFieldSx}
               value={product.no_static ?? ''}
               onChange={(event) => onChange({ ...product, no_static: event.target.value })}
             />
@@ -194,9 +278,9 @@ function StandardFields({
         </Box>
       ) : null}
 
-      <FieldLabel required>Functionality</FieldLabel>
+      <FieldLabel required>Mechanics</FieldLabel>
       <FormGroup sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5, mb: 2 }}>
-        {FUNCTIONS.slice(0, 2).map((option) => (
+        {MECHANICS.map((option) => (
           <FormControlLabel
             key={option.value}
             control={
@@ -215,73 +299,65 @@ function StandardFields({
             type="number"
             size="small"
             fullWidth
+            sx={mobileFieldSx}
             value={product.no_of_pots ?? ''}
             onChange={(event) => onChange({ ...product, no_of_pots: event.target.value })}
           />
         </Box>
-        {FUNCTIONS.slice(2).map((option) => (
-          <FormControlLabel
-            key={option.value}
-            control={
-              <Checkbox
-                size="small"
-                checked={functions.includes(option.value)}
-                onChange={(event) => toggleFn(option.value, event.target.checked)}
-              />
-            }
-            label={option.label}
+        <Box sx={{ mb: 1 }}>
+          <Typography sx={{ mb: 0.5, fontSize: 14 }}>Description of game mechanics</Typography>
+          <AppTextField
+            multiline
+            minRows={4}
+            size="small"
+            fullWidth
+            sx={mobileFieldSx}
+            value={product.mechanics_description ?? ''}
+            onChange={(event) => onChange({ ...product, mechanics_description: event.target.value })}
           />
-        ))}
+        </Box>
       </FormGroup>
 
       <Box sx={{ mb: 2 }}>
         <FieldLabel required>Win-Lines</FieldLabel>
-        <AppTextField size="small" fullWidth value={product.win_lines ?? ''} onChange={(event) => onChange({ ...product, win_lines: event.target.value })} />
+        <AppTextField size="small" fullWidth sx={mobileFieldSx} value={product.win_lines ?? ''} onChange={(event) => onChange({ ...product, win_lines: event.target.value })} />
       </Box>
       <Box sx={{ mb: 2 }}>
-        <Typography sx={{ mb: 0.75 }}>Denomination Structure</Typography>
-        <AppTextField size="small" fullWidth value={product.denomination ?? ''} onChange={(event) => onChange({ ...product, denomination: event.target.value })} />
+        <Typography sx={{ mb: 0.75 }}>Denomination</Typography>
+        <AppTextField size="small" fullWidth sx={mobileFieldSx} value={product.denomination ?? ''} onChange={(event) => onChange({ ...product, denomination: event.target.value })} />
       </Box>
       <Box sx={{ mb: 2 }}>
-        <FieldLabel required>Theme</FieldLabel>
+        <Typography sx={{ mb: 0.75 }}>Bets</Typography>
         <AppTextField
-          select
+          type="number"
           size="small"
           fullWidth
-          value={themeOther ? '__other__' : ''}
-          onChange={(event) => {
-            const other = event.target.value === '__other__'
-            setThemeOther(other)
-            if (!other) {
-              onChange({ ...product, theme: '' })
-            }
-          }}
-        >
-          <MenuItem value="">Select a theme world…</MenuItem>
-          <MenuItem value="__other__">Other (type below)</MenuItem>
-        </AppTextField>
-        {themeOther ? (
-          <AppTextField
-            size="small"
-            fullWidth
-            sx={{ mt: 1 }}
-            placeholder="Theme world name"
-            value={theme}
-            onChange={(event) => onChange({ ...product, theme: event.target.value })}
-          />
-        ) : null}
+          sx={mobileFieldSx}
+          value={product.bets ?? ''}
+          onChange={(event) => onChange({ ...product, bets: event.target.value })}
+        />
+      </Box>
+      <Box sx={{ mb: 2 }}>
+        <Typography sx={{ mb: 0.75 }}>Theme</Typography>
+        <Autocomplete
+          freeSolo
+          options={[...themeWorlds, 'Add new theme…']}
+          value={theme}
+          onInputChange={(_, value) => onChange({ ...product, theme: value === 'Add new theme…' ? '' : value })}
+          renderInput={(params) => <AppTextField {...params} size="small" sx={mobileFieldSx} placeholder="Search themes…" />}
+        />
       </Box>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ mb: 0.75 }}>Cabinet</Typography>
-        <AppTextField size="small" fullWidth value={product.cabinet ?? ''} onChange={(event) => onChange({ ...product, cabinet: event.target.value })} />
+        <AppTextField size="small" fullWidth sx={mobileFieldSx} value={product.cabinet ?? ''} onChange={(event) => onChange({ ...product, cabinet: event.target.value })} />
       </Box>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ mb: 0.75 }}>Target Market</Typography>
-        <AppTextField size="small" fullWidth value={product.target_market ?? ''} onChange={(event) => onChange({ ...product, target_market: event.target.value })} />
+        <AppTextField size="small" fullWidth sx={mobileFieldSx} value={product.target_market ?? ''} onChange={(event) => onChange({ ...product, target_market: event.target.value })} />
       </Box>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ mb: 0.75 }}>USP</Typography>
-        <AppTextField multiline minRows={3} size="small" fullWidth value={product.usp ?? ''} onChange={(event) => onChange({ ...product, usp: event.target.value })} />
+        <AppTextField multiline minRows={3} size="small" fullWidth sx={mobileFieldSx} value={product.usp ?? ''} onChange={(event) => onChange({ ...product, usp: event.target.value })} />
       </Box>
     </>
   )
@@ -309,6 +385,7 @@ function MultigameFields({
             type="number"
             size="small"
             fullWidth
+            sx={mobileFieldSx}
             value={product.integrated_jp_number ?? ''}
             onChange={(event) => onChange({ ...product, integrated_jp_number: event.target.value })}
           />
@@ -320,6 +397,7 @@ function MultigameFields({
           type="number"
           size="small"
           fullWidth
+          sx={mobileFieldSx}
           value={product.number_of_categories ?? ''}
           onChange={(event) => onChange({ ...product, number_of_categories: event.target.value })}
         />
@@ -330,6 +408,7 @@ function MultigameFields({
           type="number"
           size="small"
           fullWidth
+          sx={mobileFieldSx}
           value={product.number_of_games ?? ''}
           onChange={(event) => onChange({ ...product, number_of_games: event.target.value })}
         />
@@ -340,9 +419,16 @@ function MultigameFields({
 
 function DraftPhotoThumb({ photo, onRemove }: { photo: IceProgressPhoto; onRemove: () => void }) {
   const src = useAuthFileUrl(photo.url)
+  const isVideo = photo.kind === 'video' || /\.(mp4|mov|m4v|webm)($|\?)/i.test(`${photo.name}${photo.id}`)
   return (
     <Box sx={{ position: 'relative', width: 72, height: 72 }}>
-      {src ? (
+      {isVideo ? (
+        <Box
+          component="video"
+          src={src || undefined}
+          sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black' }}
+        />
+      ) : src ? (
         <Box component="img" src={src} alt={photo.name} sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
       ) : (
         <Box sx={{ width: 72, height: 72, bgcolor: 'action.hover', borderRadius: 1 }} />
@@ -356,8 +442,18 @@ function DraftPhotoThumb({ photo, onRemove }: { photo: IceProgressPhoto; onRemov
 
 function ProductThumb({ photo }: { photo: IceProgressPhoto }) {
   const src = useAuthFileUrl(photo.url)
-  if (!src) {
+  const isVideo = photo.kind === 'video' || /\.(mp4|mov|m4v|webm)($|\?)/i.test(`${photo.name}${photo.id}`)
+  if (!src && !isVideo) {
     return null
+  }
+  if (isVideo) {
+    return (
+      <Box
+        component="video"
+        src={src || undefined}
+        sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black' }}
+      />
+    )
   }
   return <Box component="img" src={src} alt="" sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
 }
@@ -373,12 +469,23 @@ function productTitle(item: IceScoutProduct, games: IceGame[]): string {
   return ids.map((id) => games.find((game) => game.ID === id)?.name ?? `Game #${id}`).join(', ')
 }
 
-function draftErrors(item: IceScoutProduct, games: IceGame[], usedIds: Set<number>): string[] {
+function draftErrors(
+  item: IceScoutProduct,
+  games: IceGame[],
+  usedIds: Set<number>,
+  options: { needCompetitor?: boolean; forceNew?: boolean },
+): string[] {
   const errors: string[] = []
   if (!item.category) {
     errors.push('Select a category.')
   }
-  if (item.is_new_product) {
+  if (options.needCompetitor) {
+    const typed = (item.competitor_name ?? item.competitor ?? '').trim()
+    if (!typed && !(Number(item.competitor_ID) > 0)) {
+      errors.push('Select the competitor.')
+    }
+  }
+  if (item.is_new_product || options.forceNew) {
     if (!item.game_name?.trim()) {
       errors.push('Enter the new product’s game name.')
     }
@@ -394,7 +501,22 @@ function draftErrors(item: IceScoutProduct, games: IceGame[], usedIds: Set<numbe
       }
     }
   }
-  if (item.category !== 'multigame') {
+  if (item.category === 'cabinet') {
+    if (item.number_of_monitors === '' || item.number_of_monitors == null) {
+      errors.push('Enter the number of monitors.')
+    }
+    if (!String(item.monitor_size ?? '').trim()) {
+      errors.push('Enter the monitor size.')
+    }
+    if (item.uhd !== 'yes' && item.uhd !== 'no') {
+      errors.push('Select UHD yes or no.')
+    }
+    if (item.video_button_panel !== 'yes' && item.video_button_panel !== 'no') {
+      errors.push('Select Video Button Panel yes or no.')
+    } else if (item.video_button_panel === 'yes' && !String(item.vbp_functions ?? '').trim()) {
+      errors.push('Enter the functions of the Video Button Panel.')
+    }
+  } else if (item.category !== 'multigame') {
     if (item.progressive_jp === 'yes') {
       if (item.no_progressives === '' || item.no_progressives == null) {
         errors.push('Enter the number of progressives.')
@@ -404,13 +526,10 @@ function draftErrors(item: IceScoutProduct, games: IceGame[], usedIds: Set<numbe
       }
     }
     if (!(item.functionality ?? []).length) {
-      errors.push('Select at least one functionality.')
+      errors.push('Select at least one mechanics option.')
     }
     if (!String(item.win_lines ?? '').trim()) {
       errors.push('Enter win-lines.')
-    }
-    if (!String(item.theme ?? '').trim()) {
-      errors.push('Select a theme world.')
     }
   }
   return errors
@@ -424,6 +543,10 @@ export function IceQuestionnaireForm({
   updatedBy,
   updatedAt,
   history,
+  allCompetitors = [],
+  themeWorlds = [],
+  openMode = false,
+  forceNewProduct = false,
   onChange,
   onPersist,
 }: {
@@ -434,6 +557,10 @@ export function IceQuestionnaireForm({
   updatedBy?: string | null
   updatedAt?: string | null
   history?: IceQuestionnaireHistory[]
+  allCompetitors?: IceCompetitor[]
+  themeWorlds?: string[]
+  openMode?: boolean
+  forceNewProduct?: boolean
   onChange: (next: IceQuestionnaireProducts) => void
   onPersist?: (next: IceQuestionnaireProducts) => Promise<void>
 }) {
@@ -443,8 +570,88 @@ export function IceQuestionnaireForm({
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [productDraft, setProductDraft] = useState<{ item: IceScoutProduct; index: number } | null>(null)
+  const [modalDirty, setModalDirty] = useState(false)
+  const modalLockedRef = useRef(false)
   const cameraRef = useRef<HTMLInputElement>(null)
   const libraryRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLInputElement>(null)
+  const theme = useTheme()
+  const fullScreenDialog = useMediaQuery(theme.breakpoints.down('md'))
+  const draftCompetitorKey = openMode ? 0 : competitorId
+
+  useEffect(() => {
+    let cancelled = false
+    void readIceProductDraft(draftCompetitorKey).then((pack) => {
+      if (!cancelled) {
+        setProductDraft(pack)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [draftCompetitorKey])
+
+  useEffect(() => {
+    if (!open || modalLockedRef.current || !modalDirty) {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      if (!iceProductDraftHasContent(draft, openMode)) {
+        void clearIceProductDraft(draftCompetitorKey).then(() => setProductDraft(null))
+        return
+      }
+      const pack = { item: draft, index: editingIndex ?? -1 }
+      void saveIceProductDraft(draftCompetitorKey, pack).then(() => setProductDraft(pack))
+    }, 400)
+    return () => window.clearTimeout(timer)
+  }, [draft, open, modalDirty, editingIndex, draftCompetitorKey, openMode])
+
+  function patchDraft(next: IceScoutProduct | ((current: IceScoutProduct) => IceScoutProduct)) {
+    setModalDirty(true)
+    setDraft(next)
+  }
+
+  function closeDialog(persistDraft = true) {
+    if (persistDraft && modalDirty && iceProductDraftHasContent(draft, openMode)) {
+      const pack = { item: draft, index: editingIndex ?? -1 }
+      void saveIceProductDraft(draftCompetitorKey, pack).then(() => setProductDraft(pack))
+    }
+    setOpen(false)
+    setModalDirty(false)
+  }
+
+  async function clearStoredProductDraft() {
+    modalLockedRef.current = true
+    await clearIceProductDraft(draftCompetitorKey)
+    setProductDraft(null)
+    setModalDirty(false)
+    modalLockedRef.current = false
+  }
+
+  function productDraftLabel(item: IceScoutProduct): string {
+    const name = String(item.game_name ?? '').trim()
+    if (name) {
+      return `Unfinished product “${name}” is stored in this browser.`
+    }
+    const category = item.category ? ICE_GAME_TYPES[item.category as keyof typeof ICE_GAME_TYPES] : ''
+    if (category) {
+      return `Unfinished ${category} is stored in this browser.`
+    }
+    return 'Unfinished product is stored in this browser.'
+  }
+
+  function resumeProductDraft() {
+    if (!productDraft) {
+      return
+    }
+    const index = productDraft.index
+    setDraft({ ...emptyDraft(), ...productDraft.item, photos: productDraft.item.photos ?? [], game_ids: productDraft.item.game_ids ?? [] })
+    setEditingIndex(Number.isFinite(index) && index >= 0 && index < products.length ? index : null)
+    setErrors([])
+    setModalDirty(false)
+    setOpen(true)
+  }
 
   const usedIds = (except: number | null) => {
     const used = new Set<number>()
@@ -460,9 +667,10 @@ export function IceQuestionnaireForm({
   }
 
   function openAdd() {
-    setDraft(emptyDraft())
+    setDraft({ ...emptyDraft(), is_new_product: forceNewProduct })
     setEditingIndex(null)
     setErrors([])
+    setModalDirty(false)
     setOpen(true)
   }
 
@@ -471,6 +679,7 @@ export function IceQuestionnaireForm({
     setDraft({ ...emptyDraft(), ...item, photos: item.photos ?? [], game_ids: item.game_ids ?? [] })
     setEditingIndex(index)
     setErrors([])
+    setModalDirty(false)
     setOpen(true)
   }
 
@@ -490,7 +699,7 @@ export function IceQuestionnaireForm({
 
   async function saveDraft() {
     const used = usedIds(editingIndex)
-    const found = draftErrors(draft, games, used)
+    const found = draftErrors(draft, gamesForDraft, used, { needCompetitor: openMode, forceNew: forceNewProduct })
     if (found.length) {
       setErrors(found)
       return
@@ -503,7 +712,9 @@ export function IceQuestionnaireForm({
     }
     try {
       await persist(next)
+      await clearStoredProductDraft()
       setOpen(false)
+      setModalDirty(false)
     } catch (error) {
       setErrors([error instanceof ApiError ? error.message : 'Could not save the questionnaire.'])
     }
@@ -530,6 +741,7 @@ export function IceQuestionnaireForm({
         const result = await uploadIcePhoto(competitorId, file)
         uploaded.push(result.photo)
       }
+      setModalDirty(true)
       setDraft((current) => ({ ...current, photos: [...(current.photos ?? []), ...uploaded] }))
     } catch (error) {
       setErrors([error instanceof ApiError ? error.message : 'Could not upload the picture.'])
@@ -548,18 +760,55 @@ export function IceQuestionnaireForm({
     } catch {
       // Live also removes from the draft even if the file is already gone.
     }
+    setModalDirty(true)
     setDraft((current) => ({ ...current, photos: (current.photos ?? []).filter((_, i) => i !== index) }))
   }
 
-  const isNew = Boolean(draft.is_new_product)
+  const isNew = Boolean(draft.is_new_product) || forceNewProduct
   const isMultigame = draft.category === 'multigame'
+  const isCabinet = draft.category === 'cabinet'
+  const selectedCompetitorId = Number(draft.competitor_ID) > 0 ? Number(draft.competitor_ID) : 0
+  const gamesForDraft = openMode
+    ? games.filter((game) => (selectedCompetitorId > 0 ? game.competitor_ID === selectedCompetitorId : false))
+    : games
   const selectedGameId = draft.game_ids?.[0] ?? 0
-  const available = games.filter((game) => !usedIds(editingIndex).has(game.ID) || game.ID === selectedGameId)
+  const available = gamesForDraft.filter((game) => !usedIds(editingIndex).has(game.ID) || game.ID === selectedGameId)
   const pastHistory = (history ?? []).filter((entry) => !entry.is_current)
   const gamePlaceholder = games.length === 0 ? 'No games for this competitor' : available.length === 0 ? 'All games already on this questionnaire' : 'Select a game…'
 
   return (
     <>
+      {productDraft ? (
+        <Alert
+          severity="warning"
+          sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}
+          action={
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <AppButton size="small" variant="contained" color="warning" onClick={resumeProductDraft}>
+                Continue
+              </AppButton>
+              <AppButton
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={() => {
+                  void clearStoredProductDraft().then(() => {
+                    if (open) {
+                      setDraft({ ...emptyDraft(), is_new_product: forceNewProduct })
+                      setEditingIndex(null)
+                    }
+                  })
+                }}
+              >
+                Discard
+              </AppButton>
+            </Box>
+          }
+        >
+          {productDraftLabel(productDraft.item)}
+        </Alert>
+      ) : null}
+
       {teamMembers && teamMembers.length > 0 ? (
         <Alert
           severity="info"
@@ -585,15 +834,26 @@ export function IceQuestionnaireForm({
         <IceSectionHead
           title="Products"
           action={
-            <AppButton size="small" variant="contained" color="inherit" startIcon={<AddOutlinedIcon />} onClick={openAdd} sx={{ color: 'secondary.main', bgcolor: 'common.white' }}>
+            <AppButton
+              size="small"
+              variant="contained"
+              color="inherit"
+              startIcon={<AddOutlinedIcon />}
+              onClick={openAdd}
+              sx={{ color: 'secondary.main', bgcolor: 'common.white', width: { xs: '100%', sm: 'auto' }, minHeight: { xs: 44 } }}
+            >
               Add product
             </AppButton>
           }
         />
         <Box sx={{ p: 2.5 }}>
           <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-            Use <strong>Add product</strong> for each game you scout. It is saved as soon as you add or edit it. Fields marked with <strong>*</strong> are required. Turn on{' '}
-            <strong>New product</strong> to type a game name; leave it off to pick this competitor’s games. You can also upload game pictures.
+            Use <strong>Add product</strong> for each game you scout. It is saved as soon as you add or edit it. Fields marked with <strong>*</strong> are required.
+            {openMode
+              ? ' Select the competitor, or type a new competitor name, then pick a catalog game or turn on New product. You can upload pictures and video.'
+              : forceNewProduct
+                ? ' There are no catalog games yet, so add each game as a new product. You can upload pictures and video.'
+                : ' Turn on New product to type a game name; leave it off to pick this competitor’s games. You can also upload pictures and video.'}
           </Typography>
           {products.length === 0 ? (
             <Typography sx={{ color: 'text.secondary' }}>No products yet. Use Add product to start.</Typography>
@@ -619,8 +879,22 @@ export function IceQuestionnaireForm({
                   <Box sx={{ flex: 1, minWidth: 180 }}>
                     <Typography sx={{ fontWeight: 800 }}>{productTitle(item, games)}</Typography>
                     <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
-                      {(ICE_GAME_TYPES[(item.category ?? '') as keyof typeof ICE_GAME_TYPES] ?? item.category ?? 'Product') + (item.is_new_product ? ' · New product' : '')}
+                      {(ICE_GAME_TYPES[(item.category ?? '') as keyof typeof ICE_GAME_TYPES] ?? item.category ?? 'Product')
+                        + (item.is_new_product ? ' · New product' : '')
+                        + (openMode && (item.competitor_name || item.competitor) ? ` · ${item.competitor_name || item.competitor}` : '')}
                     </Typography>
+                    {item.category === 'cabinet' ? (
+                      <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
+                        {[
+                          item.number_of_monitors ? `${item.number_of_monitors} monitors` : null,
+                          item.monitor_size,
+                          item.uhd === 'yes' ? 'UHD' : item.uhd === 'no' ? 'no UHD' : null,
+                          item.video_button_panel === 'yes' ? (item.vbp_functions ? `VBP: ${item.vbp_functions}` : 'VBP') : item.video_button_panel === 'no' ? 'no VBP' : null,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Typography>
+                    ) : null}
                     {(item.photos ?? []).length > 0 ? (
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
                         {(item.photos ?? []).map((photo) => (
@@ -642,14 +916,14 @@ export function IceQuestionnaireForm({
         </Box>
       </Paper>
 
-      <Dialog open={open} onClose={() => setOpen(false)} maxWidth="md" fullWidth scroll="paper">
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', pr: 1 }}>
+      <Dialog open={open} onClose={() => closeDialog(true)} maxWidth="md" fullWidth fullScreen={fullScreenDialog} scroll="paper">
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', pr: 1, px: { xs: 1.5, md: 3 }, py: { xs: 1.25, md: 2 }, fontSize: { xs: '1.05rem', md: undefined } }}>
           {editingIndex === null ? 'Add product' : 'Edit product'}
-          <IconButton aria-label="Close" onClick={() => setOpen(false)} sx={{ ml: 'auto' }}>
+          <IconButton aria-label="Close" onClick={() => closeDialog(true)} sx={{ ml: 'auto' }}>
             <CloseOutlinedIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent dividers sx={{ px: { xs: 1.5, md: 3 }, py: { xs: 1.5, md: 2 } }}>
           {errors.length > 0 ? (
             <Alert severity="error" sx={{ mb: 2 }}>
               <Typography sx={{ fontWeight: 700, mb: 0.5 }}>Please fix the following:</Typography>
@@ -661,14 +935,14 @@ export function IceQuestionnaireForm({
             </Alert>
           ) : null}
 
-          <Box sx={{ p: 1.5, mb: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover' }}>
+          <Box sx={{ p: { xs: 1.25, md: 1.5 }, mb: 2.5, border: '1px solid', borderColor: 'divider', borderRadius: 2, bgcolor: 'action.hover' }} hidden={forceNewProduct}>
             <FormControlLabel
               sx={{ ml: 0 }}
               control={
                 <Switch
                   checked={isNew}
                   onChange={(_, checked) =>
-                    setDraft((current) => ({
+                    patchDraft((current) => ({
                       ...current,
                       is_new_product: checked,
                       game_name: checked ? current.game_name : '',
@@ -690,8 +964,9 @@ export function IceQuestionnaireForm({
               select
               size="small"
               fullWidth
+              sx={mobileFieldSx}
               value={draft.category ?? ''}
-              onChange={(event) => setDraft((current) => ({ ...current, category: event.target.value }))}
+              onChange={(event) => patchDraft((current) => ({ ...current, category: event.target.value }))}
             >
               <MenuItem value="">Select category…</MenuItem>
               {CATEGORIES.map((option) => (
@@ -702,15 +977,56 @@ export function IceQuestionnaireForm({
             </AppTextField>
           </Box>
 
+          {openMode ? (
+            <Box sx={{ mb: 2 }}>
+              <FieldLabel required>Competitor</FieldLabel>
+              <AppTextField
+                select
+                size="small"
+                fullWidth
+                sx={mobileFieldSx}
+                value={draft.competitor_ID === '__new__' ? '__new__' : selectedCompetitorId ? String(selectedCompetitorId) : ''}
+                onChange={(event) => {
+                  const value = event.target.value
+                  patchDraft((current) => ({
+                    ...current,
+                    competitor_ID: value,
+                    competitor_name: value === '__new__' ? current.competitor_name : allCompetitors.find((item) => String(item.ID) === value)?.name ?? '',
+                    game_ids: [],
+                  }))
+                }}
+              >
+                <MenuItem value="">Select competitor…</MenuItem>
+                {allCompetitors.map((item) => (
+                  <MenuItem key={item.ID} value={String(item.ID)}>
+                    {item.name}
+                  </MenuItem>
+                ))}
+                <MenuItem value="__new__">Type a new competitor name</MenuItem>
+              </AppTextField>
+              {draft.competitor_ID === '__new__' ? (
+                <AppTextField
+                  size="small"
+                  fullWidth
+                  sx={{ mt: 1, ...mobileFieldSx }}
+                  placeholder="New competitor name"
+                  value={draft.competitor_name ?? ''}
+                  onChange={(event) => patchDraft((current) => ({ ...current, competitor_name: event.target.value }))}
+                />
+              ) : null}
+            </Box>
+          ) : null}
+
           {isNew ? (
             <Box sx={{ mb: 2 }}>
               <FieldLabel required>Game name</FieldLabel>
               <AppTextField
                 size="small"
                 fullWidth
+                sx={mobileFieldSx}
                 placeholder="Name of the new game"
                 value={draft.game_name ?? ''}
-                onChange={(event) => setDraft((current) => ({ ...current, game_name: event.target.value }))}
+                onChange={(event) => patchDraft((current) => ({ ...current, game_name: event.target.value }))}
               />
             </Box>
           ) : (
@@ -720,11 +1036,12 @@ export function IceQuestionnaireForm({
                 select
                 size="small"
                 fullWidth
+                sx={mobileFieldSx}
                 disabled={available.length === 0}
                 value={selectedGameId ? String(selectedGameId) : ''}
                 onChange={(event) => {
                   const id = Number(event.target.value)
-                  setDraft((current) => ({ ...current, game_ids: id > 0 ? [id] : [] }))
+                  patchDraft((current) => ({ ...current, game_ids: id > 0 ? [id] : [] }))
                 }}
               >
                 <MenuItem value="">{gamePlaceholder}</MenuItem>
@@ -739,23 +1056,47 @@ export function IceQuestionnaireForm({
           )}
 
           {isMultigame ? (
-            <MultigameFields product={draft} onChange={(next) => setDraft((current) => ({ ...current, ...next }))} />
+            <MultigameFields product={draft} onChange={(next) => patchDraft((current) => ({ ...current, ...next }))} />
           ) : (
-            <StandardFields product={draft} onChange={(next) => setDraft((current) => ({ ...current, ...next }))} />
+            <StandardFields
+              product={draft}
+              cabinet={isCabinet}
+              themeWorlds={themeWorlds}
+              onChange={(next) => patchDraft((current) => ({ ...current, ...next }))}
+            />
           )}
 
           <Box sx={{ mt: 1 }}>
             <Typography sx={{ mb: 1 }}>Game pictures</Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+                gap: 1,
+                mb: 1,
+                '& .MuiButton-root': { minHeight: 44, width: '100%' },
+              }}
+            >
               <AppButton size="small" variant="outlined" color="secondary" startIcon={<PhotoCameraOutlinedIcon />} disabled={uploading} onClick={() => cameraRef.current?.click()}>
                 Take photo
               </AppButton>
               <AppButton size="small" variant="outlined" color="secondary" startIcon={<PhotoLibraryOutlinedIcon />} disabled={uploading} onClick={() => libraryRef.current?.click()}>
                 Upload from phone
               </AppButton>
+              <AppButton
+                size="small"
+                variant="outlined"
+                color="secondary"
+                startIcon={<VideocamOutlinedIcon />}
+                disabled={uploading}
+                onClick={() => videoRef.current?.click()}
+                sx={{ gridColumn: '1 / -1' }}
+              >
+                Upload video
+              </AppButton>
             </Box>
             <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1 }}>
-              On a phone, Take photo opens the camera. Upload from phone opens the gallery. JPG or PNG.
+              On a phone, Take photo opens the camera. Upload from phone opens the gallery. JPG, PNG, or MP4 (videos up to 150 MB).
             </Typography>
             <input
               ref={cameraRef}
@@ -779,6 +1120,16 @@ export function IceQuestionnaireForm({
                 event.target.value = ''
               }}
             />
+            <input
+              ref={videoRef}
+              type="file"
+              accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm"
+              hidden
+              onChange={(event) => {
+                void uploadFiles(event.target.files)
+                event.target.value = ''
+              }}
+            />
             {(draft.photos ?? []).length > 0 ? (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {(draft.photos ?? []).map((photo, index) => (
@@ -788,8 +1139,23 @@ export function IceQuestionnaireForm({
             ) : null}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
-          <AppButton size="medium" variant="outlined" color="secondary" onClick={() => setOpen(false)}>
+        <DialogActions
+          sx={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 5,
+            flexShrink: 0,
+            gap: 1,
+            px: { xs: 1.5, md: 3 },
+            pt: { xs: 1.25, md: 2 },
+            pb: { xs: 'calc(0.65rem + env(safe-area-inset-bottom, 0px))', md: 2 },
+            bgcolor: 'background.paper',
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            '& > :not(style)': { flex: { xs: 1, md: '0 0 auto' }, minHeight: { xs: 44 } },
+          }}
+        >
+          <AppButton size="medium" variant="outlined" color="secondary" onClick={() => closeDialog(true)}>
             Cancel
           </AppButton>
           <AppButton size="medium" color="secondary" onClick={() => void saveDraft()}>
@@ -798,14 +1164,14 @@ export function IceQuestionnaireForm({
         </DialogActions>
       </Dialog>
 
-      <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center' }}>
+      <Dialog open={historyOpen} onClose={() => setHistoryOpen(false)} maxWidth="sm" fullWidth fullScreen={fullScreenDialog}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', px: { xs: 1.5, md: 3 }, py: { xs: 1.25, md: 2 } }}>
           History
           <IconButton aria-label="Close" onClick={() => setHistoryOpen(false)} sx={{ ml: 'auto' }}>
             <CloseOutlinedIcon />
           </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: { xs: 1.5, md: 3 } }}>
           {(history ?? []).map((entry) => (
             <Box key={`${entry.ID}-${entry.at}`} sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
               <Box sx={{ flex: 1 }}>

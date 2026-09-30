@@ -1,4 +1,5 @@
 import type { SvgIconComponent } from '@mui/icons-material'
+import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import CasinoOutlinedIcon from '@mui/icons-material/CasinoOutlined'
@@ -75,6 +76,8 @@ export function getMainNavigation(user: AuthUser | null, scoutEvents: ScoutMenuE
     user?.username ||
     'Profile'
   const roleName = user?.role?.name ?? 'No role'
+  const canManageWords = Boolean(user?.role?.['may_create-update_items'])
+  const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
   const exhibitionChildren: NavChild[] = scoutEvents.map((event) => ({
     id: `scout-${event.slug}`,
     label: event.active ? event.name : `${event.name} (inactive)`,
@@ -202,6 +205,12 @@ export function getMainNavigation(user: AuthUser | null, scoutEvents: ScoutMenuE
         { id: 'logout', label: 'Log out', icon: LogoutOutlinedIcon, action: 'logout' },
         { type: 'divider' },
         { id: 'feedback', label: 'Feedback', icon: LightbulbOutlinedIcon, path: APP_PATHS.feedback },
+        ...(isSuperuser
+          ? [
+              { id: 'admin', label: 'Admin', icon: AdminPanelSettingsOutlinedIcon, path: APP_PATHS.admin },
+              { id: 'feedback-admin', label: 'Feedback Admin', icon: AdminPanelSettingsOutlinedIcon, path: APP_PATHS.feedbackAdmin },
+            ]
+          : []),
         { id: 'help', label: 'Help & FAQ', icon: HelpOutlineOutlinedIcon, path: APP_PATHS.help },
         { type: 'divider' },
         {
@@ -210,6 +219,9 @@ export function getMainNavigation(user: AuthUser | null, scoutEvents: ScoutMenuE
           icon: EmojiEventsOutlinedIcon,
           path: APP_PATHS.merkuriosity,
         },
+        ...(canManageWords
+          ? [{ id: 'merkuriosity-words', label: 'MERKURiosity Words', icon: EmojiEventsOutlinedIcon, path: APP_PATHS.merkuriosityWords }]
+          : []),
       ],
     },
   ]

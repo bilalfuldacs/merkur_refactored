@@ -155,7 +155,9 @@ class CommunityPostController extends Controller
     public function likes(DynamicPost $dynamicPost): AnonymousResourceCollection
     {
         return CommunityPersonResource::collection(
-            $this->peopleFromReactions($dynamicPost->activeLikes()->with('editor')->orderBy('ID')->get())
+            $this->peopleFromReactions(
+                $dynamicPost->activeLikes()->with('editor')->get()
+            )->sortBy(fn ($user) => mb_strtolower(trim(($user->firstname ?? '').' '.($user->lastname ?? ''))))->values()
         );
     }
 

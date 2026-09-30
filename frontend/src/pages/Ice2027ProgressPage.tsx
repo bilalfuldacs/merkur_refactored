@@ -12,9 +12,9 @@ import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { ApiError, getIceProgress } from '@/api'
 import type { IceProgressGameRow, IceProgressPayload, IceProgressPerson, IceProgressTeam } from '@/api/ice2027'
-import { IceHero, IcePhotosButton, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
+import { IceEventPicker, IceHero, IcePhotosButton, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
-import { APP_PATHS, eventSlugFromSearch, ice2027HubPath, useAppPath } from '@/routing'
+import { APP_PATHS, eventSlugFromSearch, ice2027HubPath, ice2027ProgressPath, useAppPath } from '@/routing'
 
 function evalLabel(person: IceProgressPerson): string {
   if (person.evaluation) {
@@ -258,6 +258,9 @@ export default function Ice2027ProgressPage() {
   }, [eventName])
 
   useEffect(() => {
+    if (!eventSlug) {
+      return
+    }
     let cancelled = false
     void getIceProgress()
       .then((result) => {
@@ -274,7 +277,11 @@ export default function Ice2027ProgressPage() {
     return () => {
       cancelled = true
     }
-  }, [search])
+  }, [eventSlug, search])
+
+  if (!eventSlug) {
+    return <IceEventPicker buildPath={(slug) => ice2027ProgressPath(slug)} />
+  }
 
   const stats = payload?.stats
 

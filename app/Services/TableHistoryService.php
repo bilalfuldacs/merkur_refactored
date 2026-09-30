@@ -112,6 +112,39 @@ class TableHistoryService
         return $enabled;
     }
 
+    /**
+     * Status overview for admin: which catalog tables have history enabled / tables present.
+     *
+     * @return array{command: string, tables: list<array{table: string, title: string, has_history: bool, history_table_exists: bool}>}
+     */
+    public function catalogStatus(): array
+    {
+        $rows = ConfigTable::query()
+            ->whereNotNull('title')
+            ->orderBy('ID')
+            ->get(['table', 'title', 'has_history']);
+
+        $tables = [];
+        foreach ($rows as $config) {
+            $name = (string) $config->table;
+            if (! $this->isSafeName($name)) {
+                continue;
+            }
+            $historyName = $this->historyTable($name);
+            $tables[] = [
+                'table' => $name,
+                'title' => (string) $config->title,
+                'has_history' => (bool) $config->has_history,
+                'history_table_exists' => $this->tableExists($historyName),
+            ];
+        }
+
+        return [
+            'command' => 'php artisan merkur:enable-table-history',
+            'tables' => $tables,
+        ];
+    }
+
     public function ensure(string $source): void
     {
         if (! $this->isSafeName($source) || ! Schema::hasTable($source)) {

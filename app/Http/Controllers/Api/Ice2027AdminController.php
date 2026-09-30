@@ -92,6 +92,36 @@ class Ice2027AdminController extends Controller
         ]);
     }
 
+    public function storeTeam(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        abort_unless($ice->canManage($request->user()), 403, 'Only administrators can manage this scouting event.');
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:80'],
+            'member_1' => ['nullable', 'integer'],
+            'member_2' => ['nullable', 'integer'],
+        ]);
+
+        try {
+            $message = $ice->addTeam(
+                $data['name'],
+                [
+                    (int) ($data['member_1'] ?? 0),
+                    (int) ($data['member_2'] ?? 0),
+                ],
+                (int) $request->user()->ID,
+            );
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => $message,
+            ...$ice->adminOverview(),
+        ], 201);
+    }
+
     public function setMembers(Request $request, Ice2027Team $team): JsonResponse
     {
         $ice = $this->iceFor($request);

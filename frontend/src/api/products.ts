@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest, downloadApiFilePost } from './client'
 
 export type ProductScope = 'preparing' | 'available' | 'discontinued' | 'inactive'
 
@@ -161,4 +161,82 @@ export type ProductGamesListPayload = {
 
 export function getProductGamesList(versionId: number): Promise<ProductGamesListPayload> {
   return apiRequest<ProductGamesListPayload>(`/products/games-list/${versionId}`)
+}
+
+export type ReleaseInformationSheetPayload = {
+  ID: number
+  is_pre_release: boolean
+  release_date: string | null
+  released_by: string | null
+  GLI_approval_status: string | null
+  suitable_for_cabinets: string | null
+  suitable_for_markets: string | null
+  solved_issues: string | null
+  notes: string | null
+  build: {
+    ID: number | null
+    name: string | null
+    p_label: string | null
+    checksum_system: string | null
+    checksum_verify: string | null
+    checksum_app: string | null
+    version_ID: number
+  }
+  dongle: string | null
+  features: { ID: number; name: string | null }[]
+  games: {
+    total: number
+    new: number
+    items: {
+      ID: number
+      name: string
+      ID_text: string | null
+      studio: string | null
+      adopted: boolean
+      gli11: boolean
+      is_new: boolean
+    }[]
+  }
+  generated_at: string
+  generated_for: string
+}
+
+export function getReleaseInformationSheet(releaseId: number): Promise<ReleaseInformationSheetPayload> {
+  return apiRequest<ReleaseInformationSheetPayload>(`/releases/${releaseId}/information-sheet`)
+}
+
+export type ProductGamesDocsPackageFile = {
+  filename: string
+  name: string
+  tlp: string
+  tlp_label: string
+  size: number
+  size_label: string
+}
+
+export type ProductGamesDocsPackagePayload = {
+  version: { ID: number; name: string | null; name2: string | null }
+  games: {
+    ID: number
+    name: string
+    files: ProductGamesDocsPackageFile[]
+  }[]
+  file_count: number
+}
+
+export type ProductGamesDocsPackageSelection = {
+  game_ID: number
+  tlp: string
+  filename: string
+}
+
+export function getProductGamesDocsPackage(versionId: number): Promise<ProductGamesDocsPackagePayload> {
+  return apiRequest<ProductGamesDocsPackagePayload>(`/products/games-list/${versionId}/docs-package`)
+}
+
+export async function downloadProductGamesDocsPackage(
+  versionId: number,
+  files: ProductGamesDocsPackageSelection[],
+): Promise<void> {
+  await downloadApiFilePost(`/products/games-list/${versionId}/docs-package`, { files }, `docs-package-v${versionId}.zip`)
 }

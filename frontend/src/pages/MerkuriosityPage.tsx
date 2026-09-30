@@ -6,9 +6,11 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
+import { useAuth } from '@/auth'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
 import { AppButton } from '@/components/ui'
 import { apiRequest } from '@/api/client'
+import { APP_PATHS, useAppPath } from '@/routing'
 
 type Tile = 'correct' | 'present' | 'absent' | ''
 const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm']
@@ -22,6 +24,9 @@ const TILE_COLOR: Record<Exclude<Tile, ''>, string> = {
 }
 
 export default function MerkuriosityPage() {
+  const { navigate } = useAppPath()
+  const { user } = useAuth()
+  const canManageWords = Boolean(user?.role?.['may_create-update_items'])
   const [guesses, setGuesses] = useState<string[]>(Array(MAX_GUESSES).fill(''))
   const [results, setResults] = useState<Tile[][]>(Array.from({ length: MAX_GUESSES }, () => Array(WORD_LENGTH).fill('')))
   const [row, setRow] = useState(0)
@@ -164,6 +169,17 @@ export default function MerkuriosityPage() {
           <EmojiEventsOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 34 }} />
           MERKURiosity
         </Typography>
+        {canManageWords ? (
+          <AppButton
+            size="small"
+            variant="outlined"
+            color="inherit"
+            sx={{ mb: 1.5 }}
+            onClick={() => navigate(APP_PATHS.merkuriosityWords)}
+          >
+            Manage words
+          </AppButton>
+        ) : null}
         <Accordion sx={{ width: '100%', maxWidth: 500, mb: 2 }}>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>How to Play</AccordionSummary>
           <AccordionDetails>

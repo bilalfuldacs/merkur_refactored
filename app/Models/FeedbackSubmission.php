@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'submitted_at',
     'reviewed_at',
     'reviewed_by',
+    'admin_notes',
 ])]
 class FeedbackSubmission extends Model
 {

@@ -1,6 +1,8 @@
 import Box from '@mui/material/Box'
+import Chip from '@mui/material/Chip'
+import { parseMatrixValue, summarizeMatrix } from '@/api/matrixTemplate'
 import type { TableColumn } from '@/tableView'
-import { asText, isFilledBoolean, relationLabel } from '@/tableView'
+import { asTagList, asText, isFilledBoolean, relationLabel } from '@/tableView'
 import { EmptyCell } from './EmptyCell'
 
 export function RecordCell({
@@ -30,10 +32,17 @@ export function RecordCell({
     return <Box component="span">{isFilledBoolean(value) ? 'Yes' : 'No'}</Box>
   }
 
-  if (column.kind === 'json') {
+  if (column.kind === 'json' || column.kind === 'matrix') {
     const value = row[column.key]
     if (value === null || value === undefined || value === '') {
       return <EmptyCell value={null} />
+    }
+
+    if (column.kind === 'matrix') {
+      const matrix = parseMatrixValue(value)
+      if (matrix) {
+        return <EmptyCell value={summarizeMatrix(matrix)} />
+      }
     }
 
     const text = typeof value === 'string' ? value : JSON.stringify(value)
@@ -83,6 +92,21 @@ export function RecordCell({
       <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
         <Box sx={{ width: 16, height: 16, bgcolor: color, border: '1px solid', borderColor: 'divider', borderRadius: 0.5 }} />
         {color}
+      </Box>
+    )
+  }
+
+  if (column.kind === 'tags') {
+    const tags = asTagList(row[column.key])
+    if (tags.length === 0) {
+      return <EmptyCell value={null} />
+    }
+
+    return (
+      <Box sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.5, py: 0.25 }}>
+        {tags.map((tag) => (
+          <Chip key={tag.id} size="small" label={tag.name} sx={{ fontWeight: 700, height: 22 }} />
+        ))}
       </Box>
     )
   }

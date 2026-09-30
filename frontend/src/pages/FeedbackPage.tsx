@@ -8,6 +8,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { createFeedback, getMyFeedback } from '@/api'
 import type { FeedbackInput, FeedbackSubmission } from '@/api'
+import { useAuth } from '@/auth'
 import {
   FeedbackDetailDialog,
   FeedbackEmptyState,
@@ -67,6 +68,8 @@ function wantsNew(): boolean {
 
 export default function FeedbackPage() {
   const { navigate } = useAppPath()
+  const { user } = useAuth()
+  const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
   const [items, setItems] = useState<FeedbackSubmission[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [query, setQuery] = useState('')
@@ -191,9 +194,16 @@ export default function FeedbackPage() {
                 Share an idea, report a problem, and follow what happens next.
               </Typography>
             </Box>
-            <AppButton size="small" color="secondary" onClick={openSubmit}>
-              + New feedback
-            </AppButton>
+            <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+              {isSuperuser ? (
+                <AppButton size="small" variant="outlined" color="inherit" onClick={() => navigate(APP_PATHS.feedbackAdmin)}>
+                  Admin review
+                </AppButton>
+              ) : null}
+              <AppButton size="small" color="secondary" onClick={openSubmit}>
+                + New feedback
+              </AppButton>
+            </Box>
           </Box>
 
           <ToggleButtonGroup

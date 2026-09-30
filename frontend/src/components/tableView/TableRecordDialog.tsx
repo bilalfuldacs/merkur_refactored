@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined'
+import CelebrationOutlinedIcon from '@mui/icons-material/CelebrationOutlined'
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined'
 import ChevronRightOutlinedIcon from '@mui/icons-material/ChevronRightOutlined'
 import CloseIcon from '@mui/icons-material/Close'
@@ -38,7 +39,7 @@ import type { RelationLookupOption, TableHistoryRevision, TableRow } from '@/api
 import { useAuth } from '@/auth'
 import { AppButton } from '@/components/ui'
 import { iconForTable } from '@/components/tables/tableIcons'
-import { APP_PATHS, marketReportPath, useAppPath } from '@/routing'
+import { APP_PATHS, marketReportPath, releaseInformationSheetPath, useAppPath } from '@/routing'
 import { relationLabel } from '@/tableView'
 import type { TableColumn, TableViewSchema } from '@/tableView'
 import { TableRecordAssets } from './TableRecordAssets'
@@ -431,6 +432,7 @@ export function TableRecordDialog({
             {primary.map((column) => (
               <TableRecordField
                 key={column.key}
+                table={table}
                 column={column}
                 row={record}
                 value={draft[column.key]}
@@ -447,6 +449,7 @@ export function TableRecordDialog({
                   {extra.map((column) => (
                     <TableRecordField
                       key={column.key}
+                      table={table}
                       column={column}
                       row={record}
                       value={draft[column.key]}
@@ -515,6 +518,22 @@ export function TableRecordDialog({
             }}
           >
             Show Market Report
+          </AppButton>
+        ) : null}
+        {schema.editExtras === 'releases_sheet' && !isNew && recordId !== null ? (
+          <AppButton
+            type="button"
+            size="medium"
+            variant="outlined"
+            color="inherit"
+            onClick={() => {
+              onClose()
+              navigate(releaseInformationSheetPath(recordId))
+            }}
+            startIcon={<CelebrationOutlinedIcon />}
+            endIcon={<ChevronRightOutlinedIcon />}
+          >
+            Release Information Sheet
           </AppButton>
         ) : null}
         <Box sx={{ flex: 1 }} />
@@ -609,6 +628,10 @@ function splitColumns(columns: TableColumn[], collapseItem: string | null, prima
 function toDraft(columns: TableColumn[], record: TableRow): Record<string, unknown> {
   const draft: Record<string, unknown> = {}
   for (const column of columns) {
+    if (column.kind === 'tags') {
+      draft[column.key] = Array.isArray(record[column.key]) ? record[column.key] : []
+      continue
+    }
     draft[column.key] = record[column.key] ?? null
   }
   return draft
@@ -619,6 +642,10 @@ function emptyDraft(columns: TableColumn[]): Record<string, unknown> {
   for (const column of columns) {
     if (column.kind === 'boolean') {
       draft[column.key] = false
+      continue
+    }
+    if (column.kind === 'tags') {
+      draft[column.key] = []
       continue
     }
     draft[column.key] = null

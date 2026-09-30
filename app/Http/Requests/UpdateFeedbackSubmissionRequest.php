@@ -24,6 +24,7 @@ class UpdateFeedbackSubmissionRequest extends FormRequest
         return [
             'status' => ['sometimes', Rule::in(FeedbackSubmission::STATUSES)],
             'reviewed_by' => ['nullable', 'integer', 'exists:dynamic__users,ID'],
+            'admin_notes' => ['nullable', 'string', 'max:5000'],
         ];
     }
 }

@@ -122,3 +122,25 @@ export function changeMyPassword(body: ChangePasswordRequest): Promise<{ message
     body,
   })
 }
+
+export function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/password/forgot', {
+    method: 'POST',
+    body: { email },
+  })
+}
+
+export function checkPasswordResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+  return apiRequest<{ valid: boolean; message?: string }>(`/password/reset?token=${encodeURIComponent(token)}`)
+}
+
+export function completePasswordReset(body: {
+  token: string
+  password: string
+  password_confirmation: string
+}): Promise<{ message: string }> {
+  return apiRequest<{ message: string }>('/password/reset', {
+    method: 'POST',
+    body,
+  })
+}

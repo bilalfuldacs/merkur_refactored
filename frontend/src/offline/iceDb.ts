@@ -60,6 +60,15 @@ export async function iceKvSet(key: string, value: unknown): Promise<void> {
   }
 }
 
+export async function iceKvDelete(key: string): Promise<void> {
+  const db = await openDb()
+  try {
+    await requestToPromise(db.transaction('kv', 'readwrite').objectStore('kv').delete(key))
+  } finally {
+    db.close()
+  }
+}
+
 export async function iceKvClear(): Promise<void> {
   const db = await openDb()
   try {

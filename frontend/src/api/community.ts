@@ -128,6 +128,12 @@ export async function deleteCommunityPost(id: number): Promise<void> {
   await apiRequest<void>(`/community-posts/${id}`, { method: 'DELETE' })
 }
 
+export async function getCommunityLikes(postId: number): Promise<CommunityPerson[]> {
+  const payload = await apiRequest<Wrapped<CommunityPerson[]>>(`/community-posts/${postId}/likes`)
+  const people = unwrapResource(payload)
+  return Array.isArray(people) ? people : []
+}
+
 export async function getCommunityComments(postId: number): Promise<CommunityComment[]> {
   const payload = await apiRequest<Wrapped<CommunityComment[]>>(`/community-posts/${postId}/comments`)
   return unwrapResource(payload)

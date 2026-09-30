@@ -8,6 +8,14 @@ export function productGamesListPath(versionId: number): string {
   return `${APP_PATHS.productGamesList}?v=${versionId}`
 }
 
+export function productGamesDocsPackagePath(versionId: number): string {
+  return `${APP_PATHS.productGamesDocsPackage}?v=${versionId}`
+}
+
+export function releaseInformationSheetPath(releaseId: number): string {
+  return `${APP_PATHS.releaseInformationSheet}?id=${releaseId}`
+}
+
 export function ice2027QuestionnairePath(competitorId: number, eventSlug?: string): string {
   const query = new URLSearchParams()
   query.set('c', String(competitorId))
@@ -43,6 +51,24 @@ export function ice2027ProgressPath(eventSlug?: string): string {
 
 export function ice2027HubPath(eventSlug?: string): string {
   return eventSlug ? `${APP_PATHS.ice2027}?e=${encodeURIComponent(eventSlug)}` : APP_PATHS.ice2027
+}
+
+export function ice2027OpenQuestionnairePath(eventSlug?: string): string {
+  const query = new URLSearchParams()
+  query.set('open', '1')
+  if (eventSlug) {
+    query.set('e', eventSlug)
+  }
+  return `${APP_PATHS.ice2027}?${query.toString()}`
+}
+
+export function ice2027DashboardGamePath(gameKey: string, eventSlug?: string): string {
+  const query = new URLSearchParams()
+  query.set('game', gameKey)
+  if (eventSlug) {
+    query.set('e', eventSlug)
+  }
+  return `${APP_PATHS.ice2027DashboardGame}?${query.toString()}`
 }
 
 export function eventSlugFromSearch(search: string): string | undefined {

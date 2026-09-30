@@ -1,4 +1,5 @@
 export { IceHero, IceSectionHead, iceCrumbSx, icePillGroupSx, icePillSx, iceStickyBarSx } from './IceChrome'
+export { IceEventPicker } from './IceEventPicker'
 export { IceOfflineBar } from './IceOfflineBar'
 export { IcePhotosButton } from './IcePhotosButton'
 export { IceTabs } from './IceTabs'

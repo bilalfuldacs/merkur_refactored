@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateFeedbackSubmissionRequest;
 use App\Http\Resources\FeedbackSubmissionResource;
 use App\Models\FeedbackSubmission;
 use App\Services\FeedbackStorage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FeedbackSubmissionController extends Controller
 {
@@ -35,21 +37,114 @@ class FeedbackSubmissionController extends Controller
             $query->where('mod_by', $user->ID);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status')->toString());
-        }
-
-        if ($request->filled('q')) {
-            $term = '%'.$request->string('q')->toString().'%';
-            $query->where(function ($inner) use ($term): void {
-                $inner->where('subject', 'like', $term)
-                    ->orWhere('description', 'like', $term);
-            });
-        }
+        $this->applyAdminFilters($query, $request);
 
         return FeedbackSubmissionResource::collection(
             $query->paginate($perPage)->withQueryString()
         );
+    }
+
+    public function export(Request $request): StreamedResponse|JsonResponse
+    {
+        $user = $request->user();
+        if (! $user?->isSuperuser()) {
+            return response()->json(['message' => 'Superuser access required.'], 403);
+        }
+
+        $query = FeedbackSubmission::query()->orderByDesc('submitted_at');
+        $this->applyAdminFilters($query, $request);
+
+        $filename = 'merkurflow-feedback-export-'.now()->format('Y-m-d').'.csv';
+
+        return response()->streamDownload(function () use ($query): void {
+            $handle = fopen('php://output', 'w');
+            if ($handle === false) {
+                return;
+            }
+
+            fputcsv($handle, [
+                'Ref', 'Submitted', 'Name', 'Email', 'Department', 'Type', 'Related Area',
+                'Subject', 'Description', 'Expected Impact', 'Priority', 'Status',
+                'Reviewed At', 'Reviewed By', 'Admin Notes',
+            ]);
+
+            $query->chunk(200, function ($chunk) use ($handle): void {
+                foreach ($chunk as $row) {
+                    /** @var FeedbackSubmission $row */
+                    fputcsv($handle, [
+                        $row->reference(),
+                        optional($row->submitted_at)?->format('Y-m-d H:i:s'),
+                        $row->submitter_name,
+                        $row->submitter_email,
+                        $row->department,
+                        $row->feedback_type,
+                        $row->related_area,
+                        $row->subject,
+                        $row->description,
+                        $row->expected_impact,
+                        $row->priority,
+                        $row->status,
+                        optional($row->reviewed_at)?->format('Y-m-d H:i:s'),
+                        $row->reviewed_by,
+                        $row->admin_notes,
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+        ]);
+    }
+
+    private function applyAdminFilters(Builder $query, Request $request): void
+    {
+        if ($request->filled('status')) {
+            $query->where('status', $request->string('status')->toString());
+        }
+
+        if ($request->filled('department')) {
+            $query->where('department', $request->string('department')->toString());
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->string('priority')->toString());
+        }
+
+        if ($request->filled('feedback_type') || $request->filled('type')) {
+            $raw = $request->filled('feedback_type')
+                ? $request->string('feedback_type')->toString()
+                : $request->string('type')->toString();
+            $stored = FeedbackSubmission::storedType($raw);
+            $query->where(function (Builder $inner) use ($raw, $stored): void {
+                $inner->where('feedback_type', $raw)
+                    ->orWhere('feedback_type', $stored);
+                $uxKey = array_search($stored, FeedbackSubmission::UX_TYPES, true);
+                if (is_string($uxKey)) {
+                    $inner->orWhere('feedback_type', $uxKey);
+                }
+            });
+        }
+
+        if ($request->filled('q') || $request->filled('search')) {
+            $term = '%'.($request->filled('q')
+                ? $request->string('q')->toString()
+                : $request->string('search')->toString()).'%';
+            $query->where(function (Builder $inner) use ($term): void {
+                $inner->where('subject', 'like', $term)
+                    ->orWhere('description', 'like', $term)
+                    ->orWhere('submitter_name', 'like', $term)
+                    ->orWhere('submitter_email', 'like', $term);
+            });
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('submitted_at', '>=', $request->string('date_from')->toString());
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('submitted_at', '<=', $request->string('date_to')->toString());
+        }
     }
 
     public function store(StoreFeedbackSubmissionRequest $request): JsonResponse
@@ -103,7 +198,7 @@ class FeedbackSubmissionController extends Controller
 
         $feedbackSubmission->fill($request->validated());
 
-        if ($request->exists('status')) {
+        if ($request->exists('status') || $request->exists('admin_notes')) {
             $feedbackSubmission->reviewed_at = now();
             $feedbackSubmission->reviewed_by ??= $request->user()->ID;
         }

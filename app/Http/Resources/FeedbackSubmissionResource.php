@@ -30,6 +30,7 @@ class FeedbackSubmissionResource extends JsonResource
             'has_screenshot' => filled($this->attachment_path),
             'reference' => $this->reference(),
             'status' => $this->status,
+            'admin_notes' => $this->admin_notes,
             'submitted_at' => $this->submitted_at,
             'reviewed_at' => $this->reviewed_at,
             'reviewed_by' => $this->reviewed_by,

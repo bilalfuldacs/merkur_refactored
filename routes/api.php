@@ -1,6 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\AdminAttachmentsTrashController;
+use App\Http\Controllers\Api\AdminTableHistoryController;
+use App\Http\Controllers\Api\AdminUserActivityController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\CommunityCommentController;
 use App\Http\Controllers\Api\CommunityPostController;
 use App\Http\Controllers\Api\FeedbackSubmissionController;
@@ -20,13 +24,17 @@ use App\Http\Controllers\Api\MerkuriosityWordController;
 use App\Http\Controllers\Api\OnlineUserController;
 use App\Http\Controllers\Api\MarketReportController;
 use App\Http\Controllers\Api\PeopleMarketsController;
+use App\Http\Controllers\Api\ProductGamesDocsPackageController;
 use App\Http\Controllers\Api\ProductGamesListController;
 use App\Http\Controllers\Api\ProductPanoramaController;
+use App\Http\Controllers\Api\ReleaseInformationSheetController;
 use App\Http\Controllers\Api\RoadmapController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ScoutEventController;
+use App\Http\Controllers\Api\ScoutRemindController;
 use App\Http\Controllers\Api\StaticDocController;
 use App\Http\Controllers\Api\StaticFaqController;
+use App\Http\Controllers\Api\MatrixTemplateLookupController;
 use App\Http\Controllers\Api\TableAssetsController;
 use App\Http\Controllers\Api\VirtualAssetsController;
 use App\Http\Controllers\Api\TableRowsController;
@@ -37,6 +45,10 @@ use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'store']);
+Route::post('/password/forgot', [PasswordResetController::class, 'forgot']);
+Route::get('/password/reset', [PasswordResetController::class, 'show']);
+Route::post('/password/reset', [PasswordResetController::class, 'reset']);
+Route::get('/scout/remind', ScoutRemindController::class);
 
 Route::prefix('mars')->middleware(\App\Http\Middleware\AuthenticateMarsToken::class)->group(function () {
     Route::get('/', [MarsApiController::class, 'index']);
@@ -65,6 +77,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/tables-catalog', [TablesCatalogController::class, 'index']);
     Route::get('/tables/{table}/view', [TableViewSchemaController::class, 'show'])
         ->where('table', '[A-Za-z_][A-Za-z0-9_]*');
+    Route::get('/tables/{table}/columns/{column}/matrix-template', [MatrixTemplateLookupController::class, 'show'])
+        ->where('table', '[A-Za-z_][A-Za-z0-9_]*')
+        ->where('column', '[A-Za-z_][A-Za-z0-9_]*');
     Route::get('/tables/{table}/export', [TableRowsController::class, 'export'])
         ->where('table', '[A-Za-z_][A-Za-z0-9_]*');
     Route::get('/tables/{table}/lookups', [TableRowsController::class, 'lookups'])
@@ -112,6 +127,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('products/panorama/{version}', [ProductPanoramaController::class, 'show']);
     Route::get('products/games-list/{version}', [ProductGamesListController::class, 'show'])
         ->whereNumber('version');
+    Route::get('products/games-list/{version}/docs-package', [ProductGamesDocsPackageController::class, 'show'])
+        ->whereNumber('version');
+    Route::post('products/games-list/{version}/docs-package', [ProductGamesDocsPackageController::class, 'download'])
+        ->whereNumber('version');
+    Route::get('releases/{release}/information-sheet', [ReleaseInformationSheetController::class, 'show'])
+        ->whereNumber('release');
     Route::get('roadmap', [RoadmapController::class, 'index']);
     Route::get('help/faqs', [StaticFaqController::class, 'help']);
     Route::apiResource('static-faqs', StaticFaqController::class)
@@ -135,10 +156,16 @@ Route::middleware('auth:sanctum')->group(function () {
         ->parameters(['static-docs' => 'staticDoc']);
     Route::get('static-docs/{staticDoc}/thumbnail', [StaticDocController::class, 'thumbnail']);
     Route::get('static-docs/{staticDoc}/pdf', [StaticDocController::class, 'pdf']);
+    Route::get('feedback-submissions/export', [FeedbackSubmissionController::class, 'export']);
     Route::get('feedback-submissions/{feedbackSubmission}/screenshot', [FeedbackSubmissionController::class, 'screenshot'])
         ->whereNumber('feedbackSubmission');
     Route::apiResource('feedback-submissions', FeedbackSubmissionController::class)
         ->parameters(['feedback-submissions' => 'feedbackSubmission']);
+
+    Route::get('admin/attachments-trash', [AdminAttachmentsTrashController::class, 'index']);
+    Route::post('admin/attachments-trash/purge', [AdminAttachmentsTrashController::class, 'destroy']);
+    Route::get('admin/user-activity', [AdminUserActivityController::class, 'index']);
+    Route::get('admin/table-history', [AdminTableHistoryController::class, 'index']);
     Route::get('merkuriosity/daily-word', [MerkuriosityController::class, 'dailyWord']);
     Route::post('merkuriosity/guess', [MerkuriosityController::class, 'guess']);
     Route::apiResource('merkuriosity/words', MerkuriosityWordController::class)
@@ -152,6 +179,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('scout/admin/events/{event}', [ScoutEventController::class, 'update']);
 
     Route::get('ice2027', [Ice2027Controller::class, 'bootstrap']);
+    Route::get('ice2027/questionnaire/open', [Ice2027Controller::class, 'openQuestionnaire']);
+    Route::put('ice2027/questionnaire/open', [Ice2027Controller::class, 'saveOpenQuestionnaire']);
     Route::get('ice2027/questionnaire/{competitor}', [Ice2027Controller::class, 'questionnaire'])
         ->whereNumber('competitor');
     Route::put('ice2027/questionnaire/{competitor}', [Ice2027Controller::class, 'saveQuestionnaire'])
@@ -159,6 +188,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('ice2027/evaluation', [Ice2027Controller::class, 'evaluation']);
     Route::put('ice2027/evaluation', [Ice2027Controller::class, 'saveEvaluation']);
     Route::get('ice2027/dashboard', [Ice2027Controller::class, 'dashboard']);
+    Route::get('ice2027/dashboard/export', [Ice2027Controller::class, 'dashboardExport']);
+    Route::get('ice2027/dashboard/game', [Ice2027Controller::class, 'dashboardGame']);
     Route::get('ice2027/progress', [Ice2027Controller::class, 'progress']);
     Route::get('ice2027/photo', [Ice2027Controller::class, 'photo']);
     Route::post('ice2027/photo', [Ice2027Controller::class, 'uploadPhoto']);
@@ -168,6 +199,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('ice2027/admin/attendants', [Ice2027AdminController::class, 'saveAttendants']);
     Route::patch('ice2027/admin/attendants/{user}', [Ice2027AdminController::class, 'setAttendant'])
         ->whereNumber('user');
+    Route::post('ice2027/admin/teams', [Ice2027AdminController::class, 'storeTeam']);
     Route::patch('ice2027/admin/teams/{team}', [Ice2027AdminController::class, 'renameTeam'])
         ->whereNumber('team');
     Route::put('ice2027/admin/teams/{team}/members', [Ice2027AdminController::class, 'setMembers'])

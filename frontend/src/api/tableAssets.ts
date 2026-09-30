@@ -27,6 +27,11 @@ export type TableAssetFile = {
   uploader: TableAssetUploader | null
 }
 
+export type TableAssetFolder = {
+  tlp: string
+  path: string
+}
+
 export type TableAssetClass = {
   key: string
   label: string
@@ -34,6 +39,7 @@ export type TableAssetClass = {
   span: number
   hint: string
   files: TableAssetFile[]
+  folders?: TableAssetFolder[]
 }
 
 export type TableAssetMoodBoard = {
@@ -122,10 +128,12 @@ export function modifyTableAsset(
   id: number | null,
   input: {
     tlp: string
-    filename: string
+    filename?: string
     assetClass?: string
     folder?: string | null
     tlpNew?: string
+    folderNew?: string | null
+    folderCreate?: string
     nameNew?: string
     description?: string
     featured?: boolean
@@ -141,6 +149,8 @@ export function modifyTableAsset(
       sf: input.folder ?? '',
       f: input.filename,
       tlp_new: input.tlpNew,
+      sf_new: input.folderNew,
+      folder_create: input.folderCreate,
       name_new: input.nameNew,
       description: input.description,
       featured: input.featured,

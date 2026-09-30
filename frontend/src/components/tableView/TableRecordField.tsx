@@ -1,5 +1,7 @@
 import Box from '@mui/material/Box'
+import Autocomplete from '@mui/material/Autocomplete'
 import Checkbox from '@mui/material/Checkbox'
+import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
@@ -8,10 +10,12 @@ import RadioGroup from '@mui/material/RadioGroup'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
-import { AppTextField } from '@/components/ui'
+import { AppButton, AppTextField } from '@/components/ui'
+import { emptyMatrix, getMatrixTemplate } from '@/api/matrixTemplate'
 import type { RelationLookupOption } from '@/api'
 import type { TableColumn } from '@/tableView'
-import { asText, isFilledBoolean, relationLabel } from '@/tableView'
+import { asTagList, asText, isFilledBoolean, relationLabel } from '@/tableView'
+import { MatrixFieldEditor } from './MatrixFieldEditor'
 
 const STATUS_OPTIONS = [
   { value: '1', label: 'A+' },
@@ -29,6 +33,7 @@ const TRAFFIC_OPTIONS = [
 ] as const
 
 export function TableRecordField({
+  table,
   column,
   row,
   value,
@@ -38,6 +43,7 @@ export function TableRecordField({
   onChange,
   onOpenRelated,
 }: {
+  table: string
   column: TableColumn
   row: Record<string, unknown>
   value: unknown
@@ -199,6 +205,63 @@ export function TableRecordField({
               </IconButton>
             ) : null}
           </Box>
+        ) : column.kind === 'tags' ? (
+          <Autocomplete
+            multiple
+            id={`field-${column.key}`}
+            options={tagOptions(lookups, value)}
+            value={selectedTagOptions(value, lookups)}
+            disabled={readOnly}
+            disableCloseOnSelect
+            getOptionLabel={(option) => option.label}
+            isOptionEqualToValue={(option, selected) => option.id === selected.id}
+            onChange={(_event, selected) =>
+              onChange(
+                column.key,
+                selected.map((option) => ({ id: option.id, name: option.label })),
+              )
+            }
+            renderTags={(selected, getTagProps) =>
+              selected.map((option, index) => {
+                const { key, ...tagProps } = getTagProps({ index })
+                return <Chip {...tagProps} key={key} size="small" label={option.label} sx={{ fontWeight: 700 }} />
+              })
+            }
+            renderInput={(params) => (
+              <AppTextField
+                {...params}
+                size="small"
+                placeholder={column.placeholder ?? (selectedTagOptions(value, lookups).length ? undefined : 'Select tags…')}
+              />
+            )}
+          />
+        ) : column.kind === 'matrix' ? (
+          value === null || value === undefined ? (
+            readOnly ? (
+              <Typography color="text.secondary">—</Typography>
+            ) : (
+              <AppButton
+                type="button"
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  void getMatrixTemplate(table, column.key)
+                    .then((template) => onChange(column.key, template))
+                    .catch(() => onChange(column.key, emptyMatrix()))
+                }}
+              >
+                Edit matrix
+              </AppButton>
+            )
+          ) : (
+            <MatrixFieldEditor
+              table={table}
+              columnKey={column.key}
+              value={value}
+              readOnly={readOnly}
+              onChange={(next) => onChange(column.key, next)}
+            />
+          )
         ) : (
           <AppTextField
             id={`field-${column.key}`}
@@ -213,7 +276,7 @@ export function TableRecordField({
             sx={column.kind === 'json' ? { '& textarea': { fontFamily: 'monospace', fontSize: 13 } } : undefined}
           />
         )}
-        {column.nullable && !readOnly ? (
+        {column.nullable && column.kind !== 'tags' && !readOnly ? (
           <FormControlLabel
             sx={{ mt: 0.25 }}
             control={
@@ -263,4 +326,24 @@ function relationOptions(
 
   const related = column.relationKey ? row[column.relationKey] : null
   return [{ id, label: relationLabel(related) || `#${id}` }]
+}
+
+function selectedTagOptions(value: unknown, lookups: RelationLookupOption[]): RelationLookupOption[] {
+  const byId = new Map(lookups.map((option) => [option.id, option]))
+  return asTagList(value).map((tag) => byId.get(tag.id) ?? { id: tag.id, label: tag.name })
+}
+
+function tagOptions(lookups: RelationLookupOption[], value: unknown): RelationLookupOption[] {
+  if (lookups.length === 0) {
+    return selectedTagOptions(value, lookups)
+  }
+
+  const byId = new Map(lookups.map((option) => [option.id, option]))
+  for (const selected of selectedTagOptions(value, lookups)) {
+    if (!byId.has(selected.id)) {
+      byId.set(selected.id, selected)
+    }
+  }
+
+  return [...byId.values()]
 }

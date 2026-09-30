@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'event_ID',
     'name',
     'team_ID',
+    'hidden',
     'created_by',
     'created_at',
 ])]
@@ -34,6 +35,7 @@ class Ice2027Competitor extends Model
     {
         return [
             'created_at' => 'datetime',
+            'hidden' => 'boolean',
         ];
     }
 

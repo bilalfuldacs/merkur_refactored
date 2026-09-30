@@ -21,6 +21,8 @@ class UserController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', User::class);
+
         return UserResource::collection(
             User::query()->with('role')->orderBy('ID')->get()
         );

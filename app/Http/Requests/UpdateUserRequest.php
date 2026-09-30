@@ -24,12 +24,12 @@ class UpdateUserRequest extends FormRequest
         $userId = $this->route('user')?->getKey();
 
         return [
-            'initials' => ['sometimes', 'string', 'size:3', Rule::unique('users', 'initials')->ignore($userId, 'ID')],
+            'initials' => ['sometimes', 'string', 'size:3', Rule::unique('dynamic__users', 'initials')->ignore($userId, 'ID')],
             'active' => ['sometimes', 'boolean'],
             'lastname' => ['sometimes', 'string', 'max:30'],
             'firstname' => ['sometimes', 'string', 'max:30'],
             'prefix' => ['nullable', 'string', 'max:15'],
-            'username' => ['sometimes', 'string', 'max:50', Rule::unique('users', 'username')->ignore($userId, 'ID')],
+            'username' => ['sometimes', 'string', 'max:50', Rule::unique('dynamic__users', 'username')->ignore($userId, 'ID')],
             'password' => ['sometimes', 'string', 'min:8'],
             'bcolor' => ['nullable', 'string', 'size:7'],
             'color' => ['nullable', 'string', 'size:7'],
@@ -40,6 +40,7 @@ class UpdateUserRequest extends FormRequest
             'decolorize_avatars' => ['sometimes', 'boolean'],
             'appearance' => ['sometimes', 'in:auto,light,dark'],
             'notifications' => ['sometimes', 'in:off,daily,weekly'],
+            'iceattendent2027' => ['sometimes', 'boolean'],
         ];
     }
 }

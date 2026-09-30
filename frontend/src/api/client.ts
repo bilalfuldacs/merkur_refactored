@@ -133,12 +133,26 @@ export async function apiFile(path: string): Promise<Blob> {
 }
 
 export async function downloadApiFile(path: string, fallbackName: string): Promise<void> {
+  return downloadApiBinary(path, fallbackName)
+}
+
+export async function downloadApiFilePost(path: string, body: unknown, fallbackName: string): Promise<void> {
+  return downloadApiBinary(path, fallbackName, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+async function downloadApiBinary(path: string, fallbackName: string, init: RequestInit = {}): Promise<void> {
   const token = getAccessToken()
   return withLoading(true, async () => {
     const response = await fetch(`${apiBaseUrl}${path}`, {
+      ...init,
       headers: {
         Accept: '*/*',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(init.headers ?? {}),
       },
     })
 

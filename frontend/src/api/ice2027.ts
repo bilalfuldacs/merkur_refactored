@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiRequest, downloadApiFile } from './client'
 
 function withEvent(path: string): string {
   if (typeof window === 'undefined') {
@@ -99,6 +99,13 @@ export type IceMe = {
   questionnaires_started?: number
   questionnaires_done: number
   questionnaires_total: number
+  open_questionnaire?: boolean
+  extra_questionnaire?: {
+    started: boolean
+    complete: boolean
+    products: number
+    bucket_ID: number
+  }
   superuser?: boolean
 }
 
@@ -106,23 +113,43 @@ export type IceBootstrap = {
   me: IceMe
   competitors: IceCompetitor[]
   all_competitors: IceCompetitor[]
+  all_games?: IceGame[]
   game_types: Record<string, string>
+  mechanics_options?: Record<string, string>
+  theme_worlds?: string[]
   event?: IceEvent
+}
+
+export type IceProgressPhoto = {
+  id: string
+  name: string
+  url: string
+  kind?: 'image' | 'video'
 }
 
 export type IceStandardProduct = {
   category?: string
+  competitor_ID?: number | string | null
+  competitor_name?: string
+  competitor?: string
   progressive_jp?: string
   no_progressives?: string | number
   no_static?: string | number
   functionality?: string[]
+  mechanics_description?: string
   no_of_pots?: string | number
   win_lines?: string
   denomination?: string
+  bets?: string | number
   theme?: string
   cabinet?: string
   target_market?: string
   usp?: string
+  number_of_monitors?: string | number
+  monitor_size?: string
+  uhd?: string
+  video_button_panel?: string
+  vbp_functions?: string
 }
 
 export type IceMultigameProduct = {
@@ -130,12 +157,6 @@ export type IceMultigameProduct = {
   integrated_jp_number?: string | number
   number_of_categories?: string | number
   number_of_games?: string | number
-}
-
-export type IceProgressPhoto = {
-  id: string
-  name: string
-  url: string
 }
 
 export type IceScoutProduct = IceStandardProduct &
@@ -168,7 +189,14 @@ export type IceQuestionnairePayload = {
   competitor: IceCompetitor
   products: IceQuestionnaireProducts
   games?: IceGame[]
+  all_competitors?: IceCompetitor[]
+  all_games?: IceGame[]
   game_types?: Record<string, string>
+  mechanics_options?: Record<string, string>
+  theme_worlds?: string[]
+  open?: boolean
+  need_competitor_name?: boolean
+  force_new_product?: boolean
   team_members?: string[]
   updated_by?: string | null
   updated_at?: string | null
@@ -178,6 +206,15 @@ export type IceQuestionnairePayload = {
   message?: string
 }
 
+export const ICE_MECHANICS_OPTIONS = {
+  hold_and_spin: 'Hold & Spin',
+  perceived_persistence: 'Perceived Persistence',
+  feature_in_feature: 'Feature in Feature',
+  cash_collect: 'Cash Collect',
+  true_persistence: 'True Persistence',
+  combination_persist_hold: 'Second Screen Bonus',
+} as const
+
 export const ICE_EVAL_CATEGORIES = {
   mlp: 'MLP',
   sap: 'SAP',
@@ -186,7 +223,7 @@ export const ICE_EVAL_CATEGORIES = {
 } as const
 
 export type IceEvalRow = {
-  competitor_ID?: number | null
+  competitor_ID?: number | string | null
   competitor?: string
   game_ID?: number | string | null
   game_name?: string
@@ -214,6 +251,8 @@ export type IceEvaluationPayload = {
   games?: IceGame[]
   game_types: Record<string, string>
   eval_categories?: Record<string, string>
+  eval_required_rows?: number
+  eval_max_rows?: number
   top5: IceEvalRow[]
   event?: IceEvent
 }
@@ -259,11 +298,24 @@ export function getIceQuestionnaire(competitorId: number): Promise<IceQuestionna
   return apiRequest<IceQuestionnairePayload>(withEvent(`/ice2027/questionnaire/${competitorId}`))
 }
 
+export function getIceOpenQuestionnaire(): Promise<IceQuestionnairePayload> {
+  return apiRequest<IceQuestionnairePayload>(withEvent('/ice2027/questionnaire/open'))
+}
+
 export function saveIceQuestionnaire(
   competitorId: number,
   products: IceQuestionnaireProducts,
 ): Promise<IceQuestionnairePayload & { message: string }> {
   return apiRequest<IceQuestionnairePayload & { message: string }>(withEvent(`/ice2027/questionnaire/${competitorId}`), {
+    method: 'PUT',
+    body: { products },
+  })
+}
+
+export function saveIceOpenQuestionnaire(
+  products: IceQuestionnaireProducts,
+): Promise<IceQuestionnairePayload & { message: string }> {
+  return apiRequest<IceQuestionnairePayload & { message: string }>(withEvent('/ice2027/questionnaire/open'), {
     method: 'PUT',
     body: { products },
   })
@@ -333,6 +385,25 @@ export function renameIceTeam(teamId: number, name: string): Promise<IceAdminPay
     method: 'PATCH',
     body: { name },
   })
+}
+
+export function addIceTeam(
+  name: string,
+  member1: number | null,
+  member2: number | null,
+): Promise<IceAdminPayload> {
+  return apiRequest<IceAdminPayload>(withEvent('/ice2027/admin/teams'), {
+    method: 'POST',
+    body: { name, member_1: member1 ?? 0, member_2: member2 ?? 0 },
+  })
+}
+
+export function saveIceTeam(
+  name: string,
+  member1: number | null,
+  member2: number | null,
+): Promise<IceAdminPayload> {
+  return addIceTeam(name, member1, member2)
 }
 
 export function setIceTeamMembers(
@@ -419,6 +490,17 @@ export type IceDashboardGame = {
   play_no: number
   play_unsure: number
   play_pct: number
+  has_official?: boolean
+  rank_score?: number
+  vote_pct?: number
+  team_voters?: number
+  team_pool?: number
+  below_threshold?: boolean
+  floor_average?: number
+  floor_averages?: Record<string, number>
+  floor_ratings?: number
+  floor_voters?: number
+  floor_play_pct?: number
   photos?: IceProgressPhoto[]
   photo_count?: number
 }
@@ -427,12 +509,16 @@ export type IceDashboardRating = {
   user_ID: number
   rater: string
   team: string
+  source?: 'teams' | 'attendants'
   competitor: string
   game: string
   game_type: string
   scores: Record<string, number>
   average: number
   would_play: string
+  vote_pct?: number
+  team_voters?: number
+  team_pool?: number
 }
 
 export type IceDashboardType = {
@@ -450,7 +536,24 @@ export type IceDashboardPhotoGame = {
   photos: IceProgressPhoto[]
 }
 
+export type IceDashboardView = 'evaluation' | 'questionnaire'
+
+export type IceQuestionnaireDashItem = {
+  key: string
+  game_ID?: number
+  game: string
+  competitor_ID?: number
+  competitor: string
+  game_type: string
+  is_new_product?: boolean
+  teams: string[]
+  filled_by: string[]
+  photos?: IceProgressPhoto[]
+  photo_count?: number
+}
+
 export type IceDashboardFilters = {
+  view?: IceDashboardView
   team?: number | ''
   competitor?: number | ''
   type?: string
@@ -459,23 +562,38 @@ export type IceDashboardFilters = {
 
 export type IceDashboardPayload = {
   event?: IceEvent
-  criteria: Record<string, string>
+  criteria?: Record<string, string>
   game_types?: Record<string, string>
   teams?: { ID: number; name: string }[]
   competitors?: { ID: number; name: string }[]
   stats: {
-    submissions: number
-    ratings: number
-    games: number
-    play_yes: number
-    play_pct: number
+    submissions?: number
+    ratings?: number
+    games?: number
+    play_yes?: number
+    play_pct?: number
+    official_games?: number
+    floor_ratings?: number
+    floor_people?: number
+    team_pool?: number
+    attendant_pool?: number
+    threshold_pct?: number
+    assigned?: number
+    new_products?: number
+    photos?: number
   }
-  winner: IceDashboardGame | null
-  games: IceDashboardGame[]
+  winner?: IceDashboardGame | null
+  games?: IceDashboardGame[]
+  official?: IceDashboardGame[]
+  team_pool?: number
+  threshold_pct?: number
   by_criterion?: Record<string, IceDashboardGame | null>
   by_type?: IceDashboardType[]
   ratings?: IceDashboardRating[]
   photo_games?: IceDashboardPhotoGame[]
+  assigned?: IceQuestionnaireDashItem[]
+  new_products?: IceQuestionnaireDashItem[]
+  rows?: unknown[]
 }
 
 export type IceProgressGameCheck = {
@@ -567,6 +685,9 @@ export type IceProgressPayload = {
 
 export function getIceDashboard(filters: IceDashboardFilters = {}): Promise<IceDashboardPayload> {
   const params = new URLSearchParams()
+  if (filters.view && filters.view !== 'evaluation') {
+    params.set('view', filters.view)
+  }
   if (filters.team) {
     params.set('team', String(filters.team))
   }
@@ -581,6 +702,31 @@ export function getIceDashboard(filters: IceDashboardFilters = {}): Promise<IceD
   }
   const qs = params.toString()
   return apiRequest<IceDashboardPayload>(withEvent(`/ice2027/dashboard${qs ? `?${qs}` : ''}`))
+}
+
+export function getIceDashboardGame(gameKey: string): Promise<IceDashboardGameDetail> {
+  const params = new URLSearchParams()
+  params.set('game', gameKey)
+  return apiRequest<IceDashboardGameDetail>(withEvent(`/ice2027/dashboard/game?${params.toString()}`))
+}
+
+export async function downloadIceDashboardExport(kind: 'all' | 'questionnaire' | 'evaluation' = 'all'): Promise<void> {
+  const fallback =
+    kind === 'questionnaire' ? 'scouting-questionnaires.xlsx' : kind === 'evaluation' ? 'scouting-ratings.xlsx' : 'scouting-ratings.xlsx'
+  const join = withEvent('/ice2027/dashboard/export').includes('?') ? '&' : '?'
+  await downloadApiFile(`${withEvent('/ice2027/dashboard/export')}${join}kind=${encodeURIComponent(kind)}`, fallback)
+}
+
+export type IceDashboardGameDetail = {
+  event?: IceEvent
+  criteria: Record<string, string>
+  game: IceDashboardGame
+  ratings: IceDashboardRating[]
+  team_ratings: IceDashboardRating[]
+  floor_ratings: IceDashboardRating[]
+  stats: IceDashboardPayload['stats']
+  team_pool: number
+  threshold_pct: number
 }
 
 export function getIceProgress(): Promise<IceProgressPayload> {

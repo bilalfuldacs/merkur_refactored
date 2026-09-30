@@ -8,11 +8,12 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { ApiError } from '@/api'
 import { useAuth } from '@/auth'
-import { AppButton, AppCard, AppTextField } from '@/components/ui'
+import { APP_PATHS, useAppPath } from '@/routing'
 
 const credentialsMaxLength = 50
 
 export function LoginForm() {
+  const { navigate } = useAppPath()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -112,6 +113,17 @@ export function LoginForm() {
         >
           Sign in
         </AppButton>
+
+        <Typography variant="body2" sx={{ textAlign: 'center' }}>
+          <Box
+            component="button"
+            type="button"
+            onClick={() => navigate(APP_PATHS.forgotPassword)}
+            sx={{ border: 0, p: 0, bgcolor: 'transparent', color: 'info.main', cursor: 'pointer', font: 'inherit', '&:hover': { textDecoration: 'underline' } }}
+          >
+            Forgot password?
+          </Box>
+        </Typography>
 
         <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
           For assistance, contact <strong>Bilal or Moritz</strong> at the

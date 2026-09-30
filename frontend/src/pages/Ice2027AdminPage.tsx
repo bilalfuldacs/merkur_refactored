@@ -5,6 +5,10 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
 import Table from '@mui/material/Table'
@@ -17,6 +21,7 @@ import { ApiError } from '@/api'
 import {
   addIceCompetitor,
   addIceGame,
+  addIceTeam,
   deleteIceCompetitor,
   deleteIceGame,
   getIceAdmin,
@@ -29,10 +34,10 @@ import {
 } from '@/api/ice2027'
 import type { IceAdminPayload, IceCompetitor, IceGame, IceTeam } from '@/api/ice2027'
 import { useAuth } from '@/auth'
-import { IceHero, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
+import { IceEventPicker, IceHero, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
 import { AppButton, AppTextField } from '@/components/ui'
-import { APP_PATHS, eventSlugFromSearch, ice2027HubPath, useAppPath } from '@/routing'
+import { APP_PATHS, eventSlugFromSearch, ice2027AdminPath, ice2027HubPath, useAppPath } from '@/routing'
 
 function personLabel(person: { name?: string | null; firstname?: string | null; lastname?: string | null; username?: string | null }): string {
   const name = person.name?.trim() || [person.firstname, person.lastname].filter(Boolean).join(' ')
@@ -49,6 +54,8 @@ export default function Ice2027AdminPage() {
   const [filter, setFilter] = useState('')
   const [newCompetitor, setNewCompetitor] = useState({ name: '', team_ID: '' })
   const [newGame, setNewGame] = useState({ name: '', competitor_ID: '', game_type: '' })
+  const [newTeam, setNewTeam] = useState({ name: '', member_1: '', member_2: '' })
+  const [addTeamOpen, setAddTeamOpen] = useState(false)
   const [teamNames, setTeamNames] = useState<Record<number, string>>({})
   const [teamMembers, setTeamMembers] = useState<Record<number, { member_1: string; member_2: string }>>({})
   const [competitorEdits, setCompetitorEdits] = useState<Record<number, { name: string; team_ID: string }>>({})
@@ -66,6 +73,9 @@ export default function Ice2027AdminPage() {
   }, [eventName])
 
   useEffect(() => {
+    if (!eventSlug) {
+      return
+    }
     let cancelled = false
     void getIceAdmin()
       .then((result) => {
@@ -81,7 +91,11 @@ export default function Ice2027AdminPage() {
     return () => {
       cancelled = true
     }
-  }, [search])
+  }, [eventSlug, search])
+
+  if (!eventSlug) {
+    return <IceEventPicker buildPath={(slug) => ice2027AdminPath(slug)} />
+  }
 
   function applyAdmin(next: IceAdminPayload, message?: string) {
     setPayload(next)
@@ -211,6 +225,8 @@ export default function Ice2027AdminPage() {
   const manageAllIndeterminate = visibleManageCount > 0 && !manageAllChecked
 
   const attendants = (payload?.users ?? []).filter((person) => person.iceattendent2027)
+  const maxTeams = payload?.stats.max_teams ?? 5
+  const canAddTeam = (payload?.teams.length ?? 0) < maxTeams
   const takenByTeam = (team: IceTeam) => {
     const taken = new Set<number>()
     for (const other of payload?.teams ?? []) {
@@ -461,11 +477,32 @@ export default function Ice2027AdminPage() {
               </Paper>
 
               <Paper elevation={0} sx={{ mb: 3, overflow: 'hidden', border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                <IceSectionHead title="2. Scouting teams" />
+                <IceSectionHead
+                  title="2. Scouting teams"
+                  action={
+                    <AppButton
+                      size="small"
+                      variant="contained"
+                      color="inherit"
+                      startIcon={<AddOutlinedIcon />}
+                      disabled={!canAddTeam}
+                      onClick={() => {
+                        setNewTeam({ name: '', member_1: '', member_2: '' })
+                        setAddTeamOpen(true)
+                      }}
+                      sx={{ color: 'secondary.main', bgcolor: 'common.white' }}
+                    >
+                      Add team
+                    </AppButton>
+                  }
+                />
                 <Box sx={{ p: 2.5 }}>
                   <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-                    Five teams, two members each. Members must be attendants for this event. A person can only be on one team.
+                    Add teams from people who already have access for this event. Two members per team (max {maxTeams} teams). Saving moves a person if they are already on another team.
                   </Typography>
+                  {payload.teams.length === 0 ? (
+                    <Typography sx={{ color: 'text.secondary', mb: 2 }}>No teams yet.</Typography>
+                  ) : null}
                   <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                     {payload.teams.map((team) => {
                       const taken = takenByTeam(team)
@@ -859,6 +896,70 @@ export default function Ice2027AdminPage() {
           ) : null}
         </Box>
       </Box>
+
+      <Dialog open={addTeamOpen} onClose={() => setAddTeamOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle>Add team</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
+          <AppTextField
+            size="small"
+            label="Team name"
+            value={newTeam.name}
+            onChange={(event) => setNewTeam((current) => ({ ...current, name: event.target.value }))}
+            autoFocus
+          />
+          <AppTextField
+            select
+            size="small"
+            label="Member 1"
+            value={newTeam.member_1}
+            onChange={(event) => setNewTeam((current) => ({ ...current, member_1: event.target.value }))}
+          >
+            <MenuItem value="">—</MenuItem>
+            {attendants.map((person) => (
+              <MenuItem key={person.ID} value={String(person.ID)} disabled={newTeam.member_2 === String(person.ID)}>
+                {personLabel(person)}
+              </MenuItem>
+            ))}
+          </AppTextField>
+          <AppTextField
+            select
+            size="small"
+            label="Member 2"
+            value={newTeam.member_2}
+            onChange={(event) => setNewTeam((current) => ({ ...current, member_2: event.target.value }))}
+            helperText="Only people with access for this event are listed. Two different people per team."
+          >
+            <MenuItem value="">—</MenuItem>
+            {attendants.map((person) => (
+              <MenuItem key={person.ID} value={String(person.ID)} disabled={newTeam.member_1 === String(person.ID)}>
+                {personLabel(person)}
+              </MenuItem>
+            ))}
+          </AppTextField>
+        </DialogContent>
+        <DialogActions>
+          <AppButton variant="outlined" color="secondary" onClick={() => setAddTeamOpen(false)}>
+            Cancel
+          </AppButton>
+          <AppButton
+            onClick={() =>
+              void run(async () => {
+                const next = await addIceTeam(
+                  newTeam.name,
+                  newTeam.member_1 ? Number(newTeam.member_1) : null,
+                  newTeam.member_2 ? Number(newTeam.member_2) : null,
+                )
+                setAddTeamOpen(false)
+                setNewTeam({ name: '', member_1: '', member_2: '' })
+                return next
+              })
+            }
+          >
+            Add team
+          </AppButton>
+        </DialogActions>
+      </Dialog>
+
       <AppFooter />
     </PageBackground>
   )

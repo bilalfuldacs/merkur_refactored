@@ -1,5 +1,21 @@
 import { apiRequest } from './client'
-import type { SortDirection, TableColumn, TableColumnKind, TableViewSchema, TableViewState, WidthMode } from '@/tableView'
+import type {
+  SortDirection,
+  TableColumn,
+  TableColumnKind,
+  TableTagMapping,
+  TableViewSchema,
+  TableViewState,
+  WidthMode,
+} from '@/tableView'
+
+type TableTagMappingResponse = {
+  mappingTable: string
+  masterColumn: string
+  tagColumn: string
+  tagsTable: string
+  tagNameColumn: string
+}
 
 type TableViewSchemaResponse = {
   table: string
@@ -45,6 +61,7 @@ type TableViewSchemaResponse = {
     enum_options: string[]
     help: string | null
     placeholder: string | null
+    tag_mapping?: TableTagMappingResponse | null
   }>
 }
 
@@ -57,6 +74,20 @@ function mapState(defaults: TableViewSchemaResponse['defaults']): TableViewState
     perPage: defaults.per_page,
     widthMode: defaults.width_mode,
     visibleColumns: [...defaults.visible_columns],
+  }
+}
+
+function mapTagMapping(value: TableTagMappingResponse | null | undefined): TableTagMapping | null {
+  if (!value) {
+    return null
+  }
+
+  return {
+    mappingTable: value.mappingTable,
+    masterColumn: value.masterColumn,
+    tagColumn: value.tagColumn,
+    tagsTable: value.tagsTable,
+    tagNameColumn: value.tagNameColumn,
   }
 }
 
@@ -78,6 +109,7 @@ function mapColumn(column: TableViewSchemaResponse['columns'][number]): TableCol
     enumOptions: column.enum_options ?? [],
     help: column.help,
     placeholder: column.placeholder,
+    tagMapping: mapTagMapping(column.tag_mapping),
   }
 }
 

@@ -45,6 +45,40 @@ export function isFilledBoolean(value: unknown): boolean {
   return value === true || value === 1 || value === '1' || value === 'true'
 }
 
+export type TableTagValue = {
+  id: number
+  name: string
+}
+
+export function asTagList(value: unknown): TableTagValue[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const tags: TableTagValue[] = []
+  for (const item of value) {
+    if (typeof item === 'number' && Number.isFinite(item) && item > 0) {
+      tags.push({ id: item, name: `#${item}` })
+      continue
+    }
+
+    const record = asRecord(item)
+    if (!record) {
+      continue
+    }
+
+    const id = Number(record.id ?? record.ID)
+    if (!Number.isFinite(id) || id <= 0) {
+      continue
+    }
+
+    const name = asText(record.name)?.trim() || asText(record.label)?.trim() || `#${id}`
+    tags.push({ id, name })
+  }
+
+  return tags
+}
+
 export function fieldValue(row: Record<string, unknown>, key: string): unknown {
   return row[key]
 }

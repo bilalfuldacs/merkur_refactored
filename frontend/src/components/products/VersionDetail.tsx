@@ -17,7 +17,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import type { ProductBuild, ProductCompatibilityGroup, ProductMarket, ProductVersion } from '@/api'
 import { tableBrowsePath } from '@/config/tablePages'
-import { APP_PATHS, productGamesListPath } from '@/routing'
+import { APP_PATHS, productGamesListPath, releaseInformationSheetPath } from '@/routing'
 import { countLabel, formatDate, jurisdictionLabel, statusLabel, versionTitle } from './format'
 import { StatusBadge } from './StatusBadge'
 
@@ -366,6 +366,8 @@ function BuildsTab({
 }
 
 function BuildCard({ build, onOpen }: { build: ProductBuild; onOpen: (path: string) => void }) {
+  const releasedSheetId = build.release?.release_date ? build.release.ID : null
+
   return (
     <Box sx={{ py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
       <Box
@@ -391,6 +393,16 @@ function BuildCard({ build, onOpen }: { build: ProductBuild; onOpen: (path: stri
             .join(' · ')}
         </Typography>
       </Box>
+      {releasedSheetId ? (
+        <Box
+          component="button"
+          type="button"
+          onClick={() => onOpen(releaseInformationSheetPath(releasedSheetId))}
+          sx={{ ...linkButtonSx, display: 'inline-flex', alignItems: 'center', gap: 0.5, mt: 0.75, fontSize: 13, fontWeight: 700 }}
+        >
+          Release information sheet
+        </Box>
+      ) : null}
       {build.milestones.length > 0 ? (
         <Box sx={{ pl: 1.5, mt: 0.75 }}>
           {build.milestones.map((milestone) => (

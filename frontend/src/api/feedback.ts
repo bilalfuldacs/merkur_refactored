@@ -35,6 +35,7 @@ export type FeedbackSubmission = {
   has_screenshot: boolean
   reference: string
   status: FeedbackStatus
+  admin_notes?: string | null
   submitted_at: string | null
   reviewed_at: string | null
   reviewed_by: number | null
@@ -76,6 +77,55 @@ export function getMyFeedback(query: {
     params.set('status', query.status)
   }
   return apiRequest<Paginated<FeedbackSubmission>>(`/feedback-submissions?${params.toString()}`)
+}
+
+export function getAdminFeedback(query: {
+  page?: number
+  per_page?: number
+  q?: string
+  status?: string
+  department?: string
+  priority?: string
+  feedback_type?: string
+  date_from?: string
+  date_to?: string
+} = {}): Promise<Paginated<FeedbackSubmission>> {
+  const params = new URLSearchParams()
+  params.set('page', String(query.page ?? 1))
+  params.set('per_page', String(query.per_page ?? 50))
+  if (query.q?.trim()) {
+    params.set('q', query.q.trim())
+  }
+  if (query.status) {
+    params.set('status', query.status)
+  }
+  if (query.department) {
+    params.set('department', query.department)
+  }
+  if (query.priority) {
+    params.set('priority', query.priority)
+  }
+  if (query.feedback_type) {
+    params.set('feedback_type', query.feedback_type)
+  }
+  if (query.date_from) {
+    params.set('date_from', query.date_from)
+  }
+  if (query.date_to) {
+    params.set('date_to', query.date_to)
+  }
+  return apiRequest<Paginated<FeedbackSubmission>>(`/feedback-submissions?${params.toString()}`)
+}
+
+export async function updateFeedback(
+  id: number,
+  input: { status?: FeedbackStatus; admin_notes?: string | null },
+): Promise<FeedbackSubmission> {
+  const payload = await apiRequest<Wrapped<FeedbackSubmission>>(`/feedback-submissions/${id}`, {
+    method: 'PATCH',
+    body: input,
+  })
+  return unwrapResource(payload)
 }
 
 export async function createFeedback(input: FeedbackInput): Promise<FeedbackSubmission> {

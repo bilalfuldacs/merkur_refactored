@@ -9,12 +9,15 @@ import FavoriteOutlinedIcon from '@mui/icons-material/FavoriteOutlined'
 import MoreHorizOutlinedIcon from '@mui/icons-material/MoreHorizOutlined'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
+import Dialog from '@mui/material/Dialog'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
-import type { CommunityComment, CommunityPost, MentionablePerson } from '@/api'
-import { createCommunityComment, getCommunityComments } from '@/api'
+import type { CommunityComment, CommunityPerson, CommunityPost, MentionablePerson } from '@/api'
+import { createCommunityComment, getCommunityComments, getCommunityLikes } from '@/api'
 import { AppButton } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
 import { formatFeedAgo, kindLabel, personName, postBody, postKind, postTitle, stripPostHtml } from './format'
@@ -47,6 +50,9 @@ export function PostCard({
   const [comments, setComments] = useState<CommunityComment[] | null>(null)
   const [reply, setReply] = useState('')
   const [sending, setSending] = useState(false)
+  const [likesOpen, setLikesOpen] = useState(false)
+  const [likers, setLikers] = useState<CommunityPerson[] | null>(null)
+  const [likersLoading, setLikersLoading] = useState(false)
   const kind = postKind(post)
   const title = postTitle(post.note)
   const body = postBody(post.note)
@@ -112,6 +118,21 @@ export function PostCard({
       return
     }
     await onDelete()
+  }
+
+  async function openLikes() {
+    if (!post.num_likes) {
+      return
+    }
+    setLikesOpen(true)
+    setLikersLoading(true)
+    try {
+      setLikers(await getCommunityLikes(post.ID))
+    } catch {
+      setLikers([])
+    } finally {
+      setLikersLoading(false)
+    }
   }
 
   return (
@@ -215,7 +236,29 @@ export function PostCard({
         <IconButton size="small" aria-label="Like" disabled={busy} onClick={onLike} color={post.my_like ? 'error' : 'default'}>
           {post.my_like ? <FavoriteOutlinedIcon fontSize="small" /> : <FavoriteBorderOutlinedIcon fontSize="small" />}
         </IconButton>
-        <Typography sx={{ fontSize: 13, minWidth: 16 }}>{post.num_likes || ''}</Typography>
+        {post.num_likes ? (
+          <Box
+            component="button"
+            type="button"
+            onClick={() => void openLikes()}
+            aria-label={`Show ${post.num_likes} likes`}
+            sx={{
+              border: 0,
+              bgcolor: 'transparent',
+              p: 0,
+              minWidth: 16,
+              fontSize: 13,
+              font: 'inherit',
+              color: 'text.primary',
+              cursor: 'pointer',
+              '&:hover': { textDecoration: 'underline' },
+            }}
+          >
+            {post.num_likes}
+          </Box>
+        ) : (
+          <Typography sx={{ fontSize: 13, minWidth: 16 }} />
+        )}
         <IconButton size="small" aria-label="Replies" onClick={() => setOpenReplies((current) => !current)}>
           <ChatBubbleOutlineOutlinedIcon fontSize="small" color="info" />
         </IconButton>
@@ -286,6 +329,32 @@ export function PostCard({
           </Box>
         </Box>
       ) : null}
+
+      <Dialog open={likesOpen} onClose={() => setLikesOpen(false)} fullWidth maxWidth="xs">
+        <DialogTitle sx={{ fontWeight: 800 }}>Liked by</DialogTitle>
+        <DialogContent dividers sx={{ px: 0, py: 0 }}>
+          {likersLoading ? (
+            <Typography sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>Loading…</Typography>
+          ) : !likers || likers.length === 0 ? (
+            <Typography sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>No likes yet.</Typography>
+          ) : (
+            likers.map((person) => (
+              <Box
+                key={person.ID}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}
+              >
+                <UserAvatar user={person} decolorize={decolorize} />
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: 14 }}>{personName(person)}</Typography>
+                  {person.jobtitle ? (
+                    <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{person.jobtitle}</Typography>
+                  ) : null}
+                </Box>
+              </Box>
+            ))
+          )}
+        </DialogContent>
+      </Dialog>
     </Box>
   )
 }

@@ -7,6 +7,11 @@ use App\Models\User;
 
 class MerkuriosityWordPolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->canCreateUpdateItems();
+    }
+
     public function create(User $user): bool
     {
         return $user->canCreateUpdateItems();

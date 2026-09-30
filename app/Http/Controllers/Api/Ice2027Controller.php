@@ -11,6 +11,8 @@ use Illuminate\Http\UploadedFile;
 use InvalidArgumentException;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Ice2027Controller extends Controller
 {
@@ -36,6 +38,41 @@ class Ice2027Controller extends Controller
         } catch (InvalidArgumentException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
+    }
+
+    public function openQuestionnaire(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        $user = $request->user();
+        abort_unless($ice->isAttendant($user), 403, 'This scouting event is only available to attendants.');
+
+        try {
+            return response()->json($ice->questionnaireView($user, 0, true));
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    public function saveOpenQuestionnaire(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        $user = $request->user();
+        abort_unless($ice->isAttendant($user), 403, 'This scouting event is only available to attendants.');
+
+        $data = $request->validate([
+            'products' => ['present', 'array'],
+        ]);
+
+        try {
+            $message = $ice->saveQuestionnaire((int) $user->ID, 0, $data['products'], true);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => $message,
+            ...$ice->questionnaireView($user, 0, true),
+        ]);
     }
 
     public function saveQuestionnaire(Request $request, int $competitor): JsonResponse
@@ -82,6 +119,8 @@ class Ice2027Controller extends Controller
             'games' => $ice->games(),
             'game_types' => Ice2027Service::GAME_TYPES,
             'eval_categories' => Ice2027Service::EVAL_CATEGORIES,
+            'eval_required_rows' => Ice2027Service::EVAL_REQUIRED_ROWS,
+            'eval_max_rows' => Ice2027Service::EVAL_MAX_ROWS,
             'top5' => $top5,
             'event' => [
                 'ID' => $ice->eventId(),
@@ -98,8 +137,9 @@ class Ice2027Controller extends Controller
         abort_unless($ice->isAttendant($user), 403, 'This scouting event is only available to attendants.');
 
         $data = $request->validate([
-            'top5' => ['required', 'array', 'size:5'],
-            'top5.*.competitor_ID' => ['nullable', 'integer'],
+            'top5' => ['required', 'array', 'min:1', 'max:'.Ice2027Service::EVAL_MAX_ROWS],
+            'top5.*.competitor_ID' => ['nullable'],
+            'top5.*.competitor' => ['nullable', 'string', 'max:255'],
             'top5.*.game_ID' => ['nullable'],
             'top5.*.game_name' => ['nullable', 'string', 'max:255'],
             'top5.*.is_new_product' => ['nullable'],
@@ -131,12 +171,44 @@ class Ice2027Controller extends Controller
         $ice = $this->iceFor($request);
         abort_unless($ice->canManage($request->user()), 403, 'Only administrators can view this scouting dashboard.');
 
-        return response()->json($ice->evaluationDashboard([
+        $filters = [
             'team_ID' => (int) $request->query('team', 0),
             'competitor_ID' => (int) $request->query('competitor', 0),
             'game_type' => (string) $request->query('type', ''),
             'would_play' => (string) $request->query('play', ''),
-        ]));
+        ];
+        $view = (string) $request->query('view', 'evaluation');
+        if ($view === 'questionnaire') {
+            return response()->json($ice->questionnaireDashboard($filters));
+        }
+
+        return response()->json($ice->evaluationDashboard($filters));
+    }
+
+    public function dashboardExport(Request $request): StreamedResponse
+    {
+        $ice = $this->iceFor($request);
+        abort_unless($ice->canManage($request->user()), 403, 'Only administrators can export this scouting dashboard.');
+
+        $excel = $ice->dashboardExcel((string) $request->query('kind', 'all'));
+
+        return response()->streamDownload(function () use ($excel) {
+            echo $excel['binary'];
+        }, $excel['filename'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    public function dashboardGame(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        abort_unless($ice->canManage($request->user()), 403, 'Only administrators can view this scouting dashboard.');
+
+        $key = (string) $request->query('game', '');
+        $detail = $ice->evaluationGameDetail($key);
+        abort_unless($detail !== null, 404, 'Game not found.');
+
+        return response()->json($detail);
     }
 
     public function progress(Request $request): JsonResponse
@@ -154,13 +226,30 @@ class Ice2027Controller extends Controller
 
         $competitorId = (int) $request->query('c', 0);
         $fileId = (string) $request->query('f', '');
-        $teamId = $ice->teamIdForPhoto($request->user(), $competitorId);
-        abort_unless($teamId > 0 && $fileId !== '', 404, 'Picture not found.');
+        $owner = $ice->mediaOwnerForPhotoAccess($request->user(), $competitorId, $request->query('o'));
+        abort_unless($owner !== null && $fileId !== '', 404, 'Picture not found.');
 
-        $path = $ice->productPhotoPath($teamId, $competitorId, $fileId);
-        abort_unless($path !== null, 404, 'Picture not found.');
+        $path = $ice->productPhotoPath($owner, $competitorId, $fileId);
+        abort_unless($path !== null && is_file($path) && filesize($path) > 0, 404, 'Picture not found.');
 
-        return response()->file($path);
+        $downloadName = $fileId;
+        $marker = strrpos($fileId, '~~');
+        if ($marker !== false) {
+            $downloadName = substr($fileId, $marker + 2);
+        }
+        $downloadName = str_replace(['"', "\r", "\n"], '', $downloadName);
+        if ($downloadName === '') {
+            $downloadName = 'media';
+        }
+
+        // BinaryFileResponse honors Range / returns 206 by default (needed for video seeking).
+        $response = new BinaryFileResponse($path, 200, [
+            'Cache-Control' => 'private, max-age=86400',
+            'Accept-Ranges' => 'bytes',
+        ], false, null, true, true);
+        $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, $downloadName);
+
+        return $response;
     }
 
     public function uploadPhoto(Request $request): JsonResponse
@@ -171,7 +260,7 @@ class Ice2027Controller extends Controller
 
         $data = $request->validate([
             'competitor_ID' => ['required', 'integer'],
-            'photo' => ['required', 'file', 'max:10240'],
+            'photo' => ['required', 'file', 'max:153600'],
         ]);
 
         $file = $request->file('photo');

@@ -1,4 +1,14 @@
-export type { RelationLookup, SortDirection, TableColumn, TableColumnKind, TableListQuery, TableViewSchema, TableViewState, WidthMode } from './types'
+export type {
+  RelationLookup,
+  SortDirection,
+  TableColumn,
+  TableColumnKind,
+  TableListQuery,
+  TableTagMapping,
+  TableViewSchema,
+  TableViewState,
+  WidthMode,
+} from './types'
 export {
   cloneViewState,
   columnsForKeys,
@@ -8,7 +18,8 @@ export {
   toggleVisibleColumn,
   viewStatesEqual,
 } from './state'
-export { asRecord, asText, isFilledBoolean, relationLabel } from './display'
+export { asRecord, asTagList, asText, isFilledBoolean, relationLabel } from './display'
+export type { TableTagValue } from './display'
 export { useTableView } from './useTableView'
 export {
   COLUMN_DEFAULT_WIDTH,

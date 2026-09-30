@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import CloudDownloadOutlinedIcon from '@mui/icons-material/CloudDownloadOutlined'
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined'
+import CreateNewFolderOutlinedIcon from '@mui/icons-material/CreateNewFolderOutlined'
 import DeleteOutlineOutlinedIcon from '@mui/icons-material/DeleteOutlineOutlined'
+import DriveFileMoveOutlinedIcon from '@mui/icons-material/DriveFileMoveOutlined'
 import InsertDriveFileOutlinedIcon from '@mui/icons-material/InsertDriveFileOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
@@ -14,12 +16,12 @@ import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import IconButton from '@mui/material/IconButton'
 import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Radio from '@mui/material/Radio'
 import Switch from '@mui/material/Switch'
-import FormControlLabel from '@mui/material/FormControlLabel'
 import Typography from '@mui/material/Typography'
 import {
   downloadTableAsset,
@@ -35,6 +37,8 @@ import { UserAvatar } from '@/components/user'
 import { AppButton, AppTextField } from '@/components/ui'
 
 const ACCEPT = '.pdf,.jpg,.jpeg,.png,.mp3,.mp4'
+const FOLDER_NAME_RE = /^[-+ /)(\p{L}0-9]{1,100}$/u
+const ASSET_DRAG_MIME = 'application/x-merkur-asset'
 
 const TLP_COLOR: Record<string, string> = {
   red: '#EB0000',
@@ -51,6 +55,38 @@ const TLP_OPTIONS = [
 ] as const
 
 type UploadTarget = { assetClass: string; featured?: boolean }
+
+type AssetDragPayload = {
+  filename: string
+  tlp: string
+  asset_class: string
+  folder: string | null
+}
+
+function isAssetDrag(event: { dataTransfer: DataTransfer }): boolean {
+  return Array.from(event.dataTransfer.types).includes(ASSET_DRAG_MIME)
+}
+
+function readAssetDrag(event: { dataTransfer: DataTransfer }): AssetDragPayload | null {
+  const raw = event.dataTransfer.getData(ASSET_DRAG_MIME)
+  if (!raw) {
+    return null
+  }
+  try {
+    const parsed = JSON.parse(raw) as Partial<AssetDragPayload>
+    if (typeof parsed.filename !== 'string' || typeof parsed.tlp !== 'string' || typeof parsed.asset_class !== 'string') {
+      return null
+    }
+    return {
+      filename: parsed.filename,
+      tlp: parsed.tlp,
+      asset_class: parsed.asset_class,
+      folder: typeof parsed.folder === 'string' ? parsed.folder : null,
+    }
+  } catch {
+    return null
+  }
+}
 
 export function TableRecordAssets({
   table,
@@ -400,16 +436,80 @@ function ClassCard({
   onPick: () => void
   onDrop: (files: FileList | File[]) => void
 }) {
-  const folders = useMemo(() => {
-    const names = new Set(group.files.map((file) => file.folder).filter(Boolean))
-    return names.size
-  }, [group.files])
+  const folders = useMemo(() => uniqueFolderPaths(group), [group])
+  const [creatingFolder, setCreatingFolder] = useState(false)
+  const [folderName, setFolderName] = useState('New Folder')
+  const [folderTlp, setFolderTlp] = useState('amber')
+  const [folderParent, setFolderParent] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [folderError, setFolderError] = useState<string | null>(null)
+  const [dragOverFolder, setDragOverFolder] = useState<string | null>(null)
+  const [moveNotice, setMoveNotice] = useState<string | null>(null)
+
+  async function moveAssetToFolder(payload: AssetDragPayload, folderPath: string) {
+    if (!canModify || busy) {
+      return
+    }
+    const currentFolder = payload.folder ?? ''
+    if (currentFolder === folderPath) {
+      return
+    }
+    if (payload.asset_class !== group.key) {
+      setFolderError('Assets can only be moved within the same class.')
+      return
+    }
+
+    setBusy(true)
+    setFolderError(null)
+    setMoveNotice(null)
+    try {
+      const next = await modifyTableAsset(table, recordId, {
+        tlp: payload.tlp,
+        filename: payload.filename,
+        assetClass: payload.asset_class,
+        folder: payload.folder,
+        folderNew: folderPath || null,
+      })
+      onUpdated(next)
+      setMoveNotice(`Moved to “${folderPath}”.`)
+    } catch (caught) {
+      setFolderError(caught instanceof ApiError && caught.message.trim() ? caught.message : 'The asset could not be moved.')
+    } finally {
+      setBusy(false)
+      setDragOverFolder(null)
+    }
+  }
+
   const summary =
-    group.files.length === 0
+    group.files.length === 0 && folders.length === 0
       ? 'Empty'
       : `${group.files.length === 1 ? '1 Asset' : `${group.files.length} Assets`}, ${
-          folders === 0 ? 'No Folders' : folders === 1 ? '1 Folder' : `${folders} Folders`
+          folders.length === 0 ? 'No Folders' : folders.length === 1 ? '1 Folder' : `${folders.length} Folders`
         }`
+
+  async function createFolder() {
+    const name = folderName.trim()
+    if (!FOLDER_NAME_RE.test(name)) {
+      setFolderError('Folder name may only contain letters, digits, spaces, and - / ( ).')
+      return
+    }
+    setBusy(true)
+    setFolderError(null)
+    try {
+      const next = await modifyTableAsset(table, recordId, {
+        tlp: folderTlp,
+        assetClass: group.key,
+        folder: folderParent || null,
+        folderCreate: name,
+      })
+      onUpdated(next)
+      setCreatingFolder(false)
+    } catch (caught) {
+      setFolderError(caught instanceof ApiError && caught.message.trim() ? caught.message : 'Folder could not be created.')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, bgcolor: 'common.white', p: 1.25 }}>
@@ -421,8 +521,88 @@ function ClassCard({
             <Typography sx={{ color: 'text.secondary', fontSize: 11, mt: 0.25 }}>{group.hint}</Typography>
           ) : null}
         </Box>
+        {canModify ? (
+          <IconButton
+            size="small"
+            aria-label={`New folder in ${group.label}`}
+            onClick={() => {
+              setFolderName('New Folder')
+              setFolderParent('')
+              setFolderTlp('amber')
+              setFolderError(null)
+              setCreatingFolder(true)
+            }}
+          >
+            <CreateNewFolderOutlinedIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        ) : null}
         {canUpload ? <DropZone size="small" onPick={onPick} onDrop={onDrop} /> : null}
       </Box>
+      {folders.length > 0 ? (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+          {folders.map((path) => {
+            const over = dragOverFolder === path
+            return (
+              <Chip
+                key={path}
+                size="small"
+                icon={<CreateNewFolderOutlinedIcon />}
+                label={path}
+                onDragEnter={(event) => {
+                  if (!canModify || !isAssetDrag(event)) {
+                    return
+                  }
+                  event.preventDefault()
+                  setDragOverFolder(path)
+                }}
+                onDragOver={(event) => {
+                  if (!canModify || !isAssetDrag(event)) {
+                    return
+                  }
+                  event.preventDefault()
+                  event.dataTransfer.dropEffect = 'move'
+                  if (dragOverFolder !== path) {
+                    setDragOverFolder(path)
+                  }
+                }}
+                onDragLeave={(event) => {
+                  const related = event.relatedTarget
+                  if (related instanceof Node && event.currentTarget.contains(related)) {
+                    return
+                  }
+                  setDragOverFolder((current) => (current === path ? null : current))
+                }}
+                onDrop={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  setDragOverFolder(null)
+                  const payload = readAssetDrag(event)
+                  if (payload) {
+                    void moveAssetToFolder(payload, path)
+                  }
+                }}
+                sx={{
+                  fontWeight: 600,
+                  border: '1px solid',
+                  borderColor: over ? 'info.main' : 'transparent',
+                  bgcolor: over ? 'rgba(0, 159, 227, 0.16)' : undefined,
+                  transition: 'background-color 120ms ease, border-color 120ms ease',
+                }}
+              />
+            )
+          })}
+        </Box>
+      ) : null}
+      {folderError ? (
+        <Alert severity="error" sx={{ mb: 1 }} onClose={() => setFolderError(null)}>
+          {folderError}
+        </Alert>
+      ) : null}
+      {moveNotice ? (
+        <Alert severity="success" sx={{ mb: 1 }} onClose={() => setMoveNotice(null)}>
+          {moveNotice}
+        </Alert>
+      ) : null}
       {group.files.length === 0 ? (
         <Typography sx={{ color: 'text.secondary', fontSize: 13, textAlign: 'center', py: 1.5 }}>
           No assets have been uploaded yet.
@@ -434,12 +614,60 @@ function ClassCard({
             table={table}
             recordId={recordId}
             file={file}
+            group={group}
             decolorize={decolorize}
             canModify={canModify}
             onUpdated={onUpdated}
           />
         ))
       )}
+      <Dialog open={creatingFolder} onClose={() => setCreatingFolder(false)} fullWidth maxWidth="xs">
+        <DialogTitle>New folder</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: 1 }}>
+          <AppTextField
+            label="Folder name"
+            value={folderName}
+            onChange={(event) => setFolderName(event.target.value)}
+            helperText="Use / to create nested folders at once."
+          />
+          <AppTextField
+            select
+            label="Parent folder"
+            value={folderParent}
+            onChange={(event) => setFolderParent(event.target.value)}
+          >
+            <MenuItem value="">Home</MenuItem>
+            {folders.map((path) => (
+              <MenuItem key={path} value={path}>
+                {path}
+              </MenuItem>
+            ))}
+          </AppTextField>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {TLP_OPTIONS.map((option) => (
+              <Chip
+                key={option.value}
+                label={option.label}
+                onClick={() => setFolderTlp(option.value)}
+                sx={{
+                  fontWeight: 700,
+                  bgcolor: folderTlp === option.value ? TLP_COLOR[option.value] : 'grey.200',
+                  color: folderTlp === option.value && option.value !== 'clear' ? '#fff' : '#022052',
+                }}
+              />
+            ))}
+          </Box>
+          {folderError ? <Alert severity="error">{folderError}</Alert> : null}
+        </DialogContent>
+        <DialogActions>
+          <AppButton variant="text" onClick={() => setCreatingFolder(false)}>
+            Cancel
+          </AppButton>
+          <AppButton disabled={busy || folderName.trim() === ''} onClick={() => void createFolder()}>
+            Create
+          </AppButton>
+        </DialogActions>
+      </Dialog>
     </Box>
   )
 }
@@ -519,15 +747,20 @@ function MoodSlot({
     <Box
       onDragEnter={(event) => {
         event.preventDefault()
-        if (canUpload) {
+        if (canUpload && !isAssetDrag(event)) {
           setActive(true)
         }
       }}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault()
+      }}
       onDragLeave={() => setActive(false)}
       onDrop={(event) => {
         event.preventDefault()
         setActive(false)
+        if (isAssetDrag(event)) {
+          return
+        }
         if (canUpload && event.dataTransfer.files.length > 0) {
           onDrop(event.dataTransfer.files)
         }
@@ -595,13 +828,24 @@ function DropZone({
     <Box
       onDragEnter={(event) => {
         event.preventDefault()
+        if (isAssetDrag(event)) {
+          return
+        }
         setActive(true)
       }}
-      onDragOver={(event) => event.preventDefault()}
+      onDragOver={(event) => {
+        event.preventDefault()
+        if (isAssetDrag(event)) {
+          return
+        }
+      }}
       onDragLeave={() => setActive(false)}
       onDrop={(event) => {
         event.preventDefault()
         setActive(false)
+        if (isAssetDrag(event)) {
+          return
+        }
         if (event.dataTransfer.files.length > 0) {
           onDrop(event.dataTransfer.files)
         }
@@ -658,6 +902,7 @@ function AssetRow({
   table,
   recordId,
   file,
+  group,
   decolorize,
   canModify,
   onUpdated,
@@ -665,6 +910,7 @@ function AssetRow({
   table: string
   recordId: number | null
   file: TableAssetFile
+  group: TableAssetClass
   decolorize: boolean
   canModify: boolean
   onUpdated: (payload: TableAssetsPayload) => void
@@ -672,29 +918,41 @@ function AssetRow({
   const tlpColor = TLP_COLOR[file.tlp] ?? TLP_COLOR.clear
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [editing, setEditing] = useState(false)
+  const [moving, setMoving] = useState(false)
   const [name, setName] = useState(file.name)
   const [description, setDescription] = useState(file.description ?? '')
   const [tlp, setTlp] = useState(file.tlp)
   const [featured, setFeatured] = useState(file.featured)
+  const [draft, setDraft] = useState(file.draft)
+  const [targetFolder, setTargetFolder] = useState(file.folder ?? '')
   const [busy, setBusy] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  async function save(extra?: { trash?: boolean }) {
+  const moveTargets = useMemo(() => folderTargetsForFile(group, file), [group, file])
+
+  async function save(extra?: { trash?: boolean; draftOnly?: boolean; moveOnly?: boolean }) {
     setBusy(true)
+    setActionError(null)
     try {
       const next = await modifyTableAsset(table, recordId, {
         tlp: file.tlp,
         filename: file.filename,
         assetClass: file.asset_class,
         folder: file.folder,
-        tlpNew: extra?.trash ? undefined : tlp,
-        nameNew: extra?.trash ? undefined : name,
-        description: extra?.trash ? undefined : description,
-        featured: extra?.trash ? undefined : featured,
+        tlpNew: extra?.trash || extra?.draftOnly || extra?.moveOnly ? undefined : tlp,
+        nameNew: extra?.trash || extra?.draftOnly || extra?.moveOnly ? undefined : name,
+        description: extra?.trash || extra?.draftOnly || extra?.moveOnly ? undefined : description,
+        featured: extra?.trash || extra?.draftOnly || extra?.moveOnly ? undefined : featured,
+        draft: extra?.draftOnly ? !file.draft : extra?.trash || extra?.moveOnly ? undefined : draft,
+        folderNew: extra?.moveOnly ? targetFolder || null : undefined,
         trash: extra?.trash,
       })
       onUpdated(next)
       setEditing(false)
+      setMoving(false)
       setMenuAnchor(null)
+    } catch (caught) {
+      setActionError(caught instanceof ApiError && caught.message.trim() ? caught.message : 'The asset could not be updated.')
     } finally {
       setBusy(false)
     }
@@ -702,6 +960,21 @@ function AssetRow({
 
   return (
     <Box
+      draggable={canModify}
+      onDragStart={(event) => {
+        if (!canModify) {
+          event.preventDefault()
+          return
+        }
+        const payload: AssetDragPayload = {
+          filename: file.filename,
+          tlp: file.tlp,
+          asset_class: file.asset_class,
+          folder: file.folder,
+        }
+        event.dataTransfer.setData(ASSET_DRAG_MIME, JSON.stringify(payload))
+        event.dataTransfer.effectAllowed = 'move'
+      }}
       sx={{
         display: 'flex',
         alignItems: 'center',
@@ -710,6 +983,8 @@ function AssetRow({
         py: 1,
         borderTop: '1px solid',
         borderColor: 'divider',
+        cursor: canModify ? 'grab' : undefined,
+        '&:active': canModify ? { cursor: 'grabbing' } : undefined,
       }}
     >
       {file.is_image ? (
@@ -766,11 +1041,32 @@ function AssetRow({
                 setDescription(file.description ?? '')
                 setTlp(file.tlp)
                 setFeatured(file.featured)
+                setDraft(file.draft)
+                setActionError(null)
                 setEditing(true)
                 setMenuAnchor(null)
               }}
             >
               Rename / TLP
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setTargetFolder(file.folder ?? '')
+                setActionError(null)
+                setMoving(true)
+                setMenuAnchor(null)
+              }}
+            >
+              <DriveFileMoveOutlinedIcon sx={{ fontSize: 16, mr: 1 }} />
+              Move…
+            </MenuItem>
+            <MenuItem
+              disabled={busy}
+              onClick={() => {
+                void save({ draftOnly: true })
+              }}
+            >
+              {file.draft ? 'Clear draft' : 'Mark as draft'}
             </MenuItem>
             <MenuItem
               onClick={() => {
@@ -810,6 +1106,11 @@ function AssetRow({
                 control={<Switch checked={featured} onChange={(event) => setFeatured(event.target.checked)} />}
                 label="Mood board"
               />
+              <FormControlLabel
+                control={<Switch checked={draft} onChange={(event) => setDraft(event.target.checked)} />}
+                label="Draft"
+              />
+              {actionError ? <Alert severity="error">{actionError}</Alert> : null}
             </DialogContent>
             <DialogActions>
               <AppButton variant="text" onClick={() => setEditing(false)}>
@@ -817,6 +1118,34 @@ function AssetRow({
               </AppButton>
               <AppButton disabled={busy || name.trim() === ''} onClick={() => void save()}>
                 Save
+              </AppButton>
+            </DialogActions>
+          </Dialog>
+          <Dialog open={moving} onClose={() => setMoving(false)} fullWidth maxWidth="xs">
+            <DialogTitle>Move {file.name}</DialogTitle>
+            <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
+              <FormControlLabel
+                control={<Radio checked={targetFolder === ''} onChange={() => setTargetFolder('')} />}
+                label="Home"
+              />
+              {moveTargets.map((path) => (
+                <FormControlLabel
+                  key={path}
+                  control={<Radio checked={targetFolder === path} onChange={() => setTargetFolder(path)} />}
+                  label={path}
+                />
+              ))}
+              {actionError ? <Alert severity="error">{actionError}</Alert> : null}
+            </DialogContent>
+            <DialogActions>
+              <AppButton variant="text" onClick={() => setMoving(false)}>
+                Cancel
+              </AppButton>
+              <AppButton
+                disabled={busy || targetFolder === (file.folder ?? '')}
+                onClick={() => void save({ moveOnly: true })}
+              >
+                Move
               </AppButton>
             </DialogActions>
           </Dialog>
@@ -887,6 +1216,36 @@ function groupClasses(classes: TableAssetClass[]) {
     print: classes.filter((item) => item.group === 'print'),
     other: classes.filter((item) => item.group !== 'general' && item.group !== 'print'),
   }
+}
+
+function uniqueFolderPaths(group: TableAssetClass): string[] {
+  const names = new Set<string>()
+  for (const folder of group.folders ?? []) {
+    if (folder.path) {
+      names.add(folder.path)
+    }
+  }
+  for (const file of group.files) {
+    if (file.folder) {
+      names.add(file.folder)
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b))
+}
+
+function folderTargetsForFile(group: TableAssetClass, file: TableAssetFile): string[] {
+  const names = new Set<string>()
+  for (const folder of group.folders ?? []) {
+    if (folder.path && folder.tlp === file.tlp) {
+      names.add(folder.path)
+    }
+  }
+  for (const candidate of group.files) {
+    if (candidate.tlp === file.tlp && candidate.folder) {
+      names.add(candidate.folder)
+    }
+  }
+  return [...names].sort((a, b) => a.localeCompare(b))
 }
 
 function uploadErrorMessage(caught: unknown, fileName: string): string {

@@ -110,6 +110,7 @@ class TableAttachmentsService
     {
         $usesHub = $this->usesAssetHub($table, $view);
         $files = [];
+        $folders = [];
         $seen = [];
         foreach ($this->storageRoots() as $root) {
             foreach ($this->visibleTlps($user) as $tlp) {
@@ -118,7 +119,7 @@ class TableAttachmentsService
                     continue;
                 }
                 $batch = [];
-                $this->walk($base, $tlp, null, '', $batch);
+                $this->walk($base, $tlp, null, '', $batch, $folders);
                 foreach ($batch as $file) {
                     $key = $file['tlp'].'|'.$file['asset_class'].'|'.($file['folder'] ?? '').'|'.$file['filename'];
                     if (isset($seen[$key])) {
@@ -164,7 +165,7 @@ class TableAttachmentsService
         }
         unset($file);
 
-        return $this->payload($view, $user, $usesHub, $files);
+        return $this->payload($view, $user, $usesHub, $files, $folders);
     }
 
     public function upload(
@@ -253,6 +254,79 @@ class TableAttachmentsService
         ]);
     }
 
+    /**
+     * Flat (non-recursive) docs-package files for a game. Always excludes TLP:RED.
+     *
+     * @return list<array{filename: string, name: string, tlp: string, tlp_label: string, size: int, size_label: string}>
+     */
+    public function listFlatGameDocs(int $gameId, User $user): array
+    {
+        $user->loadMissing('role');
+        $this->schema->payload('games', $user);
+
+        $files = [];
+        $seen = [];
+        foreach ($this->storageRoots() as $root) {
+            foreach (['amber', 'green', 'clear'] as $tlp) {
+                $base = $this->itemBase($root, 'games', $tlp, $gameId);
+                if (! is_dir($base)) {
+                    continue;
+                }
+                foreach (File::files($base) as $entry) {
+                    $name = $entry->getFilename();
+                    if (str_ends_with(strtolower($name), '.json')) {
+                        continue;
+                    }
+                    $parsed = $this->parseFileName($name);
+                    if ($parsed['deleted_at'] !== null) {
+                        continue;
+                    }
+                    $key = $tlp.'|'.$name;
+                    if (isset($seen[$key])) {
+                        continue;
+                    }
+                    $seen[$key] = true;
+                    $files[] = [
+                        'filename' => $name,
+                        'name' => $parsed['name'],
+                        'tlp' => $tlp,
+                        'tlp_label' => $this->tlpLabel($tlp),
+                        'size' => $entry->getSize(),
+                        'size_label' => $this->niceSize($entry->getSize()),
+                    ];
+                }
+            }
+        }
+
+        usort($files, function (array $a, array $b): int {
+            $byName = strcasecmp((string) $a['name'], (string) $b['name']);
+            if ($byName !== 0) {
+                return $byName;
+            }
+
+            return strcmp((string) $a['tlp'], (string) $b['tlp']);
+        });
+
+        return $files;
+    }
+
+    /**
+     * Resolve an absolute path for a flat (root-level) game attachment. TLP:RED is never allowed.
+     */
+    public function resolveFlatGameDocPath(int $gameId, string $tlp, string $filename): string
+    {
+        if (! in_array($tlp, ['amber', 'green', 'clear'], true)) {
+            throw new InvalidArgumentException('Unknown asset.');
+        }
+
+        $safeName = $this->safeFilename($filename);
+        if ($safeName === '') {
+            throw new InvalidArgumentException('Unknown asset.');
+        }
+
+        return $this->filePath('games', $gameId, $tlp, null, '', $safeName);
+    }
+
     public function download(string $table, int $id, User $user, array $query, bool $asDownload): BinaryFileResponse
     {
         $this->schema->payload($table, $user);
@@ -295,7 +369,13 @@ class TableAttachmentsService
      * @param  list<array<string, mixed>>  $files
      * @return array<string, mixed>
      */
-    private function payload(array $view, User $user, bool $usesHub, array $files): array
+    /**
+     * @param  array<string, mixed>  $view
+     * @param  list<array<string, mixed>>  $files
+     * @param  list<array{tlp: string, asset_class: string, path: string}>  $folders
+     * @return array<string, mixed>
+     */
+    private function payload(array $view, User $user, bool $usesHub, array $files, array $folders = []): array
     {
         $catalogKeys = $usesHub ? array_keys(self::CLASS_CATALOG) : [''];
         $classes = [];
@@ -308,6 +388,7 @@ class TableAttachmentsService
                 'span' => $meta['span'],
                 'hint' => $meta['hint'],
                 'files' => [],
+                'folders' => [],
             ];
         }
         foreach ($files as $file) {
@@ -320,10 +401,53 @@ class TableAttachmentsService
                     'span' => 12,
                     'hint' => '',
                     'files' => [],
+                    'folders' => [],
                 ];
             }
             $classes[$key]['files'][] = $file;
         }
+
+        $folderSeen = [];
+        foreach ($folders as $folder) {
+            $classKey = (string) ($folder['asset_class'] ?? '');
+            $path = (string) ($folder['path'] ?? '');
+            $tlp = (string) ($folder['tlp'] ?? '');
+            if ($path === '' || $tlp === '') {
+                continue;
+            }
+            if (! isset($classes[$classKey])) {
+                $classes[$classKey] = [
+                    'key' => $classKey,
+                    'label' => $this->titleFromClass($classKey),
+                    'group' => 'other',
+                    'span' => 12,
+                    'hint' => '',
+                    'files' => [],
+                    'folders' => [],
+                ];
+            }
+            $dedupe = $classKey.'|'.$tlp.'|'.$path;
+            if (isset($folderSeen[$dedupe])) {
+                continue;
+            }
+            $folderSeen[$dedupe] = true;
+            $classes[$classKey]['folders'][] = [
+                'tlp' => $tlp,
+                'path' => $path,
+            ];
+        }
+
+        foreach ($classes as &$class) {
+            usort($class['folders'], function (array $a, array $b): int {
+                $tlp = array_search($a['tlp'], self::TLPS, true) <=> array_search($b['tlp'], self::TLPS, true);
+                if ($tlp !== 0) {
+                    return $tlp;
+                }
+
+                return strcasecmp((string) $a['path'], (string) $b['path']);
+            });
+        }
+        unset($class);
 
         $canEdit = (bool) ($view['can_edit'] ?? false);
 
@@ -560,7 +684,11 @@ class TableAttachmentsService
     /**
      * @param  list<array<string, mixed>>  $files
      */
-    private function walk(string $directory, string $tlp, ?string $assetClass, string $folder, array &$files): void
+    /**
+     * @param  list<array<string, mixed>>  $files
+     * @param  list<array{tlp: string, asset_class: string, path: string}>  $folders
+     */
+    private function walk(string $directory, string $tlp, ?string $assetClass, string $folder, array &$files, array &$folders = []): void
     {
         $entries = File::files($directory);
         foreach ($entries as $entry) {
@@ -599,12 +727,17 @@ class TableAttachmentsService
                 continue;
             }
             if (str_starts_with($name, '~') && $assetClass === null) {
-                $this->walk($child, $tlp, substr($name, 1), '', $files);
+                $this->walk($child, $tlp, substr($name, 1), '', $files, $folders);
                 continue;
             }
 
             $nextFolder = $folder === '' ? $name : $folder.'/'.$name;
-            $this->walk($child, $tlp, $assetClass, $nextFolder, $files);
+            $folders[] = [
+                'tlp' => $tlp,
+                'asset_class' => $assetClass ?? '',
+                'path' => $nextFolder,
+            ];
+            $this->walk($child, $tlp, $assetClass, $nextFolder, $files, $folders);
         }
     }
 
@@ -779,6 +912,17 @@ class TableAttachmentsService
 
         $assetClass = $this->safeClass($input['ac'] ?? null) ?? '';
         $folder = $this->safeFolder($input['sf'] ?? ($input['folder'] ?? ''));
+
+        if (array_key_exists('folder_create', $input) && is_string($input['folder_create']) && $input['folder_create'] !== '') {
+            $created = $this->safeFolderCreateName($input['folder_create']);
+            $targetFolder = $folder === '' ? $created : $folder.'/'.$created;
+            $this->writableClassDirectory($table, $id, $tlp, $assetClass, $targetFolder);
+
+            return $id === null
+                ? $this->listVirtual($table, $user)
+                : $this->list($table, $id, $user);
+        }
+
         $filename = $this->safeFilename((string) ($input['f'] ?? ($input['name'] ?? '')));
         if ($filename === '') {
             throw new InvalidArgumentException('Unknown asset.');
@@ -948,9 +1092,22 @@ class TableAttachmentsService
             if ($segment === '' || $segment === '.' || $segment === '..' || str_contains($segment, '\\')) {
                 throw new InvalidArgumentException('Unknown asset.');
             }
+            if (preg_match('/^[-+ ()\p{L}0-9]{1,100}$/u', $segment) !== 1) {
+                throw new InvalidArgumentException('Folder name may only contain letters, digits, spaces, and - / ( ).');
+            }
         }
 
         return $raw;
+    }
+
+    private function safeFolderCreateName(string $value): string
+    {
+        $raw = trim(str_replace('\\', '/', $value), '/');
+        if ($raw === '' || preg_match('/^[-+ \/)(\p{L}0-9]{1,100}$/u', $raw) !== 1) {
+            throw new InvalidArgumentException('Folder name may only contain letters, digits, spaces, and - / ( ).');
+        }
+
+        return $this->safeFolder($raw);
     }
 
     private function safeFilename(string $value): string
@@ -997,5 +1154,115 @@ class TableAttachmentsService
         }
 
         return ucwords(str_replace(['-', '_'], ' ', $key));
+    }
+
+    /**
+     * Soft-deleted assets use the name pattern userId~uploadedAt~deletedAt~displayName
+     * (third segment non-empty). Active files keep an empty deleted stamp (~~).
+     *
+     * @return list<array{path: string, relative: string, name: string, deleted_at: string|null, size: int}>
+     */
+    public function listTrashed(): array
+    {
+        $items = [];
+        foreach ($this->storageRoots() as $root) {
+            if (! is_dir($root)) {
+                continue;
+            }
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($iterator as $file) {
+                if (! $file->isFile()) {
+                    continue;
+                }
+                $name = $file->getFilename();
+                if (str_ends_with(strtolower($name), '.json')) {
+                    continue;
+                }
+                // Match original admin trash finder: digits~digits~digits~…
+                if (preg_match('/^\d+~\d+~\d+.+/', $name) !== 1) {
+                    continue;
+                }
+                $parsed = $this->parseFileName($name);
+                $absolute = $file->getPathname();
+                $items[] = [
+                    'path' => $absolute,
+                    'relative' => ltrim(str_replace('\\', '/', substr($absolute, strlen($root))), '/'),
+                    'name' => $parsed['name'],
+                    'deleted_at' => $parsed['deleted_at'],
+                    'size' => (int) $file->getSize(),
+                ];
+            }
+        }
+
+        usort($items, fn (array $a, array $b): int => strcmp($a['relative'], $b['relative']));
+
+        return $items;
+    }
+
+    /**
+     * Hard-delete soft-trashed attachment files (and sidecar .json when present).
+     *
+     * @param  list<string>|null  $paths  Absolute paths; null or empty = purge all trashed.
+     * @return array{purged: int, missing: int}
+     */
+    public function purgeTrashed(?array $paths = null): array
+    {
+        $trashed = $this->listTrashed();
+        $byPath = [];
+        foreach ($trashed as $item) {
+            $byPath[$item['path']] = $item;
+        }
+
+        $targets = $paths === null || $paths === []
+            ? array_keys($byPath)
+            : array_values(array_unique(array_filter($paths, 'is_string')));
+
+        $purged = 0;
+        $missing = 0;
+        foreach ($targets as $path) {
+            $candidate = isset($byPath[$path]) ? $path : null;
+            if ($candidate === null) {
+                $real = realpath($path);
+                if ($real !== false && isset($byPath[$real])) {
+                    $candidate = $real;
+                }
+            }
+            if ($candidate === null || ! is_file($candidate) || ! $this->isUnderStorageRoot($candidate)) {
+                $missing++;
+                continue;
+            }
+            if (@unlink($candidate)) {
+                $purged++;
+                $sidecar = $candidate.'.json';
+                if (is_file($sidecar)) {
+                    @unlink($sidecar);
+                }
+            } else {
+                $missing++;
+            }
+        }
+
+        return ['purged' => $purged, 'missing' => $missing];
+    }
+
+    private function isUnderStorageRoot(string $path): bool
+    {
+        $real = realpath($path);
+        if ($real === false) {
+            return false;
+        }
+        foreach ($this->storageRoots() as $root) {
+            $rootReal = realpath($root);
+            if ($rootReal === false) {
+                continue;
+            }
+            if (str_starts_with($real, rtrim($rootReal, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

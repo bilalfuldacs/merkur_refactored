@@ -262,6 +262,7 @@ class TableRowsService
             abort(405, 'This table cannot be created through the table API.');
         }
 
+        $tagSelections = $this->tagSelections($request, $view);
         $validated = $this->validateFormRequest(
             $request,
             $binding->storeRequest,
@@ -269,10 +270,14 @@ class TableRowsService
             null,
             $this->preparePayload($request, $view),
         );
-        $record = new $binding->model;
-        $this->persist($record, $user, $validated, creating: true);
 
-        return $this->find($table, $user, (int) $record->getKey());
+        return DB::transaction(function () use ($table, $user, $binding, $validated, $tagSelections): array {
+            $record = new $binding->model;
+            $this->persist($record, $user, $validated, creating: true);
+            $this->syncTags((int) $record->getKey(), $user, $tagSelections);
+
+            return $this->find($table, $user, (int) $record->getKey());
+        });
     }
 
     /**
@@ -283,39 +288,45 @@ class TableRowsService
         [$view, $source, $generic] = $this->queryContext($table, $user);
         $this->assertCanEdit($view);
 
+        $tagSelections = $this->tagSelections($request, $view);
         $binding = TableResourceMap::forSource($source);
-        if ($binding !== null) {
-            $record = $this->findBoundRecord($binding, $id);
-            $validated = $this->validateFormRequest(
-                $request,
-                $binding->updateRequest,
-                $binding->parameter,
-                $record,
-                $this->preparePayload($request, $view),
-            );
-            $this->persist($record, $user, $validated, creating: false);
 
-            return $this->find($table, $user, $id);
-        }
+        return DB::transaction(function () use ($table, $user, $id, $request, $view, $source, $generic, $binding, $tagSelections): array {
+            if ($binding !== null) {
+                $record = $this->findBoundRecord($binding, $id);
+                $validated = $this->validateFormRequest(
+                    $request,
+                    $binding->updateRequest,
+                    $binding->parameter,
+                    $record,
+                    $this->preparePayload($request, $view),
+                );
+                $this->persist($record, $user, $validated, creating: false);
+                $this->syncTags($id, $user, $tagSelections);
 
-        $record = $generic->newQuery()->where($source.'.ID', $id)->first();
-        if ($record === null) {
-            throw new InvalidArgumentException('Unknown record.');
-        }
-
-        foreach ($this->writableColumns($view) as $column) {
-            $key = (string) $column['key'];
-            if (! $request->exists($key)) {
-                continue;
+                return $this->find($table, $user, $id);
             }
 
-            $record->setAttribute($key, $this->normalizeValue($column, $request->input($key)));
-        }
+            $record = $generic->newQuery()->where($source.'.ID', $id)->first();
+            if ($record === null) {
+                throw new InvalidArgumentException('Unknown record.');
+            }
 
-        $this->touchEditor($record, $user, $source);
-        $record->save();
+            foreach ($this->writableColumns($view) as $column) {
+                $key = (string) $column['key'];
+                if (! $request->exists($key)) {
+                    continue;
+                }
 
-        return $this->find($table, $user, $id);
+                $record->setAttribute($key, $this->normalizeValue($column, $request->input($key)));
+            }
+
+            $this->touchEditor($record, $user, $source);
+            $record->save();
+            $this->syncTags($id, $user, $tagSelections);
+
+            return $this->find($table, $user, $id);
+        });
     }
 
     public function destroy(string $table, User $user, int $id): void
@@ -373,6 +384,20 @@ class TableRowsService
                     ];
                 })
                 ->all();
+        }
+
+        foreach ($view['columns'] ?? [] as $column) {
+            if (! is_array($column) || ($column['kind'] ?? null) !== 'tags') {
+                continue;
+            }
+
+            $key = (string) ($column['key'] ?? '');
+            $mapping = is_array($column['tag_mapping'] ?? null) ? $column['tag_mapping'] : null;
+            if ($key === '' || $mapping === null) {
+                continue;
+            }
+
+            $lookups[$key] = $this->tagLookupOptions($mapping);
         }
 
         return $lookups;
@@ -455,7 +480,13 @@ class TableRowsService
             $kind = (string) ($columns[$key]['kind'] ?? 'text');
             $nullable = (bool) ($columns[$key]['nullable'] ?? false);
 
-            if ($kind === 'json' && is_string($value) && $value !== '') {
+            if ($kind === 'tags') {
+                unset($payload[$key]);
+
+                continue;
+            }
+
+            if (in_array($kind, ['json', 'matrix'], true) && is_string($value) && $value !== '') {
                 $decoded = json_decode($value, true);
                 if (json_last_error() === JSON_ERROR_NONE) {
                     $payload[$key] = $decoded;
@@ -489,7 +520,7 @@ class TableRowsService
             return;
         }
 
-        $model->fill($validated);
+        $model->fill($this->withoutTagValues($validated));
 
         if ($model instanceof ConfigStatus && $creating) {
             $model->text_color ??= '#ffffff';
@@ -625,7 +656,11 @@ class TableRowsService
             return $value === true || $value === 1 || $value === '1' || $value === 'true' ? 'Yes' : 'No';
         }
 
-        if ($kind === 'json' && ! is_string($value)) {
+        if ($kind === 'tags') {
+            return $this->tagNamesText($value);
+        }
+
+        if (in_array($kind, ['json', 'matrix'], true) && ! is_string($value)) {
             $encoded = json_encode($value, JSON_UNESCAPED_UNICODE);
 
             return $encoded === false ? '' : $encoded;
@@ -730,8 +765,19 @@ class TableRowsService
                 $key = (string) ($column['key'] ?? '');
                 $kind = (string) ($column['kind'] ?? '');
 
-                if ($this->isSafeColumn($key) && in_array($kind, ['text', 'url', 'json'], true)) {
+                if ($this->isSafeColumn($key) && in_array($kind, ['text', 'url', 'json', 'matrix'], true)) {
                     $builder->orWhere($source.'.'.$key, 'like', $like);
+                    $matched = true;
+                }
+
+                $mapping = is_array($column['tag_mapping'] ?? null) ? $column['tag_mapping'] : null;
+                if ($kind === 'tags' && $mapping !== null) {
+                    $builder->orWhereExists(function ($exists) use ($source, $mapping, $like): void {
+                        $exists->from($mapping['mappingTable'].' as map')
+                            ->join($mapping['tagsTable'].' as tag', 'tag.ID', '=', 'map.'.$mapping['tagColumn'])
+                            ->whereColumn('map.'.$mapping['masterColumn'], $source.'.ID')
+                            ->where('tag.'.$mapping['tagNameColumn'], 'like', $like);
+                    });
                     $matched = true;
                 }
 
@@ -809,6 +855,7 @@ class TableRowsService
         }
 
         $relatedRows = $this->loadRelatedRows($records, $relations);
+        $tagValues = $this->loadTagValues($records, $columns);
         $editors = $withEditor ? $this->loadEditors($records) : [];
         $payloads = [];
 
@@ -828,6 +875,11 @@ class TableRowsService
                     ? ($relatedRows[$relation['table']][(int) $foreignId] ?? null)
                     : null;
                 $row[$relation['relation_key']] = $related;
+            }
+
+            $recordId = is_numeric($attributes['ID'] ?? null) ? (int) $attributes['ID'] : 0;
+            foreach ($tagValues as $key => $byMaster) {
+                $row[$key] = $recordId > 0 ? ($byMaster[$recordId] ?? []) : [];
             }
 
             if ($withEditor) {
@@ -893,7 +945,7 @@ class TableRowsService
 
             $key = (string) ($column['key'] ?? '');
             $kind = (string) ($column['kind'] ?? '');
-            if ($key === '' || $kind === 'id' || ($column['disabled'] ?? false) || ($column['primary'] ?? false)) {
+            if ($key === '' || $kind === 'id' || $kind === 'tags' || ($column['disabled'] ?? false) || ($column['primary'] ?? false)) {
                 continue;
             }
 
@@ -922,7 +974,7 @@ class TableRowsService
         return match ($kind) {
             'boolean' => $value === true || $value === 1 || $value === '1' || $value === 'true' ? 1 : 0,
             'relation' => is_numeric($value) ? (int) $value : null,
-            'json' => is_string($value) ? $value : json_encode($value),
+            'json', 'matrix' => is_string($value) ? $value : json_encode($value),
             default => $value,
         };
     }
@@ -1015,5 +1067,269 @@ class TableRowsService
     private function isSafeColumn(string $name): bool
     {
         return (bool) preg_match('/^[A-Za-z0-9_]+$/', $name);
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     * @return array<string, mixed>
+     */
+    private function withoutTagValues(array $values): array
+    {
+        foreach ($values as $key => $value) {
+            if (is_array($value) && $this->looksLikeTagList($value)) {
+                unset($values[$key]);
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param  array<int|string, mixed>  $value
+     */
+    private function looksLikeTagList(array $value): bool
+    {
+        foreach ($value as $item) {
+            if (is_array($item) && (isset($item['id']) || isset($item['ID']) || isset($item['name']))) {
+                return true;
+            }
+            if (is_int($item) || (is_string($item) && ctype_digit($item))) {
+                return true;
+            }
+        }
+
+        return $value === [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $view
+     * @return list<array{mapping: array<string, string>, ids: list<int>}>
+     */
+    private function tagSelections(Request $request, array $view): array
+    {
+        $selections = [];
+        foreach ($view['columns'] ?? [] as $column) {
+            if (! is_array($column) || ($column['kind'] ?? null) !== 'tags') {
+                continue;
+            }
+
+            $key = (string) ($column['key'] ?? '');
+            $mapping = is_array($column['tag_mapping'] ?? null) ? $column['tag_mapping'] : null;
+            if ($key === '' || $mapping === null || ! $request->exists($key)) {
+                continue;
+            }
+
+            $selections[] = [
+                'mapping' => [
+                    'mappingTable' => (string) $mapping['mappingTable'],
+                    'masterColumn' => (string) $mapping['masterColumn'],
+                    'tagColumn' => (string) $mapping['tagColumn'],
+                    'tagsTable' => (string) $mapping['tagsTable'],
+                    'tagNameColumn' => (string) $mapping['tagNameColumn'],
+                ],
+                'ids' => $this->tagIds($request->input($key)),
+            ];
+        }
+
+        return $selections;
+    }
+
+    /**
+     * @param  list<array{mapping: array<string, string>, ids: list<int>}>  $selections
+     */
+    private function syncTags(int $masterId, User $user, array $selections): void
+    {
+        foreach ($selections as $selection) {
+            $map = $selection['mapping'];
+            if (
+                ! $this->isSafeTable($map['mappingTable'])
+                || ! $this->isSafeTable($map['tagsTable'])
+                || ! $this->isSafeColumn($map['masterColumn'])
+                || ! $this->isSafeColumn($map['tagColumn'])
+                || ! Schema::hasTable($map['mappingTable'])
+                || ! Schema::hasTable($map['tagsTable'])
+            ) {
+                continue;
+            }
+
+            $desired = $selection['ids'];
+            $current = DB::table($map['mappingTable'])
+                ->where($map['masterColumn'], $masterId)
+                ->pluck($map['tagColumn'])
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+
+            $toDelete = array_values(array_diff($current, $desired));
+            $toInsert = array_values(array_diff($desired, $current));
+
+            if ($toDelete !== []) {
+                DB::table($map['mappingTable'])
+                    ->where($map['masterColumn'], $masterId)
+                    ->whereIn($map['tagColumn'], $toDelete)
+                    ->delete();
+            }
+
+            foreach ($toInsert as $tagId) {
+                if (! DB::table($map['tagsTable'])->where('ID', $tagId)->exists()) {
+                    continue;
+                }
+
+                $row = [
+                    $map['masterColumn'] => $masterId,
+                    $map['tagColumn'] => $tagId,
+                ];
+                if (Schema::hasColumn($map['mappingTable'], 'mod_by')) {
+                    $row['mod_by'] = $user->ID;
+                }
+                if (Schema::hasColumn($map['mappingTable'], 'mod_date')) {
+                    $row['mod_date'] = now();
+                }
+
+                DB::table($map['mappingTable'])->insert($row);
+            }
+        }
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function tagIds(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($value as $item) {
+            if (is_numeric($item)) {
+                $ids[] = (int) $item;
+                continue;
+            }
+            if (is_array($item)) {
+                $id = $item['id'] ?? $item['ID'] ?? null;
+                if (is_numeric($id)) {
+                    $ids[] = (int) $id;
+                }
+            }
+        }
+
+        return array_values(array_unique(array_filter($ids, static fn (int $id): bool => $id > 0)));
+    }
+
+    /**
+     * @param  array<string, string>  $mapping
+     * @return list<array{id: int, label: string}>
+     */
+    private function tagLookupOptions(array $mapping): array
+    {
+        $table = $mapping['tagsTable'];
+        $labelColumn = $mapping['tagNameColumn'];
+        if (! $this->isSafeTable($table) || ! Schema::hasTable($table) || ! Schema::hasColumn($table, $labelColumn)) {
+            return [];
+        }
+
+        return DB::table($table)
+            ->select(['ID', $labelColumn])
+            ->orderBy($labelColumn)
+            ->limit(2000)
+            ->get()
+            ->map(function (object $row) use ($labelColumn): array {
+                $label = trim((string) ($row->{$labelColumn} ?? ''));
+
+                return [
+                    'id' => (int) $row->ID,
+                    'label' => $label !== '' ? $label : '#'.$row->ID,
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  list<TableViewRecord>  $records
+     * @param  list<array<string, mixed>>  $columns
+     * @return array<string, array<int, list<array{id: int, name: string}>>>
+     */
+    private function loadTagValues(array $records, array $columns): array
+    {
+        $ids = [];
+        foreach ($records as $record) {
+            $value = $record->getAttribute('ID');
+            if (is_numeric($value)) {
+                $ids[(int) $value] = (int) $value;
+            }
+        }
+
+        $loaded = [];
+        if ($ids === []) {
+            return $loaded;
+        }
+
+        foreach ($columns as $column) {
+            if (! is_array($column) || ($column['kind'] ?? null) !== 'tags') {
+                continue;
+            }
+
+            $key = (string) ($column['key'] ?? '');
+            $mapping = is_array($column['tag_mapping'] ?? null) ? $column['tag_mapping'] : null;
+            if ($key === '' || $mapping === null) {
+                continue;
+            }
+
+            $loaded[$key] = [];
+            if (
+                ! $this->isSafeTable((string) $mapping['mappingTable'])
+                || ! $this->isSafeTable((string) $mapping['tagsTable'])
+                || ! Schema::hasTable((string) $mapping['mappingTable'])
+                || ! Schema::hasTable((string) $mapping['tagsTable'])
+            ) {
+                continue;
+            }
+
+            $nameColumn = (string) $mapping['tagNameColumn'];
+            $rows = DB::table($mapping['mappingTable'].' as map')
+                ->leftJoin($mapping['tagsTable'].' as tag', 'tag.ID', '=', 'map.'.$mapping['tagColumn'])
+                ->whereIn('map.'.$mapping['masterColumn'], array_values($ids))
+                ->orderBy('tag.'.$nameColumn)
+                ->get([
+                    'map.'.$mapping['masterColumn'].' as master_id',
+                    'tag.ID as id',
+                    'tag.'.$nameColumn.' as name',
+                ]);
+
+            foreach ($rows as $row) {
+                $masterId = (int) $row->master_id;
+                $tagId = (int) $row->id;
+                if ($tagId <= 0) {
+                    continue;
+                }
+                $loaded[$key][$masterId][] = [
+                    'id' => $tagId,
+                    'name' => trim((string) ($row->name ?? '')) !== '' ? trim((string) $row->name) : '#'.$tagId,
+                ];
+            }
+        }
+
+        return $loaded;
+    }
+
+    private function tagNamesText(mixed $value): string
+    {
+        if (! is_array($value)) {
+            return is_scalar($value) ? (string) $value : '';
+        }
+
+        $names = [];
+        foreach ($value as $item) {
+            if (is_array($item)) {
+                $name = trim((string) ($item['name'] ?? $item['label'] ?? ''));
+                if ($name !== '') {
+                    $names[] = $name;
+                }
+            } elseif (is_scalar($item) && (string) $item !== '') {
+                $names[] = (string) $item;
+            }
+        }
+
+        return implode("\n", $names);
     }
 }

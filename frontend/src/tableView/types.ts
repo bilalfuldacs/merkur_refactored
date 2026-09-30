@@ -6,11 +6,21 @@ export type TableColumnKind =
   | 'text'
   | 'boolean'
   | 'json'
+  | 'matrix'
   | 'url'
   | 'color'
   | 'traffic_light'
   | 'status_indicator'
   | 'enum'
+  | 'tags'
+
+export type TableTagMapping = {
+  mappingTable: string
+  masterColumn: string
+  tagColumn: string
+  tagsTable: string
+  tagNameColumn: string
+}
 
 export type TableColumn = {
   key: string
@@ -29,6 +39,7 @@ export type TableColumn = {
   enumOptions: string[]
   help: string | null
   placeholder: string | null
+  tagMapping: TableTagMapping | null
 }
 
 export type TableViewState = {

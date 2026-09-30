@@ -21,6 +21,8 @@ class RoleController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Role::class);
+
         return RoleResource::collection(Role::query()->orderBy('ID')->get());
     }
 

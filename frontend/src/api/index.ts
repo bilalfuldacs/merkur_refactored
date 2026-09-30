@@ -1,9 +1,11 @@
-export { ApiError, apiFile, apiRequest, downloadApiFile, isNetworkError, openApiPdf, subscribeLoading } from './client'
-export { changeMyPassword, getMe, getMyProfile, login, logout, updateMyPreferences } from './auth'
+export { ApiError, apiFile, apiRequest, downloadApiFile, downloadApiFilePost, isNetworkError, openApiPdf, subscribeLoading } from './client'
+export { changeMyPassword, checkPasswordResetToken, completePasswordReset, getMe, getMyProfile, login, logout, requestPasswordReset, updateMyPreferences } from './auth'
 export { getTableView } from './tableView'
 export { getTableRows, getTableRow, createTableRow, updateTableRow, deleteTableRow, getTableLookups, getTableRowHistory, exportTable } from './tableRows'
 export { downloadTableAsset, getTableRowAssets, modifyTableAsset, uploadTableAsset, viewTableAsset } from './tableAssets'
-export type { TableAssetClass, TableAssetFile, TableAssetMoodBoard, TableAssetUploader, TableAssetsPayload } from './tableAssets'
+export type { TableAssetClass, TableAssetFile, TableAssetFolder, TableAssetMoodBoard, TableAssetUploader, TableAssetsPayload } from './tableAssets'
+export { emptyMatrix, getMatrixTemplate, parseMatrixValue, summarizeMatrix } from './matrixTemplate'
+export type { MatrixValue } from './matrixTemplate'
 export type {
   Paginated,
   TableRow,
@@ -92,12 +94,21 @@ export type {
   MarketReportSlice,
   MarketReportVersion,
 } from './marketReport'
-export { getProductGamesList, getProductPanorama } from './products'
+export {
+  downloadProductGamesDocsPackage,
+  getProductGamesDocsPackage,
+  getProductGamesList,
+  getProductPanorama,
+  getReleaseInformationSheet,
+} from './products'
 export type {
   ProductBuild,
   ProductCompatibilityGroup,
   ProductFeature,
   ProductGame,
+  ProductGamesDocsPackageFile,
+  ProductGamesDocsPackagePayload,
+  ProductGamesDocsPackageSelection,
   ProductHardwareComponent,
   ProductJurisdiction,
   ProductMarket,
@@ -107,6 +118,7 @@ export type {
   ProductScope,
   ProductStatus,
   ProductVersion,
+  ReleaseInformationSheetPayload,
 } from './products'
 export { getHelpFaqs } from './faqs'
 export type { FaqArticle, FaqEditor } from './faqs'
@@ -129,6 +141,7 @@ export {
   createCommunityPost,
   deleteCommunityPost,
   getCommunityComments,
+  getCommunityLikes,
   getCommunityPosts,
   getMentionablePeople,
   toggleCommunityBookmark,
@@ -145,10 +158,40 @@ export type {
 export {
   createFeedback,
   feedbackScreenshotPath,
+  getAdminFeedback,
   getMyFeedback,
   openFeedbackScreenshot,
+  updateFeedback,
 } from './feedback'
 export type { FeedbackInput, FeedbackPerson, FeedbackStatus, FeedbackSubmission, FeedbackType } from './feedback'
+export {
+  downloadFeedbackExport,
+  getAdminAttachmentsTrash,
+  getAdminTableHistory,
+  getAdminUserActivity,
+  purgeAdminAttachmentsTrash,
+} from './admin'
+export type { AdminTableHistoryRow, AdminTrashItem, AdminUserActivityRow } from './admin'
+export {
+  createUser,
+  deleteUser,
+  getUsers,
+  updateUser,
+} from './users'
+export type { AdminUser, UserCreateInput, UserUpdateInput } from './users'
+export {
+  createRole,
+  deleteRole,
+  getRoles,
+  updateRole,
+} from './roles'
+export type { AdminRole, RoleInput, RoleUpdate } from './roles'
+export {
+  createMerkuriosityWord,
+  deleteMerkuriosityWord,
+  getMerkuriosityWords,
+} from './merkuriosity'
+export type { MerkuriosityWord } from './merkuriosity'
 export {
   createStaticDoc,
   deleteStaticDoc,
@@ -177,13 +220,19 @@ export {
   getIce2027,
   getIceAdmin,
   getIceDashboard,
+  getIceDashboardGame,
   getIceEvaluation,
+  getIceOpenQuestionnaire,
   getIceProgress,
   getIceQuestionnaire,
+  downloadIceDashboardExport,
+  addIceTeam,
   renameIceTeam,
   saveIceAttendants,
   saveIceEvaluation,
+  saveIceOpenQuestionnaire,
   saveIceQuestionnaire,
+  saveIceTeam,
   setIceAttendant,
   setIceTeamMembers,
   updateIceCompetitor,

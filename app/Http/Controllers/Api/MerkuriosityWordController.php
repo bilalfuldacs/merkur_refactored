@@ -20,6 +20,8 @@ class MerkuriosityWordController extends Controller
 
     public function index(Request $request): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', MerkuriosityWord::class);
+
         $perPage = max(1, min($request->integer('per_page', 25), 100));
 
         $query = MerkuriosityWord::query()->orderBy('id');

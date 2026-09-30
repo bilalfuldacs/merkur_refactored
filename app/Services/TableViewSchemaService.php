@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\ConfigTable;
+use App\Models\MatrixTemplate;
 use App\Models\User;
 use App\Support\NiceFieldName;
 use App\Support\TableResourceMap;
+use App\Support\TableTagMapping;
 use App\Support\TableViewQuery;
 use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
@@ -13,11 +15,6 @@ use InvalidArgumentException;
 class TableViewSchemaService
 {
     public const PRIMARY_COLUMN_COUNT = 10;
-
-    private const TABLE_ALIASES = [
-        'users' => 'dynamic__users',
-        'statuses' => 'config__statuses',
-    ];
 
     /**
      * @return array<string, mixed>
@@ -45,7 +42,8 @@ class TableViewSchemaService
         $columnSource = $viewName ?? $tableName;
         $isSystem = (bool) $config->system_table;
         $canEdit = $isSystem ? $user->isSuperuser() : $user->canCreateUpdateItems();
-        $columns = $this->columns($columnSource, $config, $user);
+        $matrixColumns = $this->activeMatrixColumns((string) $config->table);
+        $columns = $this->columns($columnSource, $config, $user, $matrixColumns);
         $columnKeys = array_column($columns, 'key');
         [$sortBy, $sortDir, $sortBy2, $sortDir2] = $this->defaultOrder((string) $config->default_view_order, $columnKeys);
 
@@ -98,9 +96,10 @@ class TableViewSchemaService
     }
 
     /**
+     * @param  list<string>  $matrixColumns
      * @return list<array<string, mixed>>
      */
-    private function columns(string $source, ConfigTable $config, User $user): array
+    private function columns(string $source, ConfigTable $config, User $user, array $matrixColumns = []): array
     {
         $itemName = (string) $config->item_name;
         $linkColumn = $config->link_column;
@@ -121,7 +120,16 @@ class TableViewSchemaService
             }
 
             $foreign = $this->foreignKey($comment);
-            $kind = $this->kind($key, (string) ($column['type_name'] ?? ''), $flags, $foreign !== null, $comment);
+            $tagMapping = TableTagMapping::fromComment($comment);
+            $kind = $this->kind(
+                $key,
+                (string) ($column['type_name'] ?? ''),
+                $flags,
+                $foreign !== null,
+                $comment,
+                $tagMapping !== null,
+                in_array($key, $matrixColumns, true),
+            );
             $sortJoin = null;
             $relatedTable = $foreign !== null ? $this->resolveTableName($foreign['table']) : null;
             if ($foreign !== null && $relatedTable !== null) {
@@ -155,13 +163,14 @@ class TableViewSchemaService
                 'related_display' => $foreign !== null ? $foreign['column'] : null,
                 'open_related' => $foreign !== null && str_starts_with(ltrim($comment), '@@'),
                 'sort_join' => $sortJoin,
-                'nullable' => (bool) ($column['nullable'] ?? false),
+                'nullable' => $kind === 'tags' ? false : (bool) ($column['nullable'] ?? false),
                 'disabled' => in_array('disabled', $flags, true),
                 'multiline' => in_array(strtolower((string) ($column['type_name'] ?? '')), ['text', 'longtext', 'mediumtext', 'tinytext'], true),
                 'max_length' => isset($column['length']) && is_numeric($column['length']) ? (int) $column['length'] : null,
                 'enum_options' => $this->enumOptions((string) ($column['type'] ?? '')),
                 'help' => $help !== '' ? $help : null,
                 'placeholder' => $placeholder !== '' ? $placeholder : null,
+                'tag_mapping' => $tagMapping,
             ];
         }
 
@@ -220,18 +229,7 @@ class TableViewSchemaService
             return null;
         }
 
-        $candidate = self::TABLE_ALIASES[$name] ?? $name;
-
-        if (Schema::hasTable($candidate)) {
-            return $candidate;
-        }
-
-        $lower = strtolower($candidate);
-        if ($lower !== $candidate && Schema::hasTable($lower)) {
-            return $lower;
-        }
-
-        return null;
+        return TableTagMapping::resolveTableName($name);
     }
 
     /**
@@ -262,12 +260,41 @@ class TableViewSchemaService
     }
 
     /**
+     * @return list<string>
+     */
+    private function activeMatrixColumns(string $table): array
+    {
+        if ($table === '' || ! Schema::hasTable('matrix_templates')) {
+            return [];
+        }
+
+        return MatrixTemplate::query()
+            ->where('table', $table)
+            ->where('active', true)
+            ->pluck('column')
+            ->filter(fn (mixed $column): bool => is_string($column) && $column !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
      * @param  list<string>  $flags
      */
-    private function kind(string $key, string $typeName, array $flags, bool $isForeign, string $comment): string
-    {
+    private function kind(
+        string $key,
+        string $typeName,
+        array $flags,
+        bool $isForeign,
+        string $comment,
+        bool $isTags,
+        bool $hasMatrixTemplate = false,
+    ): string {
         if ($key === 'ID') {
             return 'id';
+        }
+
+        if ($isTags) {
+            return 'tags';
         }
 
         if ($isForeign) {
@@ -298,7 +325,11 @@ class TableViewSchemaService
             return 'enum';
         }
 
-        if ($typeName === 'json' || str_contains(strtolower($comment), 'json') || in_array('matrix', $flags, true)) {
+        if (in_array('matrix', $flags, true) || $hasMatrixTemplate) {
+            return 'matrix';
+        }
+
+        if ($typeName === 'json' || str_contains(strtolower($comment), 'json')) {
             return 'json';
         }
 

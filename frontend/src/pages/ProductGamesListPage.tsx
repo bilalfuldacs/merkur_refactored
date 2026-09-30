@@ -8,7 +8,8 @@ import { getProductGamesList } from '@/api/products'
 import type { ProductGamesListPayload } from '@/api/products'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
 import { tableBrowsePath } from '@/config/tablePages'
-import { APP_PATHS, useAppPath } from '@/routing'
+import { APP_PATHS, productGamesDocsPackagePath, useAppPath } from '@/routing'
+import { AppButton } from '@/components/ui'
 
 const crumbSx = {
   border: 0,
@@ -125,6 +126,16 @@ export default function ProductGamesListPage() {
                     Contains <strong>{section.games.length}</strong> game{section.games.length === 1 ? '' : 's'}
                     {section.description ? <Box component="span" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>{section.description}</Box> : null}
                   </Typography>
+                  <AppButton
+                    type="button"
+                    size="small"
+                    variant="outlined"
+                    color="inherit"
+                    onClick={() => navigate(productGamesDocsPackagePath(section.version_ID))}
+                    sx={{ mb: 1.5 }}
+                  >
+                    Docs Package
+                  </AppButton>
                   <Box component="ol" sx={{ pl: 3 }}>
                     {section.games.map((game) => (
                       <Box
