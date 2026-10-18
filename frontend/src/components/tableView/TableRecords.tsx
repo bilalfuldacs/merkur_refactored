@@ -9,6 +9,7 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import type { Paginated } from '@/api'
+import { fieldLabel, useI18n } from '@/i18n'
 import type { TableColumn } from '@/tableView'
 import { columnsForKeys, useColumnWidths } from '@/tableView'
 import { ColumnResizeHandle } from './ColumnResizeHandle'
@@ -31,6 +32,7 @@ export function TableRecords<T extends { ID: number }>({
   onPageChange: (page: number) => void
   onRowOpen?: (id: number) => void
 }) {
+  const { t } = useI18n()
   const visible = useMemo(() => columnsForKeys(columns, visibleColumns), [columns, visibleColumns])
   const visibleKeys = useMemo(() => visible.map((column) => column.key), [visible])
   const {
@@ -109,10 +111,10 @@ export function TableRecords<T extends { ID: number }>({
                         textOverflow: 'ellipsis',
                       }}
                     >
-                      {column.label}
+                      {fieldLabel(t, column.key, column.label)}
                     </Box>
                     <ColumnResizeHandle
-                      label={column.label}
+                      label={fieldLabel(t, column.key, column.label)}
                       width={width ?? 0}
                       active={activeKey === column.key}
                       onPointerDown={(event) => startResize(column.key, event)}
@@ -131,7 +133,7 @@ export function TableRecords<T extends { ID: number }>({
               <TableRow>
                 <TableCell colSpan={Math.max(visible.length, 1)}>
                   <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                    {visible.length === 0 ? 'Select at least one column, then Apply.' : 'No items found.'}
+                    {visible.length === 0 ? t('common.selectColumn', 'Select at least one column, then Apply.') : t('common.noItems', 'No items found.')}
                   </Typography>
                 </TableCell>
               </TableRow>

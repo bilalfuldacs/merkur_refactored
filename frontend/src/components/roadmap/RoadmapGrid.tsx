@@ -1,27 +1,27 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import type { RoadmapRow } from '@/api'
+import { useI18n } from '@/i18n'
 import { MilestonePill } from './MilestonePill'
 import type { RoadmapMonth } from './format'
 import { rowTitle } from './format'
 
 export function RoadmapGrid({
-  itemLabel,
   rows,
   months,
   showSubtitles,
   onOpenRow,
 }: {
-  itemLabel: string
   rows: RoadmapRow[]
   months: RoadmapMonth[]
   showSubtitles: boolean
   onOpenRow: (row: RoadmapRow) => void
 }) {
+  const { t } = useI18n()
   if (rows.length === 0 || months.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 4 }}>
-        No {itemLabel}s match these filters in this period.
+        {t('roadmap.noVersions', 'No versions match these filters in this period.')}
       </Typography>
     )
   }
@@ -63,7 +63,7 @@ export function RoadmapGrid({
                 color: 'secondary.main',
               }}
             >
-              {itemLabel === 'version' ? 'Version' : 'Game'}
+              {t('roadmap.version', 'Version')}
             </Box>
             {months.map((month) => (
               <Box

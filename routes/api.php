@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\CommunityCommentController;
 use App\Http\Controllers\Api\CommunityPostController;
 use App\Http\Controllers\Api\FeedbackSubmissionController;
+use App\Http\Controllers\Api\FieldTrialController;
 use App\Http\Controllers\Api\FocusGroupsReportController;
 use App\Http\Controllers\Api\GlobalSearchController;
 use App\Http\Controllers\Api\HomeDashboardController;
@@ -41,8 +42,13 @@ use App\Http\Controllers\Api\TableRowsController;
 use App\Http\Controllers\Api\TasksController;
 use App\Http\Controllers\Api\TablesCatalogController;
 use App\Http\Controllers\Api\TableViewSchemaController;
+use App\Http\Controllers\Api\TranslationController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/translations', [TranslationController::class, 'index']);
+Route::get('/translations/{locale}', [TranslationController::class, 'show'])
+    ->where('locale', '[a-z]{2}');
 
 Route::post('/login', [AuthController::class, 'store']);
 Route::post('/password/forgot', [PasswordResetController::class, 'forgot']);
@@ -73,6 +79,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/installations', [InstallationReportController::class, 'show']);
     Route::get('/reports/focus-groups', [FocusGroupsReportController::class, 'show']);
     Route::get('/reports/issues', [IssuesReportController::class, 'show']);
+    Route::get('/field-trials', [FieldTrialController::class, 'tree']);
+    Route::get('/field-trials/market', [FieldTrialController::class, 'market']);
+    Route::get('/field-trials/options', [FieldTrialController::class, 'options']);
+    Route::post('/field-trials/games', [FieldTrialController::class, 'saveGame']);
+    Route::delete('/field-trials/games/{id}', [FieldTrialController::class, 'deleteGame'])->whereNumber('id');
+    Route::post('/field-trials/venues', [FieldTrialController::class, 'saveVenue']);
+    Route::post('/field-trials/partners', [FieldTrialController::class, 'savePartner']);
+    Route::get('/field-trials/games/{id}/history', [FieldTrialController::class, 'history'])->whereNumber('id');
+    Route::get('/field-trials/games/{id}/media', [FieldTrialController::class, 'media'])->whereNumber('id');
+    Route::post('/field-trials/games/{id}/media', [FieldTrialController::class, 'uploadMedia'])->whereNumber('id');
+    Route::delete('/field-trials/games/{id}/media', [FieldTrialController::class, 'deleteMedia'])->whereNumber('id');
+    Route::get('/field-trials/games/{id}/media-file', [FieldTrialController::class, 'mediaFile'])->whereNumber('id');
+    Route::get('/field-trials/games/{id}/media/{file}', [FieldTrialController::class, 'mediaFile'])
+        ->whereNumber('id')
+        ->where('file', '[a-f0-9]{16}');
     Route::get('/tasks', [TasksController::class, 'index']);
     Route::get('/tables-catalog', [TablesCatalogController::class, 'index']);
     Route::get('/tables/{table}/view', [TableViewSchemaController::class, 'show'])

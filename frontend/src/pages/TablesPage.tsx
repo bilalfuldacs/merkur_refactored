@@ -4,17 +4,19 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { APP_PATHS, useAppPath } from '@/routing'
 import { TablesCatalogView } from '@/components/tables'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 
 export default function TablesPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
 
   useEffect(() => {
-    document.title = 'All Tables | MERKURflow'
+    document.title = `${t('pages.allTables', 'All Tables')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   return (
     <PageBackground>
@@ -30,7 +32,7 @@ export default function TablesPage() {
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
           <Box
             component="nav"
-            aria-label="Breadcrumb"
+            aria-label={t('common.breadcrumb', 'Breadcrumb')}
             sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}
           >
             <Box
@@ -47,12 +49,12 @@ export default function TablesPage() {
                 '&:hover': { textDecoration: 'underline' },
               }}
             >
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Tables</Box>
+            <Box component="span">{t('pages.tables', 'Tables')}</Box>
           </Box>
 
           <Typography
@@ -67,7 +69,7 @@ export default function TablesPage() {
             }}
           >
             <TableChartOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
-            Tables
+            {t('pages.tables', 'Tables')}
           </Typography>
 
           <TablesCatalogView />

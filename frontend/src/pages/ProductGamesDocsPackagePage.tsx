@@ -16,7 +16,8 @@ import {
 import type { ProductGamesDocsPackagePayload, ProductGamesDocsPackageSelection } from '@/api/products'
 import { downloadTableAsset } from '@/api/tableAssets'
 import type { TableAssetFile } from '@/api/tableAssets'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { tableBrowsePath } from '@/config/tablePages'
 import { APP_PATHS, productGamesListPath, useAppPath } from '@/routing'
@@ -64,6 +65,7 @@ function asAssetFile(file: ProductGamesDocsPackagePayload['games'][number]['file
 }
 
 export default function ProductGamesDocsPackagePage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const versionId = versionFromSearch()
   const [payload, setPayload] = useState<ProductGamesDocsPackagePayload | null>(null)
@@ -73,11 +75,11 @@ export default function ProductGamesDocsPackagePage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    document.title = 'Docs Package | MERKURflow'
+    document.title = `${t('pages.docsPackage', 'Docs Package')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!versionId) {
@@ -93,7 +95,7 @@ export default function ProductGamesDocsPackagePage() {
           return
         }
         setPayload(result)
-        document.title = `Docs Package · ${result.version.name ?? `Version #${versionId}`} | MERKURflow`
+        document.title = `${t('pages.docsPackage', 'Docs Package')} · ${result.version.name ?? t('pages.versionNumber', 'Version #{id}', { id: versionId })} | MERKURflow`
         const next: Record<string, boolean> = {}
         for (const game of result.games) {
           for (const file of game.files) {
@@ -149,15 +151,15 @@ export default function ProductGamesDocsPackagePage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 900, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14, flexWrap: 'wrap' }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14, flexWrap: 'wrap' }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.products)} sx={crumbSx}>
-              Products
+              {t('pages.products', 'Products')}
             </Box>
             <Box component="span" color="text.secondary">
               /
@@ -165,19 +167,19 @@ export default function ProductGamesDocsPackagePage() {
             {versionId ? (
               <>
                 <Box component="button" type="button" onClick={() => navigate(productGamesListPath(versionId))} sx={crumbSx}>
-                  All Games
+                  {t('pages.allGames', 'All Games')}
                 </Box>
                 <Box component="span" color="text.secondary">
                   /
                 </Box>
               </>
             ) : null}
-            <Box component="span">Docs Package</Box>
+            <Box component="span">{t('pages.docsPackage', 'Docs Package')}</Box>
           </Box>
 
           <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 28, md: 36 }, mb: 1 }}>
             <FolderZipOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 34 }} />
-            Docs Package{payload?.version.name ? ` · ${payload.version.name}` : versionId ? ` · Version #${versionId}` : ''}
+            {t('pages.docsPackage', 'Docs Package')}{payload?.version.name ? ` · ${payload.version.name}` : versionId ? ` · ${t('pages.versionNumber', 'Version #{id}', { id: versionId })}` : ''}
           </Typography>
 
           <Box component="ul" sx={{ pl: 3, mb: 2, color: 'text.secondary' }}>

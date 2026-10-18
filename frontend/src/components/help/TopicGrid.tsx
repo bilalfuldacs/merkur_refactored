@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import { useI18n } from '@/i18n'
 import type { HelpTopic, HelpTopicId } from './topics'
 
 export function TopicGrid({
@@ -13,6 +14,7 @@ export function TopicGrid({
   selected: HelpTopicId | null
   onSelect: (id: HelpTopicId | null) => void
 }) {
+  const { t } = useI18n()
   return (
     <Box
       sx={{
@@ -57,10 +59,10 @@ export function TopicGrid({
             <Icon sx={{ color: active ? 'info.main' : 'secondary.main', fontSize: 28 }} />
             <Box>
               <Typography sx={{ fontWeight: 800, fontSize: 15, color: 'secondary.main', lineHeight: 1.3 }}>
-                {topic.label}
+                {t(topic.labelKey, topic.label)}
               </Typography>
               <Typography sx={{ color: 'text.secondary', fontSize: 13, mt: 0.35 }}>
-                {count} answer{count === 1 ? '' : 's'}
+                {count === 1 ? t('help.oneAnswer', '1 answer') : t('help.manyAnswers', '{count} answers', { count })}
               </Typography>
             </Box>
           </Box>

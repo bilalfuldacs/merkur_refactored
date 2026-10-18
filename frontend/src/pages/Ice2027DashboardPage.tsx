@@ -21,7 +21,8 @@ import type {
   IceQuestionnaireDashItem,
 } from '@/api/ice2027'
 import { IceEventPicker, IceHero, IcePhotosButton, IceSectionHead, IceTabs, iceCrumbSx, icePillGroupSx, icePillSx } from '@/components/ice2027'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton, AppTextField } from '@/components/ui'
 import { APP_PATHS, eventSlugFromSearch, ice2027DashboardGamePath, ice2027DashboardPath, ice2027HubPath, useAppPath } from '@/routing'
 
@@ -283,6 +284,7 @@ function QuestionnaireProductsTable({
 }
 
 export default function Ice2027DashboardPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const eventSlug = useMemo(() => eventSlugFromSearch(search), [search])
   const [view, setView] = useState<IceDashboardView>('evaluation')
@@ -309,11 +311,11 @@ export default function Ice2027DashboardPage() {
   const isQuestionnaire = view === 'questionnaire'
 
   useEffect(() => {
-    document.title = `${eventName} Ranking dashboard | MERKURflow`
+    document.title = `${eventName} ${t('pages.ranking', 'Ranking dashboard')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [eventName])
+  }, [eventName, t])
 
   useEffect(() => {
     if (!eventSlug) {
@@ -346,20 +348,20 @@ export default function Ice2027DashboardPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
               {eventName}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">Dashboard</Box>
+            <Box component="span">{t('pages.dashboard', 'Dashboard')}</Box>
           </Box>
 
           <IceHero
-            kicker="Ranking report"
+            kicker={t('ice.rankingReport', 'Ranking report')}
             title={`${eventName} dashboard`}
           >
             {isQuestionnaire

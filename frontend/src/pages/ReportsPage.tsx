@@ -4,7 +4,8 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { getReportsCatalog } from '@/api'
 import type { ReportsCatalog } from '@/api'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { ReportCatalogCard, ReportsAboutCard } from '@/components/reports'
 import { reportPath } from '@/config/reports'
 import { APP_PATHS, useAppPath } from '@/routing'
@@ -22,15 +23,16 @@ const crumbSx = {
 } as const
 
 export default function ReportsPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const [catalog, setCatalog] = useState<ReportsCatalog | null>(null)
 
   useEffect(() => {
-    document.title = 'All Reports | MERKURflow'
+    document.title = `${t('pages.allReports', 'All Reports')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -59,21 +61,21 @@ export default function ReportsPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Reports</Box>
+            <Box component="span">{t('pages.reports', 'Reports')}</Box>
           </Box>
           <Typography
             component="h1"
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 40 }, mb: 3 }}
           >
             <ArticleOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
-            Reports
+            {t('pages.allReports', 'All Reports')}
           </Typography>
           <Box
             sx={{

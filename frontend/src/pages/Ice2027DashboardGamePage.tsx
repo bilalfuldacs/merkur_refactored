@@ -12,7 +12,8 @@ import Typography from '@mui/material/Typography'
 import { ApiError, getIceDashboardGame } from '@/api'
 import type { IceDashboardGameDetail, IceDashboardRating } from '@/api/ice2027'
 import { IceEventPicker, IceHero, IcePhotosButton, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { APP_PATHS, eventSlugFromSearch, ice2027DashboardGamePath, ice2027DashboardPath, ice2027HubPath, useAppPath } from '@/routing'
 
@@ -101,6 +102,7 @@ function RatingsTable({
 }
 
 export default function Ice2027DashboardGamePage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const eventSlug = useMemo(() => eventSlugFromSearch(search), [search])
   const gameKey = useMemo(() => new URLSearchParams(search).get('game') ?? '', [search])
@@ -115,11 +117,13 @@ export default function Ice2027DashboardGamePage() {
   const photoCount = game?.photo_count ?? game?.photos?.length ?? 0
 
   useEffect(() => {
-    document.title = game ? `${game.game} | ${eventName} ranking` : `${eventName} ranking`
+    document.title = game
+      ? `${game.game} | ${eventName} ${t('pages.ranking', 'Ranking dashboard')}`
+      : `${eventName} ${t('pages.ranking', 'Ranking dashboard')}`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [eventName, game])
+  }, [eventName, game, t])
 
   useEffect(() => {
     if (!eventSlug || !gameKey) {
@@ -159,9 +163,9 @@ export default function Ice2027DashboardGamePage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
@@ -169,13 +173,13 @@ export default function Ice2027DashboardGamePage() {
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(ice2027DashboardPath(eventSlug))} sx={iceCrumbSx}>
-              Dashboard
+              {t('pages.dashboard', 'Dashboard')}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">{game?.game ?? 'Game'}</Box>
+            <Box component="span">{game?.game ?? t('pages.game', 'Game')}</Box>
           </Box>
 
-          <IceHero kicker="Game ranking" title={game?.game ?? eventName}>
+          <IceHero kicker={t('ice.gameRanking', 'Game ranking')} title={game?.game ?? eventName}>
             {game ? `${game.competitor} · official place ${game.place}` : 'One ranked game and every complete rater row.'}
           </IceHero>
 

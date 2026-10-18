@@ -8,6 +8,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import type { RoadmapGameStatusKey, RoadmapJurisdictionPreset, RoadmapJurisdictionPresetKey } from '@/api'
 import { AppButton, AppTextField } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { MonthRangeSlider } from './MonthRangeSlider'
 import type { RoadmapFilterState, RoadmapMonth, RoadmapStatusFilter } from './format'
 import { emptyRoadmapFilters, filtersAreDefault } from './format'
@@ -42,7 +43,6 @@ export function RoadmapFilters({
   statusLabels,
   rowCount,
   milestoneCount,
-  itemLabel,
   onChange,
 }: {
   view: 'versions' | 'games'
@@ -55,20 +55,29 @@ export function RoadmapFilters({
   statusLabels: Partial<Record<RoadmapGameStatusKey, string>>
   rowCount: number
   milestoneCount?: number
-  itemLabel: string
   onChange: (next: RoadmapFilterState) => void
 }) {
-  const countLine =
+  const { t } = useI18n()
+  const itemCount =
     view === 'games'
-      ? `${rowCount} ${itemLabel}${rowCount === 1 ? '' : 's'}`
-      : `${rowCount} ${itemLabel}${rowCount === 1 ? '' : 's'} · ${milestoneCount} milestone${milestoneCount === 1 ? '' : 's'}`
+      ? rowCount === 1
+        ? t('roadmap.oneGame', '1 game')
+        : t('roadmap.manyGames', '{count} games', { count: rowCount })
+      : rowCount === 1
+        ? t('roadmap.oneVersion', '1 version')
+        : t('roadmap.manyVersions', '{count} versions', { count: rowCount })
+  const milestones =
+    (milestoneCount ?? 0) === 1
+      ? t('roadmap.oneMilestone', '1 milestone')
+      : t('roadmap.manyMilestones', '{count} milestones', { count: milestoneCount ?? 0 })
+  const countLine = view === 'games' ? itemCount : `${itemCount} · ${milestones}`
 
   return (
     <Box sx={{ p: 2, mb: 2, borderRadius: 3, bgcolor: 'grey.100', border: '1px solid', borderColor: 'divider' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1.5 }}>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'secondary.main' }}>
-            {view === 'games' ? 'Scope & settings' : 'Focus the timeline'}
+            {view === 'games' ? t('roadmap.scope', 'Scope & settings') : t('roadmap.focus', 'Focus the timeline')}
           </Typography>
           <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{countLine}</Typography>
         </Box>
@@ -79,7 +88,7 @@ export function RoadmapFilters({
             size="small"
             onClick={() => onChange({ ...emptyRoadmapFilters, ...defaultRange })}
           >
-            Clear filters
+            {t('roadmap.clear', 'Clear filters')}
           </AppButton>
         ) : null}
       </Box>
@@ -91,7 +100,7 @@ export function RoadmapFilters({
               <AppTextField
                 select
                 size="small"
-                label="Filter by jurisdictions"
+                label={t('roadmap.filterJurisdictions', 'Filter by jurisdictions')}
                 value={filters.jurisdictionPreset}
                 onChange={(event) =>
                   onChange({
@@ -105,13 +114,13 @@ export function RoadmapFilters({
                     {preset.label}
                   </MenuItem>
                 ))}
-                <MenuItem value="all">All jurisdictions</MenuItem>
+                <MenuItem value="all">{t('roadmap.allJurisdictions', 'All jurisdictions')}</MenuItem>
               </AppTextField>
             ) : null}
             <AppTextField
               select
               size="small"
-              label="Platform"
+              label={t('roadmap.platform', 'Platform')}
               value={filters.platformId === 'all' ? 'all' : String(filters.platformId)}
               onChange={(event) =>
                 onChange({
@@ -120,7 +129,7 @@ export function RoadmapFilters({
                 })
               }
             >
-              <MenuItem value="all">All platforms</MenuItem>
+              <MenuItem value="all">{t('roadmap.allPlatforms', 'All platforms')}</MenuItem>
               {platforms.map((item) => (
                 <MenuItem key={item.ID} value={String(item.ID)}>
                   {item.name}
@@ -129,7 +138,7 @@ export function RoadmapFilters({
             </AppTextField>
           </Box>
 
-          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.75 }}>Release status</Typography>
+          <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.75 }}>{t('roadmap.releaseStatus', 'Release status')}</Typography>
           <ToggleButtonGroup
             value={filters.statuses}
             onChange={(_event, value: RoadmapStatusFilter[]) => {
@@ -140,10 +149,10 @@ export function RoadmapFilters({
             sx={{ gap: 1, mb: 1.25, flexWrap: 'wrap', '& .MuiToggleButtonGroup-grouped': { mx: 0 } }}
           >
             <ToggleButton value="released" sx={pillSx}>
-              Released
+              {t('roadmap.released', 'Released')}
             </ToggleButton>
             <ToggleButton value="planned" sx={pillSx}>
-              Planned
+              {t('roadmap.planned', 'Planned')}
             </ToggleButton>
           </ToggleButtonGroup>
 
@@ -155,7 +164,7 @@ export function RoadmapFilters({
                   onChange={(event) => onChange({ ...filters, showSubtitles: event.target.checked })}
                 />
               }
-              label="Show subtitles"
+              label={t('roadmap.showSubtitles', 'Show subtitles')}
             />
             {canShowDevelopment ? (
               <FormControlLabel
@@ -165,7 +174,7 @@ export function RoadmapFilters({
                     onChange={(event) => onChange({ ...filters, showDevelopment: event.target.checked })}
                   />
                 }
-                label="Show development statuses"
+                label={t('roadmap.showDevelopment', 'Show development statuses')}
               />
             ) : null}
           </Box>
@@ -176,15 +185,15 @@ export function RoadmapFilters({
             <AppTextField
               select
               size="small"
-              label="Sort by"
+              label={t('roadmap.sortBy', 'Sort by')}
               value={filters.sortBy}
               onChange={(event) => onChange({ ...filters, sortBy: event.target.value as RoadmapFilterState['sortBy'] })}
             >
-              <MenuItem value="nam">Name (period not considered)</MenuItem>
-              <MenuItem value="req">{statusLabels.req ?? 'requested'}</MenuItem>
-              <MenuItem value="dev">{statusLabels.dev ?? 'in R&D'}</MenuItem>
-              <MenuItem value="tri">{statusLabels.tri ?? 'in field trial'}</MenuItem>
-              <MenuItem value="rel">{statusLabels.rel ?? 'released'}</MenuItem>
+              <MenuItem value="nam">{t('roadmap.sortName', 'Name (period not considered)')}</MenuItem>
+              <MenuItem value="req">{t('roadmap.statusRequested', statusLabels.req ?? 'requested')}</MenuItem>
+              <MenuItem value="dev">{t('roadmap.statusDev', statusLabels.dev ?? 'in R&D')}</MenuItem>
+              <MenuItem value="tri">{t('roadmap.statusTrial', statusLabels.tri ?? 'in field trial')}</MenuItem>
+              <MenuItem value="rel">{t('roadmap.statusReleased', statusLabels.rel ?? 'released')}</MenuItem>
             </AppTextField>
             <ToggleButtonGroup
               exclusive
@@ -197,17 +206,17 @@ export function RoadmapFilters({
               sx={{ alignSelf: 'center' }}
             >
               <ToggleButton value="asc" sx={pillSx}>
-                Oldest first
+                {t('roadmap.oldest', 'Oldest first')}
               </ToggleButton>
               <ToggleButton value="desc" sx={pillSx}>
-                Newest first
+                {t('roadmap.newest', 'Newest first')}
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
           <AppTextField
             size="small"
-            label="Search"
-            placeholder="Name, studio, USP, theme, …"
+            label={t('roadmap.search', 'Search')}
+            placeholder={t('search.roadmap', 'Name, studio, USP, theme, …')}
             value={filters.search}
             onChange={(event) => onChange({ ...filters, search: event.target.value })}
             startIcon={<SearchOutlinedIcon fontSize="small" />}
@@ -221,7 +230,7 @@ export function RoadmapFilters({
                   onChange={(event) => onChange({ ...filters, includeUnknownDates: event.target.checked })}
                 />
               }
-              label="Include games with unknown target and actual dates"
+              label={t('roadmap.includeUnknown', 'Include games with unknown target and actual dates')}
             />
             <FormControlLabel
               control={
@@ -230,12 +239,12 @@ export function RoadmapFilters({
                   onChange={(event) => onChange({ ...filters, expandAllDetails: event.target.checked })}
                 />
               }
-              label="Expand all details"
+              label={t('roadmap.expandAll', 'Expand all details')}
             />
           </Box>
           {filters.sortBy === 'nam' ? (
             <Typography sx={{ color: 'text.secondary', fontSize: 12, mb: 1 }}>
-              Period is not applied while sorting by name.
+              {t('roadmap.periodIgnored', 'Period is not applied while sorting by name.')}
             </Typography>
           ) : null}
         </>

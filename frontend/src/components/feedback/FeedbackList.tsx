@@ -4,7 +4,8 @@ import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import type { FeedbackStatus, FeedbackSubmission } from '@/api'
 import { AppTextField } from '@/components/ui'
-import { formatSubmittedAt, STATUS_LABELS } from './constants'
+import { useI18n } from '@/i18n'
+import { feedbackAreaLabel, feedbackStatusLabel, feedbackTypeLabel, formatSubmittedAt } from './constants'
 
 const STATUS_COLOR: Record<FeedbackStatus, 'default' | 'info' | 'warning' | 'success' | 'error' | 'secondary'> = {
   new: 'secondary',
@@ -30,6 +31,8 @@ export function FeedbackList({
   onStatusChange: (value: string) => void
   onSelect: (item: FeedbackSubmission) => void
 }) {
+  const { locale, t } = useI18n()
+  const statuses: FeedbackStatus[] = ['new', 'under_review', 'planned', 'in_progress', 'completed', 'declined']
   return (
     <Box>
       <Box
@@ -42,16 +45,16 @@ export function FeedbackList({
       >
         <AppTextField
           size="small"
-          label="Search"
+          label={t('feedback.searchLabel', 'Search')}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Search title or description"
+          placeholder={t('search.feedback', 'Search title or description')}
         />
-        <AppTextField select size="small" label="Status" value={status} onChange={(event) => onStatusChange(event.target.value)}>
-          <MenuItem value="">All statuses</MenuItem>
-          {(Object.keys(STATUS_LABELS) as FeedbackStatus[]).map((key) => (
+        <AppTextField select size="small" label={t('feedback.status', 'Status')} value={status} onChange={(event) => onStatusChange(event.target.value)}>
+          <MenuItem value="">{t('feedback.allStatuses', 'All statuses')}</MenuItem>
+          {statuses.map((key) => (
             <MenuItem key={key} value={key}>
-              {STATUS_LABELS[key]}
+              {feedbackStatusLabel(t, key)}
             </MenuItem>
           ))}
         </AppTextField>
@@ -59,7 +62,7 @@ export function FeedbackList({
 
       <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', bgcolor: 'common.white' }}>
         {items.length === 0 ? (
-          <Typography sx={{ p: 4, color: 'text.secondary', textAlign: 'center' }}>No feedback matches these filters.</Typography>
+          <Typography sx={{ p: 4, color: 'text.secondary', textAlign: 'center' }}>{t('feedback.noMatches', 'No feedback matches these filters.')}</Typography>
         ) : (
           items.map((item, index) => (
             <Box
@@ -89,15 +92,15 @@ export function FeedbackList({
                 <Typography sx={{ fontWeight: 800, color: 'secondary.main', fontSize: 15 }}>{item.subject}</Typography>
                 <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>
                   {item.reference}
-                  {item.related_area ? ` · ${item.related_area}` : ''}
+                  {item.related_area ? ` · ${feedbackAreaLabel(t, item.related_area)}` : ''}
                 </Typography>
               </Box>
-              <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{item.type_label}</Typography>
-              <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{formatSubmittedAt(item.submitted_at)}</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{feedbackTypeLabel(t, item.type)}</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{formatSubmittedAt(item.submitted_at, locale)}</Typography>
               <Box>
                 <Chip
                   size="small"
-                  label={STATUS_LABELS[item.status] ?? item.status}
+                  label={feedbackStatusLabel(t, item.status)}
                   color={STATUS_COLOR[item.status] ?? 'default'}
                   sx={{ fontWeight: 700 }}
                 />

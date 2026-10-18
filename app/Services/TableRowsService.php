@@ -974,6 +974,9 @@ class TableRowsService
         return match ($kind) {
             'boolean' => $value === true || $value === 1 || $value === '1' || $value === 'true' ? 1 : 0,
             'relation' => is_numeric($value) ? (int) $value : null,
+            'number' => is_numeric($value)
+                ? (str_contains((string) $value, '.') ? (float) $value : (int) $value)
+                : null,
             'json', 'matrix' => is_string($value) ? $value : json_encode($value),
             default => $value,
         };

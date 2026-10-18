@@ -1,0 +1,1237 @@
+{
+  "Game Concepts are fundamental building blocks of our software.": {
+    "de": "Spielkonzepte sind die grundlegenden Bausteine unserer Software.",
+    "es": "Los conceptos de juego son los bloques fundamentales de nuestro software.",
+    "fr": "Les concepts de jeu sont les briques fondamentales de notre logiciel."
+  },
+  "This table contains all Game Concepts. By default, it is sorted from most to least recent.": {
+    "de": "Diese Tabelle enthält alle Spielkonzepte. Standardmäßig ist sie vom neuesten zum ältesten sortiert.",
+    "es": "Esta tabla contiene todos los conceptos de juego. De forma predeterminada se ordena del más reciente al más antiguo.",
+    "fr": "Cette table contient tous les concepts de jeu. Par défaut, elle est triée du plus récent au plus ancien."
+  },
+  "Relationships:": {
+    "de": "Beziehungen:",
+    "es": "Relaciones:",
+    "fr": "Relations :"
+  },
+  "• Each Game Concept is made by exactly one": {
+    "de": "• Jedes Spielkonzept wird von genau einem",
+    "es": "• Cada concepto de juego lo crea exactamente un",
+    "fr": "• Chaque concept de jeu est créé par exactement une"
+  },
+  "Team": {
+    "de": "Team",
+    "es": "equipo",
+    "fr": "équipe"
+  },
+  "of Type “Studio (Game Design)”.": {
+    "de": "vom Typ „Studio (Game Design)“ erstellt.",
+    "es": "de tipo «Studio (Game Design)».",
+    "fr": "de type « Studio (Game Design) »."
+  },
+  "(Each Team can make any number of Game Concepts.)": {
+    "de": "(Jedes Team kann beliebig viele Spielkonzepte erstellen.)",
+    "es": "(Cada equipo puede crear cualquier número de conceptos de juego.)",
+    "fr": "(Chaque équipe peut créer autant de concepts de jeu qu’elle veut.)"
+  },
+  "• Each Game Concept can be—but is usually not—a": {
+    "de": "• Ein Spielkonzept kann — meist aber nicht — eine",
+    "es": "• Un concepto de juego puede ser —aunque normalmente no lo es— una",
+    "fr": "• Un concept de jeu peut être — mais ne l’est généralement pas — une"
+  },
+  "Variant": {
+    "de": "Variante",
+    "es": "variante",
+    "fr": "variante"
+  },
+  "of exactly one existing other Game Concept.": {
+    "de": "genau eines anderen, bereits vorhandenen Spielkonzepts sein.",
+    "es": "de exactamente otro concepto de juego ya existente.",
+    "fr": "d’exactement un autre concept de jeu déjà existant."
+  },
+  "• Each Game Concept can be implemented as a": {
+    "de": "• Ein Spielkonzept kann als",
+    "es": "• Un concepto de juego puede implementarse como",
+    "fr": "• Un concept de jeu peut être réalisé comme"
+  },
+  "Game": {
+    "de": "Spiel",
+    "es": "juego",
+    "fr": "jeu"
+  },
+  "one or multiple times, as long as the Platform of the implementation differs.": {
+    "de": "einmal oder mehrmals umgesetzt werden, solange sich die Plattform der Umsetzung unterscheidet.",
+    "es": "una o varias veces, siempre que la plataforma de la implementación sea distinta.",
+    "fr": "une ou plusieurs fois, tant que la plateforme de la réalisation diffère."
+  },
+  "(Each Game is the concrete implementation of exactly one Game Concept.)": {
+    "de": "(Jedes Spiel ist die konkrete Umsetzung genau eines Spielkonzepts.)",
+    "es": "(Cada juego es la implementación concreta de exactamente un concepto de juego.)",
+    "fr": "(Chaque jeu est la réalisation concrète d’exactement un concept de jeu.)"
+  },
+  "Games are implementations of Game Concepts for different Platforms.": {
+    "de": "Spiele sind Umsetzungen von Spielkonzepten für verschiedene Plattformen.",
+    "es": "Los juegos son implementaciones de conceptos de juego para distintas plataformas.",
+    "fr": "Les jeux sont des réalisations de concepts de jeu pour différentes plateformes."
+  },
+  "This table contains all Games. By default, it is sorted from most to least recent.": {
+    "de": "Diese Tabelle enthält alle Spiele. Standardmäßig ist sie vom neuesten zum ältesten sortiert.",
+    "es": "Esta tabla contiene todos los juegos. De forma predeterminada se ordena del más reciente al más antiguo.",
+    "fr": "Cette table contient tous les jeux. Par défaut, elle est triée du plus récent au plus ancien."
+  },
+  "• Each Game is the concrete implementation of exactly one": {
+    "de": "• Jedes Spiel ist die konkrete Umsetzung genau eines",
+    "es": "• Cada juego es la implementación concreta de exactamente un",
+    "fr": "• Chaque jeu est la réalisation concrète d’exactement un"
+  },
+  "Game Concept": {
+    "de": "Spielkonzept",
+    "es": "concepto de juego",
+    "fr": "concept de jeu"
+  },
+  ".": {
+    "de": ".",
+    "es": ".",
+    "fr": "."
+  },
+  "(Each Game Concept can be implemented as a Game one or multiple times, as long as the Platform of the implementation differs.)": {
+    "de": "(Jedes Spielkonzept kann einmal oder mehrmals als Spiel umgesetzt werden, solange sich die Plattform der Umsetzung unterscheidet.)",
+    "es": "(Cada concepto de juego puede implementarse como juego una o varias veces, siempre que la plataforma sea distinta.)",
+    "fr": "(Chaque concept de jeu peut être réalisé comme jeu une ou plusieurs fois, tant que la plateforme diffère.)"
+  },
+  "• Each Game is first contained in exactly one": {
+    "de": "• Jedes Spiel ist zuerst in genau einer",
+    "es": "• Cada juego está contenido primero en exactamente una",
+    "fr": "• Chaque jeu est d’abord contenu dans exactement une"
+  },
+  "Version": {
+    "de": "Version",
+    "es": "versión",
+    "fr": "version"
+  },
+  "(Each Version can contain any number of new Games.)": {
+    "de": "(Jede Version kann beliebig viele neue Spiele enthalten.)",
+    "es": "(Cada versión puede contener cualquier número de juegos nuevos.)",
+    "fr": "(Chaque version peut contenir autant de nouveaux jeux qu’on veut.)"
+  },
+  "• Optionally, a Version can be specified where the Game has been removed, ending the chain of inheritance.": {
+    "de": "• Optional kann eine Version angegeben werden, in der das Spiel entfernt wurde; damit endet die Vererbungskette.",
+    "es": "• Opcionalmente se puede indicar una versión en la que el juego se retiró, lo que cierra la cadena de herencia.",
+    "fr": "• On peut indiquer une version où le jeu a été retiré, ce qui met fin à la chaîne d’héritage."
+  },
+  "• Specify": {
+    "de": "• Geben Sie",
+    "es": "• Indique",
+    "fr": "• Indiquez"
+  },
+  "Game Reuses": {
+    "de": "Spielwiederverwendungen",
+    "es": "reutilizaciones de juego",
+    "fr": "réutilisations de jeu"
+  },
+  "for": {
+    "de": "für",
+    "es": "para",
+    "fr": "pour"
+  },
+  "additional": {
+    "de": "zusätzliche",
+    "es": "adicionales",
+    "fr": "supplémentaires"
+  },
+  "uses of the Game outside of the original chain of inheritance.": {
+    "de": "Verwendungen des Spiels außerhalb der ursprünglichen Vererbungskette an.",
+    "es": "usos del juego fuera de la cadena de herencia original.",
+    "fr": "utilisations du jeu en dehors de la chaîne d’héritage d’origine."
+  },
+  "Game Reuses inject Games into additional Versions (same Platform).": {
+    "de": "Spielwiederverwendungen fügen Spiele in weitere Versionen ein (gleiche Plattform).",
+    "es": "Las reutilizaciones de juego insertan juegos en versiones adicionales (la misma plataforma).",
+    "fr": "Les réutilisations de jeu injectent des jeux dans d’autres versions (même plateforme)."
+  },
+  "This table contains all Game Reuses. By default, it is sorted from most to least recent.": {
+    "de": "Diese Tabelle enthält alle Spielwiederverwendungen. Standardmäßig ist sie vom neuesten zum ältesten sortiert.",
+    "es": "Esta tabla contiene todas las reutilizaciones de juego. De forma predeterminada se ordena del más reciente al más antiguo.",
+    "fr": "Cette table contient toutes les réutilisations de jeu. Par défaut, elle est triée du plus récent au plus ancien."
+  },
+  "Use Game Reuses to specify": {
+    "de": "Nutzen Sie Spielwiederverwendungen, um",
+    "es": "Use las reutilizaciones de juego para indicar",
+    "fr": "Utilisez les réutilisations de jeu pour indiquer"
+  },
+  "uses of the Game outside of the original chain of inheritance. (Remember to specify the": {
+    "de": "Verwendungen des Spiels außerhalb der ursprünglichen Vererbungskette anzugeben. (Denken Sie daran, die",
+    "es": "usos del juego fuera de la cadena de herencia original. (Recuerde indicar el uso",
+    "fr": "des utilisations du jeu en dehors de la chaîne d’héritage d’origine. (Pensez à indiquer l’usage"
+  },
+  "primary": {
+    "de": "primäre",
+    "es": "principal",
+    "fr": "principal"
+  },
+  "use directly in the Game.)": {
+    "de": "Verwendung direkt im Spiel anzugeben.)",
+    "es": "directamente en el juego.)",
+    "fr": "directement dans le jeu.)"
+  },
+  "• Each Game Reuse refers to exactly one": {
+    "de": "• Jede Spielwiederverwendung bezieht sich auf genau ein",
+    "es": "• Cada reutilización de juego se refiere a exactamente un",
+    "fr": "• Chaque réutilisation de jeu concerne exactement un"
+  },
+  "(Each Game can have any number of Game Reuses, including none at all.)": {
+    "de": "(Jedes Spiel kann beliebig viele Spielwiederverwendungen haben, auch gar keine.)",
+    "es": "(Cada juego puede tener cualquier número de reutilizaciones, incluida ninguna.)",
+    "fr": "(Chaque jeu peut avoir autant de réutilisations qu’on veut, y compris aucune.)"
+  },
+  "• Each Game Reuse is first contained in exactly one": {
+    "de": "• Jede Spielwiederverwendung ist zuerst in genau einer",
+    "es": "• Cada reutilización de juego está contenida primero en exactamente una",
+    "fr": "• Chaque réutilisation de jeu est d’abord contenue dans exactement une"
+  },
+  "(Each Version can contain any number of Game Reuses.)": {
+    "de": "(Jede Version kann beliebig viele Spielwiederverwendungen enthalten.)",
+    "es": "(Cada versión puede contener cualquier número de reutilizaciones de juego.)",
+    "fr": "(Chaque version peut contenir autant de réutilisations de jeu qu’on veut.)"
+  },
+  "— Optionally, a Version can be specified where the Game has been removed, ending the chain of inheritance.": {
+    "de": "— Optional kann eine Version angegeben werden, in der das Spiel entfernt wurde; damit endet die Vererbungskette.",
+    "es": "— Opcionalmente se puede indicar una versión en la que el juego se retiró, lo que cierra la cadena de herencia.",
+    "fr": "— On peut indiquer une version où le jeu a été retiré, ce qui met fin à la chaîne d’héritage."
+  },
+  "Features are general capabilities not pertaining to a Game.": {
+    "de": "Features sind allgemeine Fähigkeiten, die nicht zu einem Spiel gehören.",
+    "es": "Las features son capacidades generales que no pertenecen a un juego.",
+    "fr": "Les features sont des capacités générales qui ne relèvent pas d’un jeu."
+  },
+  "This table contains all Features. By default, it is sorted by Version.": {
+    "de": "Diese Tabelle enthält alle Features. Standardmäßig ist sie nach Version sortiert.",
+    "es": "Esta tabla contiene todas las features. De forma predeterminada se ordena por versión.",
+    "fr": "Cette table contient toutes les features. Par défaut, elle est triée par version."
+  },
+  "• Each Feature is first contained in exactly one": {
+    "de": "• Jedes Feature ist zuerst in genau einer",
+    "es": "• Cada feature está contenida primero en exactamente una",
+    "fr": "• Chaque feature est d’abord contenue dans exactement une"
+  },
+  "(Each Version can contain any number of new Features.)": {
+    "de": "(Jede Version kann beliebig viele neue Features enthalten.)",
+    "es": "(Cada versión puede contener cualquier número de features nuevas.)",
+    "fr": "(Chaque version peut contenir autant de nouvelles features qu’on veut.)"
+  },
+  "Versions bundle Games and Features into an abstract product.": {
+    "de": "Versionen bündeln Spiele und Features zu einem abstrakten Produkt.",
+    "es": "Las versiones agrupan juegos y features en un producto abstracto.",
+    "fr": "Les versions regroupent jeux et features en un produit abstrait."
+  },
+  "This table contains all Versions. By default, it is sorted from most to least recent.": {
+    "de": "Diese Tabelle enthält alle Versionen. Standardmäßig ist sie vom neuesten zum ältesten sortiert.",
+    "es": "Esta tabla contiene todas las versiones. De forma predeterminada se ordena del más reciente al más antiguo.",
+    "fr": "Cette table contient toutes les versions. Par défaut, elle est triée du plus récent au plus ancien."
+  },
+  "• Each Version can": {
+    "de": "• Jede Version kann",
+    "es": "• Cada versión puede",
+    "fr": "• Chaque version peut"
+  },
+  "Inherit": {
+    "de": "erben",
+    "es": "heredar",
+    "fr": "hériter"
+  },
+  "from another Version to start or continue the chain of inheritance. If it does not Inherit from another Version, the Version starts a new chain of inheritance.": {
+    "de": "von einer anderen Version, um die Vererbungskette zu beginnen oder fortzusetzen. Erbt sie nicht von einer anderen Version, beginnt die Version eine neue Vererbungskette.",
+    "es": "de otra versión para iniciar o continuar la cadena de herencia. Si no hereda de otra versión, la versión inicia una cadena nueva.",
+    "fr": "d’une autre version pour commencer ou poursuivre la chaîne d’héritage. Si elle n’hérite d’aucune version, elle ouvre une nouvelle chaîne."
+  },
+  "• Each Version can contain any number of new": {
+    "de": "• Jede Version kann beliebig viele neue",
+    "es": "• Cada versión puede contener cualquier número de nuevos",
+    "fr": "• Chaque version peut contenir autant de nouveaux"
+  },
+  "Games": {
+    "de": "Spiele",
+    "es": "juegos",
+    "fr": "jeux"
+  },
+  "(Each Game is first contained in exactly one Version.)": {
+    "de": "(Jedes Spiel ist zuerst in genau einer Version enthalten.)",
+    "es": "(Cada juego está contenido primero en exactamente una versión.)",
+    "fr": "(Chaque jeu est d’abord contenu dans exactement une version.)"
+  },
+  "Features": {
+    "de": "Features",
+    "es": "features",
+    "fr": "features"
+  },
+  "(Each Feature is first contained in exactly one Version.)": {
+    "de": "(Jedes Feature ist zuerst in genau einer Version enthalten.)",
+    "es": "(Cada feature está contenida primero en exactamente una versión.)",
+    "fr": "(Chaque feature est d’abord contenue dans exactement une version.)"
+  },
+  "• Each Version can have any number of": {
+    "de": "• Jede Version kann beliebig viele",
+    "es": "• Cada versión puede tener cualquier número de",
+    "fr": "• Chaque version peut avoir autant de"
+  },
+  "Builds": {
+    "de": "Builds",
+    "es": "builds",
+    "fr": "builds"
+  },
+  "(Each Build belongs to exactly one Version.)": {
+    "de": "(Jeder Build gehört zu genau einer Version.)",
+    "es": "(Cada build pertenece a exactamente una versión.)",
+    "fr": "(Chaque build appartient à exactement une version.)"
+  },
+  "Availabilities": {
+    "de": "Verfügbarkeiten",
+    "es": "disponibilidades",
+    "fr": "disponibilités"
+  },
+  "(Each Availability belongs to exactly one Version.)": {
+    "de": "(Jede Verfügbarkeit gehört zu genau einer Version.)",
+    "es": "(Cada disponibilidad pertenece a exactamente una versión.)",
+    "fr": "(Chaque disponibilité appartient à exactement une version.)"
+  },
+  "Builds make deliverable products out of abstract Versions.": {
+    "de": "Builds machen aus abstrakten Versionen auslieferbare Produkte.",
+    "es": "Los builds convierten versiones abstractas en productos entregables.",
+    "fr": "Les builds font de versions abstraites des produits livrables."
+  },
+  "This table contains all Builds. By default, it is sorted by Version.": {
+    "de": "Diese Tabelle enthält alle Builds. Standardmäßig ist sie nach Version sortiert.",
+    "es": "Esta tabla contiene todos los builds. De forma predeterminada se ordena por versión.",
+    "fr": "Cette table contient tous les builds. Par défaut, elle est triée par version."
+  },
+  "• Each Build belongs to exactly one": {
+    "de": "• Jeder Build gehört zu genau einer",
+    "es": "• Cada build pertenece a exactamente una",
+    "fr": "• Chaque build appartient à exactement une"
+  },
+  "(Each Version can have any number of Builds.)": {
+    "de": "(Jede Version kann beliebig viele Builds haben.)",
+    "es": "(Cada versión puede tener cualquier número de builds.)",
+    "fr": "(Chaque version peut avoir autant de builds qu’on veut.)"
+  },
+  "• Each Build is for exactly one": {
+    "de": "• Jeder Build gilt für genau einen",
+    "es": "• Cada build es para exactamente una",
+    "fr": "• Chaque build concerne exactement une"
+  },
+  "Jurisdiction": {
+    "de": "Rechtsraum",
+    "es": "jurisdicción",
+    "fr": "juridiction"
+  },
+  "(Each Jurisdiction can have any number of Builds.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Builds haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de builds.)",
+    "fr": "(Chaque juridiction peut avoir autant de builds qu’on veut.)"
+  },
+  "Dongles select Games and apply Jurisdictional settings to a Version.": {
+    "de": "Dongles wählen Spiele aus und wenden rechtsraumspezifische Einstellungen auf eine Version an.",
+    "es": "Los dongles seleccionan juegos y aplican ajustes jurisdiccionales a una versión.",
+    "fr": "Les dongles sélectionnent des jeux et appliquent des réglages juridictionnels à une version."
+  },
+  "This table contains all Dongles. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Dongles. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todos los dongles. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient tous les dongles. Par défaut, elle est triée par nom."
+  },
+  "• Each Dongle applies to exactly one": {
+    "de": "• Jeder Dongle gilt für genau eine",
+    "es": "• Cada dongle se aplica a exactamente una",
+    "fr": "• Chaque dongle s’applique à exactement une"
+  },
+  "(Each Version can have any number of Dongles.)": {
+    "de": "(Jede Version kann beliebig viele Dongles haben.)",
+    "es": "(Cada versión puede tener cualquier número de dongles.)",
+    "fr": "(Chaque version peut avoir autant de dongles qu’on veut.)"
+  },
+  "• Each Dongle is for exactly one": {
+    "de": "• Jeder Dongle gilt für genau einen",
+    "es": "• Cada dongle es para exactamente una",
+    "fr": "• Chaque dongle concerne exactement une"
+  },
+  "(Each Jurisdiction can have any number of Dongles.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Dongles haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de dongles.)",
+    "fr": "(Chaque juridiction peut avoir autant de dongles qu’on veut.)"
+  },
+  "Defects require a Game to be disabled entirely or within a specific scope.": {
+    "de": "Mängel verlangen, dass ein Spiel ganz oder in einem bestimmten Umfang deaktiviert wird.",
+    "es": "Los defectos exigen desactivar un juego por completo o dentro de un alcance concreto.",
+    "fr": "Les défauts exigent de désactiver un jeu entièrement ou dans un périmètre précis."
+  },
+  "This table contains all Defects. By default, it is sorted from most to least recent.": {
+    "de": "Diese Tabelle enthält alle Mängel. Standardmäßig ist sie vom neuesten zum ältesten sortiert.",
+    "es": "Esta tabla contiene todos los defectos. De forma predeterminada se ordena del más reciente al más antiguo.",
+    "fr": "Cette table contient tous les défauts. Par défaut, elle est triée du plus récent au plus ancien."
+  },
+  "Defects usually require a Game to be disabled in a Build, Version or altogether.": {
+    "de": "Mängel verlangen meist, dass ein Spiel in einem Build, einer Version oder ganz deaktiviert wird.",
+    "es": "Los defectos suelen exigir desactivar un juego en un build, en una versión o por completo.",
+    "fr": "Les défauts exigent en général de désactiver un jeu dans un build, une version ou complètement."
+  },
+  "• Each Defect belongs to exactly one": {
+    "de": "• Jeder Mangel gehört zu genau einer",
+    "es": "• Cada defecto pertenece a exactamente una",
+    "fr": "• Chaque défaut appartient à exactement une"
+  },
+  "OR": {
+    "de": "ODER",
+    "es": "O",
+    "fr": "OU"
+  },
+  "to exactly one": {
+    "de": "zu genau einem",
+    "es": "a exactamente un",
+    "fr": "à exactement un"
+  },
+  "Build": {
+    "de": "Build",
+    "es": "build",
+    "fr": "build"
+  },
+  "to neither.": {
+    "de": "zu keinem von beiden.",
+    "es": "a ninguno de los dos.",
+    "fr": "à aucun des deux."
+  },
+  "(Each Version and each Build can have any number of Defects.)": {
+    "de": "(Jede Version und jeder Build kann beliebig viele Mängel haben.)",
+    "es": "(Cada versión y cada build pueden tener cualquier número de defectos.)",
+    "fr": "(Chaque version et chaque build peuvent avoir autant de défauts qu’on veut.)"
+  },
+  "— If Version and Build are both not set, the Defect applies to every occurrence of the Game. Note that it is not useful to set both Version and Build.": {
+    "de": "— Wenn weder Version noch Build gesetzt sind, gilt der Mangel für jedes Vorkommen des Spiels. Beide zugleich zu setzen ist nicht sinnvoll.",
+    "es": "— Si no se indican ni versión ni build, el defecto se aplica a cada aparición del juego. No tiene sentido indicar ambos.",
+    "fr": "— Si ni la version ni le build ne sont renseignés, le défaut s’applique à chaque occurrence du jeu. Renseigner les deux n’est pas utile."
+  },
+  "• Each Defect is for exactly one": {
+    "de": "• Jeder Mangel gilt für genau ein",
+    "es": "• Cada defecto es para exactamente un",
+    "fr": "• Chaque défaut concerne exactement un"
+  },
+  "(Each Game can have any number of Defects, as long as they are for different Versions or Builds.)": {
+    "de": "(Jedes Spiel kann beliebig viele Mängel haben, solange sie für verschiedene Versionen oder Builds gelten.)",
+    "es": "(Cada juego puede tener cualquier número de defectos, siempre que sean para versiones o builds distintos.)",
+    "fr": "(Chaque jeu peut avoir autant de défauts qu’on veut, tant qu’ils concernent des versions ou des builds différents.)"
+  },
+  "Ver Milestones are time-bound Statuses (target, actual) for Versions.": {
+    "de": "Versionsmeilensteine sind zeitgebundene Status (Soll, Ist) für Versionen.",
+    "es": "Los hitos de versión son estados con fecha (objetivo y real) para versiones.",
+    "fr": "Les jalons de version sont des statuts datés (cible, réel) pour les versions."
+  },
+  "This table contains all Ver Milestones. By default, it is sorted by Expected Date.": {
+    "de": "Diese Tabelle enthält alle Versionsmeilensteine. Standardmäßig ist sie nach dem erwarteten Datum sortiert.",
+    "es": "Esta tabla contiene todos los hitos de versión. De forma predeterminada se ordena por fecha prevista.",
+    "fr": "Cette table contient tous les jalons de version. Par défaut, elle est triée par date prévue."
+  },
+  "• Each Ver Milestone applies to exactly one": {
+    "de": "• Jeder Versionsmeilenstein gilt für genau eine",
+    "es": "• Cada hito de versión se aplica a exactamente una",
+    "fr": "• Chaque jalon de version s’applique à exactement une"
+  },
+  "(Each Version can have any number of Ver Milestones.)": {
+    "de": "(Jede Version kann beliebig viele Versionsmeilensteine haben.)",
+    "es": "(Cada versión puede tener cualquier número de hitos de versión.)",
+    "fr": "(Chaque version peut avoir autant de jalons de version qu’on veut.)"
+  },
+  "(Each Jurisdiction can have any number of Ver Milestones.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Versionsmeilensteine haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de hitos de versión.)",
+    "fr": "(Chaque juridiction peut avoir autant de jalons de version qu’on veut.)"
+  },
+  "Build Milestones are time-bound Statuses (target, actual) for Builds.": {
+    "de": "Build-Meilensteine sind zeitgebundene Status (Soll, Ist) für Builds.",
+    "es": "Los hitos de build son estados con fecha (objetivo y real) para builds.",
+    "fr": "Les jalons de build sont des statuts datés (cible, réel) pour les builds."
+  },
+  "This table contains all Build Milestones. By default, it is sorted by Expected Date.": {
+    "de": "Diese Tabelle enthält alle Build-Meilensteine. Standardmäßig ist sie nach dem erwarteten Datum sortiert.",
+    "es": "Esta tabla contiene todos los hitos de build. De forma predeterminada se ordena por fecha prevista.",
+    "fr": "Cette table contient tous les jalons de build. Par défaut, elle est triée par date prévue."
+  },
+  "• Each Build Milestone applies to exactly one": {
+    "de": "• Jeder Build-Meilenstein gilt für genau einen",
+    "es": "• Cada hito de build se aplica a exactamente un",
+    "fr": "• Chaque jalon de build s’applique à exactement un"
+  },
+  "(Each Build can have any number of Build Milestones.)": {
+    "de": "(Jeder Build kann beliebig viele Build-Meilensteine haben.)",
+    "es": "(Cada build puede tener cualquier número de hitos de build.)",
+    "fr": "(Chaque build peut avoir autant de jalons de build qu’on veut.)"
+  },
+  "(Each Jurisdiction can have any number of Build Milestones.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Build-Meilensteine haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de hitos de build.)",
+    "fr": "(Chaque juridiction peut avoir autant de jalons de build qu’on veut.)"
+  },
+  "Game Milestones are time-bound Statuses (target, actual) for Games.": {
+    "de": "Spielmeilensteine sind zeitgebundene Status (Soll, Ist) für Spiele.",
+    "es": "Los hitos de juego son estados con fecha (objetivo y real) para juegos.",
+    "fr": "Les jalons de jeu sont des statuts datés (cible, réel) pour les jeux."
+  },
+  "This table contains all Game Milestones. By default, it is sorted by Expected Date.": {
+    "de": "Diese Tabelle enthält alle Spielmeilensteine. Standardmäßig ist sie nach dem erwarteten Datum sortiert.",
+    "es": "Esta tabla contiene todos los hitos de juego. De forma predeterminada se ordena por fecha prevista.",
+    "fr": "Cette table contient tous les jalons de jeu. Par défaut, elle est triée par date prévue."
+  },
+  "• Each Game Milestone applies to exactly one": {
+    "de": "• Jeder Spielmeilenstein gilt für genau ein",
+    "es": "• Cada hito de juego se aplica a exactamente un",
+    "fr": "• Chaque jalon de jeu s’applique à exactement un"
+  },
+  "(Each Game can have any number of Game Milestones.)": {
+    "de": "(Jedes Spiel kann beliebig viele Spielmeilensteine haben.)",
+    "es": "(Cada juego puede tener cualquier número de hitos de juego.)",
+    "fr": "(Chaque jeu peut avoir autant de jalons de jeu qu’on veut.)"
+  },
+  "Cabinets form the configurable hardware portion of our products.": {
+    "de": "Gehäuse bilden den konfigurierbaren Hardwareanteil unserer Produkte.",
+    "es": "Los gabinetes forman la parte de hardware configurable de nuestros productos.",
+    "fr": "Les cabinets constituent la partie matérielle configurable de nos produits."
+  },
+  "This table contains all Cabinets. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Gehäuse. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todos los gabinetes. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient tous les cabinets. Par défaut, elle est triée par nom."
+  },
+  "Cabinets form the hardware portion of our products.": {
+    "de": "Gehäuse bilden den Hardwareanteil unserer Produkte.",
+    "es": "Los gabinetes forman la parte de hardware de nuestros productos.",
+    "fr": "Les cabinets constituent la partie matérielle de nos produits."
+  },
+  "—": {
+    "de": "—",
+    "es": "—",
+    "fr": "—"
+  },
+  "Components are used with Cabinets to create a Configuration.": {
+    "de": "Komponenten werden mit Gehäusen zu einer Konfiguration kombiniert.",
+    "es": "Los componentes se usan con gabinetes para crear una configuración.",
+    "fr": "Les composants s’utilisent avec des cabinets pour créer une configuration."
+  },
+  "This table contains all Components. By default, it is sorted by SKU.": {
+    "de": "Diese Tabelle enthält alle Komponenten. Standardmäßig ist sie nach SKU sortiert.",
+    "es": "Esta tabla contiene todos los componentes. De forma predeterminada se ordena por SKU.",
+    "fr": "Cette table contient tous les composants. Par défaut, elle est triée par SKU."
+  },
+  "Configurations combine Cabinets with Components into a deliverable product.": {
+    "de": "Konfigurationen verbinden Gehäuse und Komponenten zu einem auslieferbaren Produkt.",
+    "es": "Las configuraciones combinan gabinetes y componentes en un producto entregable.",
+    "fr": "Les configurations associent cabinets et composants en un produit livrable."
+  },
+  "This table contains all Configurations. By default, it is sorted by SKU.": {
+    "de": "Diese Tabelle enthält alle Konfigurationen. Standardmäßig ist sie nach SKU sortiert.",
+    "es": "Esta tabla contiene todas las configuraciones. De forma predeterminada se ordena por SKU.",
+    "fr": "Cette table contient toutes les configurations. Par défaut, elle est triée par SKU."
+  },
+  "Compatibilities describe which Components work with which Versions.": {
+    "de": "Kompatibilitäten beschreiben, welche Komponenten mit welchen Versionen funktionieren.",
+    "es": "Las compatibilidades describen qué componentes funcionan con qué versiones.",
+    "fr": "Les compatibilités indiquent quels composants fonctionnent avec quelles versions."
+  },
+  "This table contains all Compatibilities. By default, it is sorted by Version.": {
+    "de": "Diese Tabelle enthält alle Kompatibilitäten. Standardmäßig ist sie nach Version sortiert.",
+    "es": "Esta tabla contiene todas las compatibilidades. De forma predeterminada se ordena por versión.",
+    "fr": "Cette table contient toutes les compatibilités. Par défaut, elle est triée par version."
+  },
+  "Availabilities document where Versions should not, should or can be delivered.": {
+    "de": "Verfügbarkeiten dokumentieren, wo Versionen nicht, sollen oder können ausgeliefert werden.",
+    "es": "Las disponibilidades documentan dónde las versiones no deben, deben o pueden entregarse.",
+    "fr": "Les disponibilités indiquent où les versions ne doivent pas, doivent ou peuvent être livrées."
+  },
+  "This table contains all Availabilities. By default, it is sorted by Version.": {
+    "de": "Diese Tabelle enthält alle Verfügbarkeiten. Standardmäßig ist sie nach Version sortiert.",
+    "es": "Esta tabla contiene todas las disponibilidades. De forma predeterminada se ordena por versión.",
+    "fr": "Cette table contient toutes les disponibilités. Par défaut, elle est triée par version."
+  },
+  "• Each Availability belongs to exactly one": {
+    "de": "• Jede Verfügbarkeit gehört zu genau einer",
+    "es": "• Cada disponibilidad pertenece a exactamente una",
+    "fr": "• Chaque disponibilité appartient à exactement une"
+  },
+  "(Each Version can have any number of Availabilities.)": {
+    "de": "(Jede Version kann beliebig viele Verfügbarkeiten haben.)",
+    "es": "(Cada versión puede tener cualquier número de disponibilidades.)",
+    "fr": "(Chaque version peut avoir autant de disponibilités qu’on veut.)"
+  },
+  "• Each Availability is for exactly one": {
+    "de": "• Jede Verfügbarkeit gilt für genau einen",
+    "es": "• Cada disponibilidad es para exactamente una",
+    "fr": "• Chaque disponibilité concerne exactement une"
+  },
+  "(Each Jurisdiction can have any number of Availabilities.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Verfügbarkeiten haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de disponibilidades.)",
+    "fr": "(Chaque juridiction peut avoir autant de disponibilités qu’on veut.)"
+  },
+  "Installations document where Versions have been delivered, either “live” or for testing.": {
+    "de": "Installationen dokumentieren, wo Versionen ausgeliefert wurden, entweder live oder zum Test.",
+    "es": "Las instalaciones documentan dónde se han entregado versiones, en vivo o para pruebas.",
+    "fr": "Les installations indiquent où des versions ont été livrées, en exploitation ou pour des tests."
+  },
+  "This table contains all Installations. By default, it is sorted by Version.": {
+    "de": "Diese Tabelle enthält alle Installationen. Standardmäßig ist sie nach Version sortiert.",
+    "es": "Esta tabla contiene todas las instalaciones. De forma predeterminada se ordena por versión.",
+    "fr": "Cette table contient toutes les installations. Par défaut, elle est triée par version."
+  },
+  "See the": {
+    "de": "Siehe den",
+    "es": "Consulte el",
+    "fr": "Voir le"
+  },
+  "Installations Report": {
+    "de": "Installationsbericht",
+    "es": "informe de instalaciones",
+    "fr": "rapport d’installations"
+  },
+  "for a convenient way to browse Installations.": {
+    "de": "für eine übersichtliche Ansicht der Installationen.",
+    "es": "para consultar las instalaciones cómodamente.",
+    "fr": "pour parcourir les installations plus facilement."
+  },
+  "• Each Installation belongs to exactly one": {
+    "de": "• Jede Installation gehört zu genau einer",
+    "es": "• Cada instalación pertenece a exactamente una",
+    "fr": "• Chaque installation appartient à exactement une"
+  },
+  "(Each Version can have any number of Installations.)": {
+    "de": "(Jede Version kann beliebig viele Installationen haben.)",
+    "es": "(Cada versión puede tener cualquier número de instalaciones.)",
+    "fr": "(Chaque version peut avoir autant d’installations qu’on veut.)"
+  },
+  "• Each Installation is for exactly one": {
+    "de": "• Jede Installation gilt für genau einen",
+    "es": "• Cada instalación es para exactamente una",
+    "fr": "• Chaque installation concerne exactement une"
+  },
+  "(Each Jurisdiction can have any number of Installations.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Installationen haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de instalaciones.)",
+    "fr": "(Chaque juridiction peut avoir autant d’installations qu’on veut.)"
+  },
+  "Focus Groups document where Versions have been discussed with players.": {
+    "de": "Fokusgruppen dokumentieren, wo Versionen mit Spielern besprochen wurden.",
+    "es": "Los grupos focales documentan dónde se han comentado versiones con jugadores.",
+    "fr": "Les groupes de discussion indiquent où des versions ont été discutées avec des joueurs."
+  },
+  "This table contains all Focus Groups. By default, it is sorted by Version.": {
+    "de": "Diese Tabelle enthält alle Fokusgruppen. Standardmäßig ist sie nach Version sortiert.",
+    "es": "Esta tabla contiene todos los grupos focales. De forma predeterminada se ordena por versión.",
+    "fr": "Cette table contient tous les groupes de discussion. Par défaut, elle est triée par version."
+  },
+  "Focus Groups Report": {
+    "de": "Fokusgruppenbericht",
+    "es": "informe de grupos focales",
+    "fr": "rapport des groupes de discussion"
+  },
+  "for a convenient way to browse Focus Groups.": {
+    "de": "für eine übersichtliche Ansicht der Fokusgruppen.",
+    "es": "para consultar los grupos focales cómodamente.",
+    "fr": "pour parcourir les groupes de discussion plus facilement."
+  },
+  "• Each Focus Group belongs to exactly one": {
+    "de": "• Jede Fokusgruppe gehört zu genau einer",
+    "es": "• Cada grupo focal pertenece a exactamente una",
+    "fr": "• Chaque groupe de discussion appartient à exactement une"
+  },
+  "(Each Version can have any number of Focus Groups.)": {
+    "de": "(Jede Version kann beliebig viele Fokusgruppen haben.)",
+    "es": "(Cada versión puede tener cualquier número de grupos focales.)",
+    "fr": "(Chaque version peut avoir autant de groupes de discussion qu’on veut.)"
+  },
+  "• Each Focus Group is for exactly one": {
+    "de": "• Jede Fokusgruppe gilt für genau einen",
+    "es": "• Cada grupo focal es para exactamente una",
+    "fr": "• Chaque groupe de discussion concerne exactement une"
+  },
+  "(Each Jurisdiction can have any number of Focus Groups.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Fokusgruppen haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de grupos focales.)",
+    "fr": "(Chaque juridiction peut avoir autant de groupes de discussion qu’on veut.)"
+  },
+  "Releases record market availability of a deliverable product (that is, of a Build).": {
+    "de": "Releases erfassen die Marktverfügbarkeit eines auslieferbaren Produkts, also eines Builds.",
+    "es": "Los releases registran la disponibilidad en el mercado de un producto entregable, es decir, de un build.",
+    "fr": "Les releases enregistrent la disponibilité sur le marché d’un produit livrable, c’est-à-dire d’un build."
+  },
+  "This table contains all Releases. By default, it is sorted by Release Date.": {
+    "de": "Diese Tabelle enthält alle Releases. Standardmäßig ist sie nach Releasedatum sortiert.",
+    "es": "Esta tabla contiene todos los releases. De forma predeterminada se ordena por fecha de release.",
+    "fr": "Cette table contient tous les releases. Par défaut, elle est triée par date de release."
+  },
+  "• Each Release belongs to exactly one": {
+    "de": "• Jeder Release gehört zu genau einem",
+    "es": "• Cada release pertenece a exactamente un",
+    "fr": "• Chaque release appartient à exactement un"
+  },
+  "(Each Build can have none or exactly one Release.)": {
+    "de": "(Jeder Build kann keinen oder genau einen Release haben.)",
+    "es": "(Cada build puede no tener ningún release o tener exactamente uno.)",
+    "fr": "(Chaque build peut n’avoir aucun release ou en avoir exactement un.)"
+  },
+  "• Each Release is specified with exactly one Base": {
+    "de": "• Jeder Release wird mit genau einem Basis-",
+    "es": "• Cada release se especifica con exactamente un",
+    "fr": "• Chaque release est défini avec exactement un"
+  },
+  "Dongle": {
+    "de": "Dongle",
+    "es": "dongle",
+    "fr": "dongle"
+  },
+  "(Each Dongle can be used as a Base Dongle for any number of Releases.)": {
+    "de": "(Jeder Dongle kann als Basis-Dongle für beliebig viele Releases verwendet werden.)",
+    "es": "(Cada dongle puede usarse como dongle base para cualquier número de releases.)",
+    "fr": "(Chaque dongle peut servir de dongle de base pour autant de releases qu’on veut.)"
+  },
+  "Jurisdictions are countries, regions, market segments, and non-country specific entities.": {
+    "de": "Rechtsräume sind Länder, Regionen, Marktsegmente und Einheiten, die keinem Land entsprechen.",
+    "es": "Las jurisdicciones son países, regiones, segmentos de mercado y entidades que no corresponden a un país.",
+    "fr": "Les juridictions sont des pays, des régions, des segments de marché et des entités qui ne sont pas des pays."
+  },
+  "This table contains all Jurisdictions. By default, it is sorted by ISO-3166.": {
+    "de": "Diese Tabelle enthält alle Rechtsräume. Standardmäßig ist sie nach ISO-3166 sortiert.",
+    "es": "Esta tabla contiene todas las jurisdicciones. De forma predeterminada se ordena por ISO-3166.",
+    "fr": "Cette table contient toutes les juridictions. Par défaut, elle est triée par ISO-3166."
+  },
+  "• Each Jurisdiction can have any number of": {
+    "de": "• Jeder Rechtsraum kann beliebig viele",
+    "es": "• Cada jurisdicción puede tener cualquier número de",
+    "fr": "• Chaque juridiction peut avoir autant de"
+  },
+  "(Each Build is for exactly one Jurisdiction.)": {
+    "de": "(Jeder Build gilt für genau einen Rechtsraum.)",
+    "es": "(Cada build es para exactamente una jurisdicción.)",
+    "fr": "(Chaque build concerne exactement une juridiction.)"
+  },
+  "(Each Availability is for exactly one Jurisdiction.)": {
+    "de": "(Jede Verfügbarkeit gilt für genau einen Rechtsraum.)",
+    "es": "(Cada disponibilidad es para exactamente una jurisdicción.)",
+    "fr": "(Chaque disponibilité concerne exactement une juridiction.)"
+  },
+  "Installations": {
+    "de": "Installationen",
+    "es": "instalaciones",
+    "fr": "installations"
+  },
+  "(Each Installation is for exactly one Jurisdiction.)": {
+    "de": "(Jede Installation gilt für genau einen Rechtsraum.)",
+    "es": "(Cada instalación es para exactamente una jurisdicción.)",
+    "fr": "(Chaque installation concerne exactement une juridiction.)"
+  },
+  "Partner Activities": {
+    "de": "Partneraktivitäten",
+    "es": "actividades de socios",
+    "fr": "activités de partenaires"
+  },
+  "(Each Partner Activity is for exactly one Jurisdiction.)": {
+    "de": "(Jede Partneraktivität gilt für genau einen Rechtsraum.)",
+    "es": "(Cada actividad de socio es para exactamente una jurisdicción.)",
+    "fr": "(Chaque activité de partenaire concerne exactement une juridiction.)"
+  },
+  "• Each Jurisdiction gets its approvals from exactly one": {
+    "de": "• Jeder Rechtsraum erhält seine Zulassungen von genau einer",
+    "es": "• Cada jurisdicción obtiene sus homologaciones de exactamente una",
+    "fr": "• Chaque juridiction reçoit ses homologations d’exactement une"
+  },
+  "Authority": {
+    "de": "Behörde",
+    "es": "autoridad",
+    "fr": "autorité"
+  },
+  "(Each Authority can be responsible for any number of Jurisdictions.)": {
+    "de": "(Jede Behörde kann für beliebig viele Rechtsräume zuständig sein.)",
+    "es": "(Cada autoridad puede ser responsable de cualquier número de jurisdicciones.)",
+    "fr": "(Chaque autorité peut être responsable d’autant de juridictions qu’on veut.)"
+  },
+  "Land-Based Markets describe characteristics of Jurisdictions related to land-based activities.": {
+    "de": "Stationäre Märkte beschreiben Eigenschaften von Rechtsräumen für stationäre Aktivitäten.",
+    "es": "Los mercados presenciales describen características de las jurisdicciones relacionadas con la actividad presencial.",
+    "fr": "Les marchés terrestres décrivent les caractéristiques des juridictions liées à l’activité en salle."
+  },
+  "This table contains all Land-Based Markets. By default, it is sorted by Jurisdiction.": {
+    "de": "Diese Tabelle enthält alle stationären Märkte. Standardmäßig ist sie nach Rechtsraum sortiert.",
+    "es": "Esta tabla contiene todos los mercados presenciales. De forma predeterminada se ordena por jurisdicción.",
+    "fr": "Cette table contient tous les marchés terrestres. Par défaut, elle est triée par juridiction."
+  },
+  "• Each Land-Based Market belongs to exactly one": {
+    "de": "• Jeder stationäre Markt gehört zu genau einem",
+    "es": "• Cada mercado presencial pertenece a exactamente una",
+    "fr": "• Chaque marché terrestre appartient à exactement une"
+  },
+  "(Each Jurisdiction can have no or exactly one Land-Based Market.)": {
+    "de": "(Jeder Rechtsraum kann keinen oder genau einen stationären Markt haben.)",
+    "es": "(Cada jurisdicción puede no tener ningún mercado presencial o tener exactamente uno.)",
+    "fr": "(Chaque juridiction peut n’avoir aucun marché terrestre ou en avoir exactement un.)"
+  },
+  "Online Markets describe characteristics of Jurisdictions related to online activities.": {
+    "de": "Online-Märkte beschreiben Eigenschaften von Rechtsräumen für Online-Aktivitäten.",
+    "es": "Los mercados online describen características de las jurisdicciones relacionadas con la actividad online.",
+    "fr": "Les marchés en ligne décrivent les caractéristiques des juridictions liées à l’activité en ligne."
+  },
+  "This table contains all online Markets. By default, it is sorted by Jurisdiction.": {
+    "de": "Diese Tabelle enthält alle Online-Märkte. Standardmäßig ist sie nach Rechtsraum sortiert.",
+    "es": "Esta tabla contiene todos los mercados online. De forma predeterminada se ordena por jurisdicción.",
+    "fr": "Cette table contient tous les marchés en ligne. Par défaut, elle est triée par juridiction."
+  },
+  "• Each Online Market belongs to exactly one": {
+    "de": "• Jeder Online-Markt gehört zu genau einem",
+    "es": "• Cada mercado online pertenece a exactamente una",
+    "fr": "• Chaque marché en ligne appartient à exactement une"
+  },
+  "(Each Jurisdiction can have no or exactly one Online Market.)": {
+    "de": "(Jeder Rechtsraum kann keinen oder genau einen Online-Markt haben.)",
+    "es": "(Cada jurisdicción puede no tener ningún mercado online o tener exactamente uno.)",
+    "fr": "(Chaque juridiction peut n’avoir aucun marché en ligne ou en avoir exactement un.)"
+  },
+  "Partners are doing business with MERKUR.": {
+    "de": "Partner machen Geschäfte mit MERKUR.",
+    "es": "Los socios hacen negocios con MERKUR.",
+    "fr": "Les partenaires font des affaires avec MERKUR."
+  },
+  "This table contains all Partners. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Partner. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todos los socios. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient tous les partenaires. Par défaut, elle est triée par nom."
+  },
+  "• Each Partner can manage any number of": {
+    "de": "• Jeder Partner kann beliebig viele",
+    "es": "• Cada socio puede gestionar cualquier número de",
+    "fr": "• Chaque partenaire peut gérer autant de"
+  },
+  "Venues": {
+    "de": "Standorte",
+    "es": "locales",
+    "fr": "sites"
+  },
+  "(Each Venue is managed by exactly one Partner.)": {
+    "de": "(Jeder Standort wird von genau einem Partner geführt.)",
+    "es": "(Cada local lo gestiona exactamente un socio.)",
+    "fr": "(Chaque site est géré par exactement un partenaire.)"
+  },
+  "Venues are physical locations, such as casinos, managed by a Partner.": {
+    "de": "Standorte sind physische Orte, zum Beispiel Spielbanken, die ein Partner führt.",
+    "es": "Los locales son lugares físicos, como casinos, gestionados por un socio.",
+    "fr": "Les sites sont des lieux physiques, comme des casinos, gérés par un partenaire."
+  },
+  "This table contains all Venues. By default, it is sorted by Jurisdiction, then Name.": {
+    "de": "Diese Tabelle enthält alle Standorte. Standardmäßig ist sie nach Rechtsraum, dann nach Name sortiert.",
+    "es": "Esta tabla contiene todos los locales. De forma predeterminada se ordena por jurisdicción y luego por nombre.",
+    "fr": "Cette table contient tous les sites. Par défaut, elle est triée par juridiction, puis par nom."
+  },
+  "• Each Venue is managed by exactly one": {
+    "de": "• Jeder Standort wird von genau einem",
+    "es": "• Cada local lo gestiona exactamente un",
+    "fr": "• Chaque site est géré par exactement un"
+  },
+  "Partner": {
+    "de": "Partner",
+    "es": "socio",
+    "fr": "partenaire"
+  },
+  "(Each Partner can manage any number of Venues.)": {
+    "de": "(Jeder Partner kann beliebig viele Standorte führen.)",
+    "es": "(Cada socio puede gestionar cualquier número de locales.)",
+    "fr": "(Chaque partenaire peut gérer autant de sites qu’il veut.)"
+  },
+  "• Each Venue belongs to exactly one": {
+    "de": "• Jeder Standort gehört zu genau einem",
+    "es": "• Cada local pertenece a exactamente una",
+    "fr": "• Chaque site appartient à exactement une"
+  },
+  "(Each Jurisdiction can have any number of Venues.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Standorte haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de locales.)",
+    "fr": "(Chaque juridiction peut avoir autant de sites qu’on veut.)"
+  },
+  "Partner Activities connect Partners with Jurisdictions.": {
+    "de": "Partneraktivitäten verbinden Partner mit Rechtsräumen.",
+    "es": "Las actividades de socios conectan socios con jurisdicciones.",
+    "fr": "Les activités de partenaires relient les partenaires aux juridictions."
+  },
+  "This table contains all Partner Activities. By default, it is sorted by Jurisdiction.": {
+    "de": "Diese Tabelle enthält alle Partneraktivitäten. Standardmäßig ist sie nach Rechtsraum sortiert.",
+    "es": "Esta tabla contiene todas las actividades de socios. De forma predeterminada se ordena por jurisdicción.",
+    "fr": "Cette table contient toutes les activités de partenaires. Par défaut, elle est triée par juridiction."
+  },
+  "• Each Partner can operate in any number of": {
+    "de": "• Jeder Partner kann in beliebig vielen",
+    "es": "• Cada socio puede operar en cualquier número de",
+    "fr": "• Chaque partenaire peut opérer dans autant de"
+  },
+  "Jurisdictions": {
+    "de": "Rechtsräumen",
+    "es": "jurisdicciones",
+    "fr": "juridictions"
+  },
+  "(Each Jurisdiction can have any number of Partners.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Partner haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de socios.)",
+    "fr": "(Chaque juridiction peut avoir autant de partenaires qu’on veut.)"
+  },
+  "Strategic Domains are the categories Strategic Components fall into.": {
+    "de": "Strat-Domänen sind die Kategorien, in die Strat-Komponenten fallen.",
+    "es": "Los dominios estratégicos son las categorías en las que se agrupan los componentes estratégicos.",
+    "fr": "Les domaines stratégiques sont les catégories auxquelles appartiennent les composants stratégiques."
+  },
+  "This table contains all Strategic Domains. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Strat-Domänen. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todos los dominios estratégicos. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient tous les domaines stratégiques. Par défaut, elle est triée par nom."
+  },
+  "• Each Strategic Domain may contain any number of": {
+    "de": "• Jede Strat-Domäne kann beliebig viele",
+    "es": "• Cada dominio estratégico puede contener cualquier número de",
+    "fr": "• Chaque domaine stratégique peut contenir autant de"
+  },
+  "Strategic Components": {
+    "de": "Strat-Komponenten",
+    "es": "componentes estratégicos",
+    "fr": "composants stratégiques"
+  },
+  "(Each Strategic Component belongs to exactly one Strategic Domain.)": {
+    "de": "(Jede Strat-Komponente gehört zu genau einer Strat-Domäne.)",
+    "es": "(Cada componente estratégico pertenece a exactamente un dominio estratégico.)",
+    "fr": "(Chaque composant stratégique appartient à exactement un domaine stratégique.)"
+  },
+  "Strategic Components are the building blocks of Strategic Features.": {
+    "de": "Strat-Komponenten sind die Bausteine der Strat-Features.",
+    "es": "Los componentes estratégicos son los bloques de las features estratégicas.",
+    "fr": "Les composants stratégiques sont les briques des features stratégiques."
+  },
+  "This table contains all Strategic Components. By default, it is sorted by Domain, then Name.": {
+    "de": "Diese Tabelle enthält alle Strat-Komponenten. Standardmäßig ist sie nach Domäne, dann nach Name sortiert.",
+    "es": "Esta tabla contiene todos los componentes estratégicos. De forma predeterminada se ordena por dominio y luego por nombre.",
+    "fr": "Cette table contient tous les composants stratégiques. Par défaut, elle est triée par domaine, puis par nom."
+  },
+  "• Each Strategic Component may be used by any number of": {
+    "de": "• Jede Strat-Komponente kann von beliebig vielen",
+    "es": "• Cada componente estratégico puede usarlo cualquier número de",
+    "fr": "• Chaque composant stratégique peut être utilisé par autant de"
+  },
+  "Strategic Features": {
+    "de": "Strat-Features",
+    "es": "features estratégicas",
+    "fr": "features stratégiques"
+  },
+  "(Each Strategic Feature may use any number of Strategic Components.)": {
+    "de": "(Jedes Strat-Feature kann beliebig viele Strat-Komponenten verwenden.)",
+    "es": "(Cada feature estratégica puede usar cualquier número de componentes estratégicos.)",
+    "fr": "(Chaque feature stratégique peut utiliser autant de composants stratégiques qu’on veut.)"
+  },
+  "• Each Strategic Component belongs to exactly one": {
+    "de": "• Jede Strat-Komponente gehört zu genau einer",
+    "es": "• Cada componente estratégico pertenece a exactamente un",
+    "fr": "• Chaque composant stratégique appartient à exactement un"
+  },
+  "Strategic Domain": {
+    "de": "Strat-Domäne",
+    "es": "dominio estratégico",
+    "fr": "domaine stratégique"
+  },
+  "(Each Strategic Domain may contain any number of Strategic Components.)": {
+    "de": "(Jede Strat-Domäne kann beliebig viele Strat-Komponenten enthalten.)",
+    "es": "(Cada dominio estratégico puede contener cualquier número de componentes estratégicos.)",
+    "fr": "(Chaque domaine stratégique peut contenir autant de composants stratégiques qu’on veut.)"
+  },
+  "Strategic Features bundle Strategic Components and go into a Product.": {
+    "de": "Strat-Features bündeln Strat-Komponenten und fließen in ein Produkt ein.",
+    "es": "Las features estratégicas agrupan componentes estratégicos y entran en un producto.",
+    "fr": "Les features stratégiques regroupent des composants stratégiques et entrent dans un produit."
+  },
+  "This table contains all Strategic Features. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Strat-Features. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todas las features estratégicas. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient toutes les features stratégiques. Par défaut, elle est triée par nom."
+  },
+  "• Each Strategic Feature may use any number of": {
+    "de": "• Jedes Strat-Feature kann beliebig viele",
+    "es": "• Cada feature estratégica puede usar cualquier número de",
+    "fr": "• Chaque feature stratégique peut utiliser autant de"
+  },
+  "(Each Strategic Component may be used by any number of Strategic Features.)": {
+    "de": "(Jede Strat-Komponente kann von beliebig vielen Strat-Features verwendet werden.)",
+    "es": "(Cada componente estratégico puede usarlo cualquier número de features estratégicas.)",
+    "fr": "(Chaque composant stratégique peut être utilisé par autant de features stratégiques qu’on veut.)"
+  },
+  "• Each Strategic Feature can be a": {
+    "de": "• Jedes Strat-Feature kann eine",
+    "es": "• Cada feature estratégica puede ser una",
+    "fr": "• Chaque feature stratégique peut être une"
+  },
+  "of exactly one existing other Strategic Feature.": {
+    "de": "genau eines anderen, bereits vorhandenen Strat-Features sein.",
+    "es": "de exactamente otra feature estratégica ya existente.",
+    "fr": "d’exactement une autre feature stratégique déjà existante."
+  },
+  "Products from Suppliers are available in markets relevant to MERKUR.": {
+    "de": "Produkte von Lieferanten sind in für MERKUR relevanten Märkten verfügbar.",
+    "es": "Los productos de los proveedores están disponibles en mercados relevantes para MERKUR.",
+    "fr": "Les produits des fournisseurs sont disponibles sur les marchés importants pour MERKUR."
+  },
+  "This table contains all [CI] Products. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle [CI]-Produkte. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todos los productos [CI]. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient tous les produits [CI]. Par défaut, elle est triée par nom."
+  },
+  "[CI] Products from [CI] Suppliers (=competitors) are available in markets relevant to MERKUR.": {
+    "de": "[CI]-Produkte von [CI]-Lieferanten (=Wettbewerbern) sind in für MERKUR relevanten Märkten verfügbar.",
+    "es": "Los productos [CI] de proveedores [CI] (=competidores) están disponibles en mercados relevantes para MERKUR.",
+    "fr": "Les produits [CI] de fournisseurs [CI] (=concurrents) sont disponibles sur les marchés importants pour MERKUR."
+  },
+  "• Each [CI] Product is made by exactly one": {
+    "de": "• Jedes [CI]-Produkt wird von genau einem",
+    "es": "• Cada producto [CI] lo fabrica exactamente un",
+    "fr": "• Chaque produit [CI] est fabriqué par exactement un"
+  },
+  "[CI] Supplier": {
+    "de": "[CI]-Lieferanten",
+    "es": "proveedor [CI]",
+    "fr": "fournisseur [CI]"
+  },
+  "(Each [CI] Supplier can make any number of [CI] Products.)": {
+    "de": "(Jeder [CI]-Lieferant kann beliebig viele [CI]-Produkte herstellen.)",
+    "es": "(Cada proveedor [CI] puede fabricar cualquier número de productos [CI].)",
+    "fr": "(Chaque fournisseur [CI] peut fabriquer autant de produits [CI] qu’il veut.)"
+  },
+  "Mkt Configs apply market-specific settings to Products.": {
+    "de": "Marktkonfigurationen wenden marktspezifische Einstellungen auf Produkte an.",
+    "es": "Las configuraciones de mercado aplican ajustes específicos del mercado a los productos.",
+    "fr": "Les configurations de marché appliquent des réglages propres au marché aux produits."
+  },
+  "[CI] Mkt Cfgs apply market-specific settings to [CI] Products.": {
+    "de": "[CI]-Marktkonfigurationen wenden marktspezifische Einstellungen auf [CI]-Produkte an.",
+    "es": "Las configuraciones de mercado [CI] aplican ajustes específicos del mercado a los productos [CI].",
+    "fr": "Les configurations de marché [CI] appliquent des réglages propres au marché aux produits [CI]."
+  },
+  "Suppliers are doing business in markets relevant to MERKUR.": {
+    "de": "Lieferanten sind in für MERKUR relevanten Märkten tätig.",
+    "es": "Los proveedores operan en mercados relevantes para MERKUR.",
+    "fr": "Les fournisseurs sont actifs sur les marchés importants pour MERKUR."
+  },
+  "This table contains all [CI] Suppliers. By default, it is sorted by Name.": {
+    "de": "Diese Tabelle enthält alle [CI]-Lieferanten. Standardmäßig ist sie nach Name sortiert.",
+    "es": "Esta tabla contiene todos los proveedores [CI]. De forma predeterminada se ordena por nombre.",
+    "fr": "Cette table contient tous les fournisseurs [CI]. Par défaut, elle est triée par nom."
+  },
+  "[CI] Suppliers (=competitors) are doing business in markets relevant to MERKUR.": {
+    "de": "[CI]-Lieferanten (=Wettbewerber) sind in für MERKUR relevanten Märkten tätig.",
+    "es": "Los proveedores [CI] (=competidores) operan en mercados relevantes para MERKUR.",
+    "fr": "Les fournisseurs [CI] (=concurrents) sont actifs sur les marchés importants pour MERKUR."
+  },
+  "• Each [CI] Supplier can make any number of": {
+    "de": "• Jeder [CI]-Lieferant kann beliebig viele",
+    "es": "• Cada proveedor [CI] puede fabricar cualquier número de",
+    "fr": "• Chaque fournisseur [CI] peut fabriquer autant de"
+  },
+  "[CI] Products": {
+    "de": "[CI]-Produkte",
+    "es": "productos [CI]",
+    "fr": "produits [CI]"
+  },
+  "(Each [CI] Product is made by exactly one [CI] Supplier.)": {
+    "de": "(Jedes [CI]-Produkt wird von genau einem [CI]-Lieferanten hergestellt.)",
+    "es": "(Cada producto [CI] lo fabrica exactamente un proveedor [CI].)",
+    "fr": "(Chaque produit [CI] est fabriqué par exactement un fournisseur [CI].)"
+  },
+  "This Many-to-Many table combines Strategic Features with Strategic Components.": {
+    "de": "Diese n:m-Tabelle verbindet Strat-Features mit Strat-Komponenten.",
+    "es": "Esta tabla de muchos a muchos combina features estratégicas con componentes estratégicos.",
+    "fr": "Cette table plusieurs-à-plusieurs associe features stratégiques et composants stratégiques."
+  },
+  "You would usually go to the Strategic Features table rather than editing this directly.": {
+    "de": "In der Regel bearbeiten Sie die Tabelle Strat-Features und nicht diesen Eintrag direkt.",
+    "es": "Normalmente se edita la tabla de features estratégicas en lugar de esta directamente.",
+    "fr": "On modifie en général la table des features stratégiques plutôt que celle-ci directement."
+  },
+  "This Many-to-Many table combines Products with Strategic Features.": {
+    "de": "Diese n:m-Tabelle verbindet Produkte mit Strat-Features.",
+    "es": "Esta tabla de muchos a muchos combina productos con features estratégicas.",
+    "fr": "Cette table plusieurs-à-plusieurs associe produits et features stratégiques."
+  },
+  "You would usually go to the Products table rather than editing this directly.": {
+    "de": "In der Regel bearbeiten Sie die Tabelle Produkte und nicht diesen Eintrag direkt.",
+    "es": "Normalmente se edita la tabla de productos en lugar de esta directamente.",
+    "fr": "On modifie en général la table des produits plutôt que celle-ci directement."
+  },
+  "Teams stand in a well-defined relationship with entities and processes, depending on Type.": {
+    "de": "Teams stehen je nach Typ in einer festgelegten Beziehung zu Einheiten und Prozessen.",
+    "es": "Los equipos mantienen, según el tipo, una relación definida con entidades y procesos.",
+    "fr": "Les équipes ont, selon le type, une relation définie avec des entités et des processus."
+  },
+  "This table contains all Teams, sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Teams, sortiert nach Name.",
+    "es": "Esta tabla contiene todos los equipos, ordenados por nombre.",
+    "fr": "Cette table contient toutes les équipes, triées par nom."
+  },
+  "Teams stand in a well-defined relationship with entities and processes, depending on Type:": {
+    "de": "Teams stehen je nach Typ in einer festgelegten Beziehung zu Einheiten und Prozessen:",
+    "es": "Los equipos mantienen, según el tipo, una relación definida con entidades y procesos:",
+    "fr": "Les équipes ont, selon le type, une relation définie avec des entités et des processus :"
+  },
+  "•": {
+    "de": "•",
+    "es": "•",
+    "fr": "•"
+  },
+  "Studios (Game Design)": {
+    "de": "Studios (Game Design)",
+    "es": "Studios (Game Design)",
+    "fr": "Studios (Game Design)"
+  },
+  "are responsible for the mechanics, appearance and, ultimately, success of their Games.": {
+    "de": "sind für Mechanik, Erscheinungsbild und letztlich den Erfolg ihrer Spiele verantwortlich.",
+    "es": "son responsables de la mecánica, la apariencia y, en última instancia, el éxito de sus juegos.",
+    "fr": "sont responsables des mécaniques, de l’apparence et, au final, du succès de leurs jeux."
+  },
+  "• Each Team of Type “Studio (Game Design)” can make any number of": {
+    "de": "• Jedes Team vom Typ „Studio (Game Design)“ kann beliebig viele",
+    "es": "• Cada equipo de tipo «Studio (Game Design)» puede crear cualquier número de",
+    "fr": "• Chaque équipe de type « Studio (Game Design) » peut créer autant de"
+  },
+  "Game Concepts": {
+    "de": "Spielkonzepte",
+    "es": "conceptos de juego",
+    "fr": "concepts de jeu"
+  },
+  "(Each Game Concept is made by exactly one Team.)": {
+    "de": "(Jedes Spielkonzept wird von genau einem Team erstellt.)",
+    "es": "(Cada concepto de juego lo crea exactamente un equipo.)",
+    "fr": "(Chaque concept de jeu est créé par exactement une équipe.)"
+  },
+  "Stakes in Jurisdictions (Jdxs) link stakeholders with their Jurisdictions.": {
+    "de": "Einsätze in Rechtsräumen verknüpfen Beteiligte mit ihren Rechtsräumen.",
+    "es": "Las participaciones en jurisdicciones vinculan a los interesados con sus jurisdicciones.",
+    "fr": "Les enjeux dans les juridictions relient les parties prenantes à leurs juridictions."
+  },
+  "This table contains all Stakes in Jurisdictions (Jdxs). By default, it is sorted by Person (Stakeholder) and Jurisdiction.": {
+    "de": "Diese Tabelle enthält alle Einsätze in Rechtsräumen. Standardmäßig ist sie nach Person (Beteiligter) und Rechtsraum sortiert.",
+    "es": "Esta tabla contiene todas las participaciones en jurisdicciones. De forma predeterminada se ordena por persona (interesado) y jurisdicción.",
+    "fr": "Cette table contient tous les enjeux dans les juridictions. Par défaut, elle est triée par personne (partie prenante) et juridiction."
+  },
+  "• Each Stake is for exactly one": {
+    "de": "• Jeder Einsatz gilt für genau eine",
+    "es": "• Cada participación es para exactamente una",
+    "fr": "• Chaque enjeu concerne exactement une"
+  },
+  "Person": {
+    "de": "Person",
+    "es": "persona",
+    "fr": "personne"
+  },
+  "(Stakeholder).": {
+    "de": "(Beteiligter).",
+    "es": "(interesado).",
+    "fr": "(partie prenante)."
+  },
+  "(Each Person [Stakeholder] can have multiple Stakes.)": {
+    "de": "(Jede Person [Beteiligter] kann mehrere Einsätze haben.)",
+    "es": "(Cada persona [interesado] puede tener varias participaciones.)",
+    "fr": "(Chaque personne [partie prenante] peut avoir plusieurs enjeux.)"
+  },
+  "(Each Jurisdiction can have any number of Stakes.)": {
+    "de": "(Jeder Rechtsraum kann beliebig viele Einsätze haben.)",
+    "es": "(Cada jurisdicción puede tener cualquier número de participaciones.)",
+    "fr": "(Chaque juridiction peut avoir autant d’enjeux qu’on veut.)"
+  },
+  "Authorities are entities issuing certificates for homologation in specific Jurisdictions.": {
+    "de": "Behörden sind Stellen, die Zulassungszertifikate für bestimmte Rechtsräume ausstellen.",
+    "es": "Las autoridades son entidades que emiten certificados de homologación para jurisdicciones concretas.",
+    "fr": "Les autorités sont des organismes qui délivrent des certificats d’homologation pour des juridictions précises."
+  },
+  "This table contains all Authorities, sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Behörden, sortiert nach Name.",
+    "es": "Esta tabla contiene todas las autoridades, ordenadas por nombre.",
+    "fr": "Cette table contient toutes les autorités, triées par nom."
+  },
+  "Authorities are entities that can issue certificates for homologation in specific Jurisdictions.": {
+    "de": "Behörden sind Stellen, die Zertifikate für die Zulassung in bestimmten Rechtsräumen ausstellen können.",
+    "es": "Las autoridades son entidades que pueden emitir certificados de homologación para jurisdicciones concretas.",
+    "fr": "Les autorités sont des organismes qui peuvent délivrer des certificats d’homologation pour des juridictions précises."
+  },
+  "• Each Authority can be responsible for any number of": {
+    "de": "• Jede Behörde kann für beliebig viele",
+    "es": "• Cada autoridad puede ser responsable de cualquier número de",
+    "fr": "• Chaque autorité peut être responsable d’autant de"
+  },
+  "(Each Jurisdiction gets its approvals from exactly one Authority.)": {
+    "de": "(Jeder Rechtsraum erhält seine Zulassungen von genau einer Behörde.)",
+    "es": "(Cada jurisdicción obtiene sus homologaciones de exactamente una autoridad.)",
+    "fr": "(Chaque juridiction reçoit ses homologations d’exactement une autorité.)"
+  },
+  "Platforms are used with Games.": {
+    "de": "Plattformen werden mit Spielen verwendet.",
+    "es": "Las plataformas se usan con los juegos.",
+    "fr": "Les plateformes sont utilisées avec les jeux."
+  },
+  "This table contains all Platforms, sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Plattformen, sortiert nach Name.",
+    "es": "Esta tabla contiene todas las plataformas, ordenadas por nombre.",
+    "fr": "Cette table contient toutes les plateformes, triées par nom."
+  },
+  "• Each Platform can be used by any number of": {
+    "de": "• Jede Plattform kann von beliebig vielen",
+    "es": "• Cada plataforma puede usarla cualquier número de",
+    "fr": "• Chaque plateforme peut être utilisée par autant de"
+  },
+  "(Each Game is for exactly one Platform.)": {
+    "de": "(Jedes Spiel gilt für genau eine Plattform.)",
+    "es": "(Cada juego es para exactamente una plataforma.)",
+    "fr": "(Chaque jeu concerne exactement une plateforme.)"
+  },
+  "Hardware Types are used with Components.": {
+    "de": "Hardwaretypen werden mit Komponenten verwendet.",
+    "es": "Los tipos de hardware se usan con los componentes.",
+    "fr": "Les types de matériel sont utilisés avec les composants."
+  },
+  "This table contains all Hardware Types, sorted by Name.": {
+    "de": "Diese Tabelle enthält alle Hardwaretypen, sortiert nach Name.",
+    "es": "Esta tabla contiene todos los tipos de hardware, ordenados por nombre.",
+    "fr": "Cette table contient tous les types de matériel, triés par nom."
+  },
+  "• Each Hardware Type can be used by any number of": {
+    "de": "• Jeder Hardwaretyp kann von beliebig vielen",
+    "es": "• Cada tipo de hardware puede usarlo cualquier número de",
+    "fr": "• Chaque type de matériel peut être utilisé par autant de"
+  },
+  "Components": {
+    "de": "Komponenten",
+    "es": "componentes",
+    "fr": "composants"
+  },
+  "(Each Component is of exactly one Hardware Type.)": {
+    "de": "(Jede Komponente hat genau einen Hardwaretyp.)",
+    "es": "(Cada componente es de exactamente un tipo de hardware.)",
+    "fr": "(Chaque composant a exactement un type de matériel.)"
+  },
+  "Matrix Templates define the default number of rows and columns and pre-populate titles for matrices.": {
+    "de": "Matrixvorlagen legen die Standardzahl der Zeilen und Spalten fest und füllen die Titel von Matrizen vor.",
+    "es": "Las plantillas de matriz definen el número predeterminado de filas y columnas y rellenan los títulos de las matrices.",
+    "fr": "Les modèles de matrice définissent le nombre de lignes et de colonnes par défaut et préremplissent les titres des matrices."
+  },
+  "This table contains all Matrix Templates, sorted by referred Table.": {
+    "de": "Diese Tabelle enthält alle Matrixvorlagen, sortiert nach der zugehörigen Tabelle.",
+    "es": "Esta tabla contiene todas las plantillas de matriz, ordenadas por la tabla referida.",
+    "fr": "Cette table contient tous les modèles de matrice, triés par la table concernée."
+  },
+  "For development testing purposes only.": {
+    "de": "Nur für Entwicklungstests.",
+    "es": "Solo para pruebas de desarrollo.",
+    "fr": "Uniquement pour les tests de développement."
+  },
+  "Content will be deleted at arbitrary times without warning.": {
+    "de": "Inhalte werden ohne Vorwarnung zu beliebigen Zeiten gelöscht.",
+    "es": "El contenido se borrará en cualquier momento y sin aviso.",
+    "fr": "Le contenu sera supprimé à tout moment, sans avertissement."
+  },
+  "This Many-to-Many table combines Test Items with Games.": {
+    "de": "Diese n:m-Tabelle verbindet Testeinträge mit Spielen.",
+    "es": "Esta tabla de muchos a muchos combina elementos de prueba con juegos.",
+    "fr": "Cette table plusieurs-à-plusieurs associe des éléments de test et des jeux."
+  }
+}

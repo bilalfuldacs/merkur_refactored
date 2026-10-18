@@ -6,6 +6,7 @@ import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import type { InstallationReportRatings } from '@/api'
+import { useI18n } from '@/i18n'
 import { PERF_SLICES, type ChartShape } from './chartConfig'
 
 function polar(cx: number, cy: number, radius: number, angle: number): [number, number] {
@@ -56,6 +57,7 @@ export function PerformanceChart({
   shape: ChartShape
   onShapeChange: (shape: ChartShape) => void
 }) {
+  const { t } = useI18n()
   const slices = PERF_SLICES.map((slice) => ({ ...slice, value: ratings[slice.key] }))
   const total = slices.reduce((sum, slice) => sum + slice.value, 0)
   const max = Math.max(1, ...slices.map((slice) => slice.value))
@@ -72,9 +74,9 @@ export function PerformanceChart({
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2, flexWrap: 'wrap' }}>
         <Box>
-          <Typography sx={{ fontWeight: 800, fontSize: 18 }}>Performance feedback received</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: 18 }}>{t('reports.feedbackReceived', 'Performance feedback received')}</Typography>
           <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-            {total} {total === 1 ? 'rating' : 'ratings'}
+            {total === 1 ? t('reports.oneRating', '1 rating') : t('reports.manyRatings', '{count} ratings', { count: total })}
           </Typography>
         </Box>
         <ToggleButtonGroup
@@ -86,25 +88,25 @@ export function PerformanceChart({
               onShapeChange(value)
             }
           }}
-          aria-label="Chart shape"
+          aria-label={t('reports.chartShape', 'Chart shape')}
         >
-          <ToggleButton value="bars" aria-label="Bar chart">
+          <ToggleButton value="bars" aria-label={t('reports.barChart', 'Bar chart')}>
             <BarChartOutlinedIcon sx={{ mr: 0.75, fontSize: 18 }} />
-            Bars
+            {t('reports.bars', 'Bars')}
           </ToggleButton>
-          <ToggleButton value="pie" aria-label="Pie chart">
+          <ToggleButton value="pie" aria-label={t('reports.pieChart', 'Pie chart')}>
             <PieChartOutlinedIcon sx={{ mr: 0.75, fontSize: 18 }} />
-            Pie
+            {t('reports.pie', 'Pie')}
           </ToggleButton>
-          <ToggleButton value="donut" aria-label="Donut chart">
+          <ToggleButton value="donut" aria-label={t('reports.donutChart', 'Donut chart')}>
             <DonutLargeOutlinedIcon sx={{ mr: 0.75, fontSize: 18 }} />
-            Donut
+            {t('reports.donut', 'Donut')}
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
 
       {total === 0 ? (
-        <Typography color="text.secondary">No performance ratings for this version yet.</Typography>
+        <Typography color="text.secondary">{t('reports.noRatings', 'No performance ratings for this version yet.')}</Typography>
       ) : shape === 'bars' ? (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
           {slices.map((slice) => (
@@ -143,8 +145,8 @@ export function PerformanceChart({
 
       <Typography color="text.secondary" sx={{ mt: 2, fontSize: 12.5 }}>
         {shape === 'bars'
-          ? `Bars compare the ${total} submitted ratings. Unrated records are shown separately so they do not hide the rating distribution.`
-          : `The ${shape} compares submitted ratings only. Unrated records are listed in the summary, not in the chart.`}
+          ? t('reports.barsCompare', 'Bars compare the {count} submitted ratings. Unrated records are shown separately so they do not hide the rating distribution.', { count: total })
+          : t('reports.shapeCompares', 'The {shape} compares submitted ratings only. Unrated records are listed in the summary, not in the chart.', { shape: t(`reports.${shape}`, shape) })}
       </Typography>
     </Box>
   )

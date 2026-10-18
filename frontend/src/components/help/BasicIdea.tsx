@@ -1,15 +1,17 @@
 import ArrowForwardOutlinedIcon from '@mui/icons-material/ArrowForwardOutlined'
+import { useI18n } from '@/i18n'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 
 const steps = [
-  { n: 1, label: 'Data', detail: 'The basic building block.' },
-  { n: 2, label: 'Information', detail: 'Collated, structured data.' },
-  { n: 3, label: 'Knowledge', detail: 'Meaningful information.' },
-  { n: 4, label: 'Consistency', detail: 'Everything fits.' },
+  { n: 1, labelKey: 'help.data', label: 'Data', detailKey: 'help.dataDetail', detail: 'The basic building block.' },
+  { n: 2, labelKey: 'help.information', label: 'Information', detailKey: 'help.informationDetail', detail: 'Collated, structured data.' },
+  { n: 3, labelKey: 'help.knowledge', label: 'Knowledge', detailKey: 'help.knowledgeDetail', detail: 'Meaningful information.' },
+  { n: 4, labelKey: 'help.consistency', label: 'Consistency', detailKey: 'help.consistencyDetail', detail: 'Everything fits.' },
 ]
 
 export function BasicIdea({ onFeedback }: { onFeedback: () => void }) {
+  const { t } = useI18n()
   return (
     <Box
       sx={{
@@ -20,9 +22,9 @@ export function BasicIdea({ onFeedback }: { onFeedback: () => void }) {
       }}
     >
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 2, mb: 2.5 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>The basic idea</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>{t('help.basicIdea', 'The basic idea')}</Typography>
         <Typography sx={{ color: 'text.secondary', fontSize: 13, textAlign: 'right' }}>
-          One trusted source for People, Markets and Products
+          {t('help.basicSource', 'One trusted source for People, Markets and Products')}
         </Typography>
       </Box>
       <Box
@@ -39,9 +41,9 @@ export function BasicIdea({ onFeedback }: { onFeedback: () => void }) {
           <Box key={step.n} sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1.5, md: 2 } }}>
             <Box sx={{ textAlign: 'center', minWidth: 88 }}>
               <Typography sx={{ fontWeight: 800, fontSize: 18, color: step.n === 4 ? 'merkur.gold' : 'merkur.pink' }}>
-                {step.n} {step.label}
+                {step.n} {t(step.labelKey, step.label)}
               </Typography>
-              <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{step.detail}</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{t(step.detailKey, step.detail)}</Typography>
             </Box>
             {index < steps.length - 1 ? (
               <ArrowForwardOutlinedIcon sx={{ color: 'text.disabled', display: { xs: 'none', sm: 'block' } }} />
@@ -66,7 +68,7 @@ export function BasicIdea({ onFeedback }: { onFeedback: () => void }) {
             '&:hover': { textDecoration: 'underline' },
           }}
         >
-          Give feedback
+          {t('help.giveFeedback', 'Give feedback')}
         </Box>
       </Box>
     </Box>

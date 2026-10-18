@@ -5,13 +5,14 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import type { CommunityFeedView } from '@/api'
+import { useI18n } from '@/i18n'
 import type { FeedTab } from './format'
 
-export const COMMUNITY_TOPICS: { id: FeedTab | 'all'; label: string }[] = [
-  { id: 'all', label: '#Announcements' },
-  { id: 'update', label: '#Team wins' },
-  { id: 'question', label: '#Help & advice' },
-  { id: 'idea', label: '#Ideas' },
+const COMMUNITY_TOPICS: { id: FeedTab | 'all'; labelKey: string; label: string }[] = [
+  { id: 'all', labelKey: 'community.topicAnnouncements', label: '#Announcements' },
+  { id: 'update', labelKey: 'community.topicWins', label: '#Team wins' },
+  { id: 'question', labelKey: 'community.topicHelp', label: '#Help & advice' },
+  { id: 'idea', labelKey: 'community.topicIdeas', label: '#Ideas' },
 ]
 
 const sideLinkSx = {
@@ -44,16 +45,18 @@ export function CommunitySidebar({
   onShowBookmarks: () => void
   onShowMentions: () => void
 }) {
+  const { t } = useI18n()
+  const initialsLabel = initials || t('community.initials', 'initials')
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'common.white' }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'secondary.main', mb: 1.25 }}>Discover topics</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'secondary.main', mb: 1.25 }}>{t('community.discover', 'Discover topics')}</Typography>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           {COMMUNITY_TOPICS.map((topic) => (
             <Chip
-              key={topic.label}
+              key={topic.labelKey}
               clickable
-              label={topic.label}
+              label={t(topic.labelKey, topic.label)}
               onClick={() => onSelectTab(topic.id === 'all' ? 'all' : topic.id)}
               sx={{
                 fontWeight: 700,
@@ -76,8 +79,8 @@ export function CommunitySidebar({
       >
         <BookmarkBorderOutlinedIcon color="info" />
         <Box>
-          <Typography sx={{ fontWeight: 800, fontSize: 14 }}>My bookmarks</Typography>
-          <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>Saved conversations to come back to later.</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: 14 }}>{t('community.bookmarks', 'My bookmarks')}</Typography>
+          <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{t('community.bookmarksHint', 'Saved conversations to come back to later.')}</Typography>
         </Box>
       </Box>
 
@@ -93,10 +96,10 @@ export function CommunitySidebar({
         <AlternateEmailOutlinedIcon color="info" />
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: 14 }}>
-            My mentions{initials ? ` @${initials}` : ''}
+            {t('community.mentions', 'My mentions')}{initials ? ` @${initials}` : ''}
           </Typography>
           <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
-            Posts where someone tagged you with @{initials || 'initials'}.
+            {t('community.mentionsHint', 'Posts where someone tagged you with @{name}.', { name: initialsLabel })}
           </Typography>
         </Box>
       </Box>
@@ -104,18 +107,18 @@ export function CommunitySidebar({
       <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'rgba(0, 159, 227, 0.08)' }}>
         <Typography sx={{ fontWeight: 800, fontSize: 15, mb: 1, display: 'flex', alignItems: 'center', gap: 0.75 }}>
           <LightbulbOutlinedIcon sx={{ fontSize: 18, color: 'merkur.pink' }} />
-          Posts that get useful replies
+          {t('community.useful', 'Posts that get useful replies')}
         </Typography>
         <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>
-          Say what you need, who it is for, and the next step you want.
+          {t('community.usefulHint', 'Say what you need, who it is for, and the next step you want.')}
         </Typography>
-        <Typography sx={{ fontSize: 13, color: 'info.main', fontWeight: 700 }}>1 Share → 2 Discuss → 3 Decide</Typography>
+        <Typography sx={{ fontSize: 13, color: 'info.main', fontWeight: 700 }}>{t('community.flow', '1 Share → 2 Discuss → 3 Decide')}</Typography>
       </Box>
 
       <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'common.white' }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'secondary.main', mb: 1 }}>About Community</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'secondary.main', mb: 1 }}>{t('community.about', 'About Community')}</Typography>
         <Typography sx={{ fontSize: 13, color: 'text.secondary', mb: 1 }}>
-          Discuss thoughts and ideas with coworkers here. Generic topics belong on this page.
+          {t('community.aboutBody', 'Discuss thoughts and ideas with coworkers here. Generic topics belong on this page.')}
         </Typography>
         <Typography sx={{ fontSize: 13, color: 'text.secondary' }}>
           If it is about a specific game, version, or cabinet, post on that item — it still appears in this feed.

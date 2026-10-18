@@ -9,7 +9,8 @@ import { ApiError } from '@/api'
 import { createMerkuriosityWord, deleteMerkuriosityWord, getMerkuriosityWords } from '@/api/merkuriosity'
 import type { MerkuriosityWord } from '@/api/merkuriosity'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -24,6 +25,7 @@ const crumbSx = {
 } as const
 
 export default function MerkuriosityWordsAdminPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const canManage = Boolean(user?.role?.['may_create-update_items'])
@@ -40,11 +42,11 @@ export default function MerkuriosityWordsAdminPage() {
   }, [])
 
   useEffect(() => {
-    document.title = 'MERKURiosity Words | MERKURflow'
+    document.title = `${t('pages.merkuriosityWords', 'MERKURiosity words')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!canManage) {
@@ -105,27 +107,27 @@ export default function MerkuriosityWordsAdminPage() {
     <PageBackground>
       <AppHeader />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 3, maxWidth: 720, mx: 'auto', width: '100%' }}>
-        <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
+        <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-            Start
+            <CrumbHome />
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.merkuriosity)} sx={crumbSx}>
-            MERKURiosity
+            {t('pages.merkuriosity', 'MERKURiosity')}
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
-          <Box component="span">Words</Box>
+          <Box component="span">{t('pages.merkuriosityWords', 'MERKURiosity words')}</Box>
         </Box>
 
         <Typography component="h1" sx={{ fontWeight: 800, fontSize: 28, mb: 1, color: 'secondary.main' }}>
-          MERKURiosity words
+          {t('pages.merkuriosityWords', 'MERKURiosity words')}
         </Typography>
         <Typography sx={{ color: 'text.secondary', mb: 3 }}>
-          Manage the 5-letter word pool used for the daily quiz.
+          {t('copy.wordsIntro', 'Manage the 5-letter word pool used for the daily quiz.')}
         </Typography>
 
         {!canManage ? (

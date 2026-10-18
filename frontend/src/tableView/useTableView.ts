@@ -29,11 +29,12 @@ export function useTableView(schema: TableViewSchema | null) {
         return current
       }
 
-      return {
+      const next = {
         ...current,
         ...patch,
         visibleColumns: patch.visibleColumns ? [...patch.visibleColumns] : current.visibleColumns,
       }
+      return next
     })
   }, [])
 
@@ -57,12 +58,14 @@ export function useTableView(schema: TableViewSchema | null) {
     setApplied(cloneViewState(next))
   }, [schema])
 
+  const isDefaultDraft = schema && currentDraft ? isDefaultView(currentDraft, schema) : true
+
   return {
     draft: currentDraft,
     applied: currentApplied,
     patchDraft,
     apply,
     resetToDefault,
-    isDefaultDraft: schema && currentDraft ? isDefaultView(currentDraft, schema) : true,
+    isDefaultDraft,
   }
 }

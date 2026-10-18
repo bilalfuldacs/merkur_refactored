@@ -16,6 +16,7 @@ import { AppButton, AppTextField } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
 import { tableBrowsePath } from '@/config/tablePages'
 import { reportPath } from '@/config/reports'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 import { displayName, excerptNote, formatAgo } from './format'
 import { iconForHomeKey } from './homeIcons'
@@ -42,11 +43,15 @@ const paneScrollSx = {
 export function HomeColumns() {
   const { user } = useAuth()
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   const [dashboard, setDashboard] = useState<HomeDashboard>(emptyDashboard)
   const [draft, setDraft] = useState('')
   const [posting, setPosting] = useState(false)
   const decolorize = Boolean(user?.decolorize_avatars)
-  const firstName = user?.firstname?.trim() || 'there'
+  const firstName = user?.firstname?.trim() || ''
+  const greeting = firstName
+    ? t('home.welcome', 'Welcome back, {name}.', { name: firstName })
+    : t('home.welcomeAnonymous', 'Welcome back.')
 
   useEffect(() => {
     let cancelled = false
@@ -100,7 +105,7 @@ export function HomeColumns() {
   return (
     <Box
       component="section"
-      aria-label="Home feed"
+      aria-label={t('home.feed', 'Home feed')}
       sx={{
         flex: 1,
         minHeight: { xs: 480, lg: 0 },
@@ -114,7 +119,7 @@ export function HomeColumns() {
     >
       <FeedPane>
         {dashboard.changes.length === 0 ? (
-          <EmptyLabel>No recent changes</EmptyLabel>
+          <EmptyLabel>{t('home.noChanges', 'No recent changes')}</EmptyLabel>
         ) : (
           dashboard.changes.map((item) => (
             <ChangeRow
@@ -134,7 +139,7 @@ export function HomeColumns() {
             endIcon={<ChevronRightIcon />}
             onClick={() => navigate(APP_PATHS.latestChanges)}
           >
-            Latest Changes
+            {t('home.latestChanges', 'Latest Changes')}
           </AppButton>
         </Box>
       </FeedPane>
@@ -165,11 +170,21 @@ export function HomeColumns() {
             lineHeight: 1.15,
           }}
         >
-          Welcome back, {firstName}.
+          {greeting}
         </Typography>
 
-        <SectionLabel>Reports</SectionLabel>
+        <SectionLabel>{t('home.reports', 'Reports')}</SectionLabel>
         <MiniCardGrid>
+          <MiniAppCard
+            item={{
+              ID: 0,
+              title: t('nav.fieldTrials', 'Field Trials'),
+              color: '#E83181',
+              name: 'field-trials',
+            }}
+            itemKey="field-trials"
+            onOpen={() => navigate(APP_PATHS.fieldTrials)}
+          />
           {dashboard.reports.map((item) => (
             <MiniAppCard
               key={item.ID}
@@ -180,7 +195,7 @@ export function HomeColumns() {
           ))}
         </MiniCardGrid>
 
-        <SectionLabel>Tables</SectionLabel>
+        <SectionLabel>{t('home.tables', 'Tables')}</SectionLabel>
         <MiniCardGrid>
           {dashboard.tables.map((item) => (
             <MiniAppCard
@@ -204,7 +219,7 @@ export function HomeColumns() {
             <AppTextField
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder="What’s on your mind?"
+              placeholder={t('home.composer', 'What’s on your mind?')}
               multiline
               minRows={2}
               slotProps={{ htmlInput: { maxLength: 280 } }}
@@ -217,14 +232,14 @@ export function HomeColumns() {
                 disabled={draft.trim() === '' || posting}
                 startIcon={<SendOutlinedIcon />}
               >
-                Post
+                {t('home.post', 'Post')}
               </AppButton>
             </Box>
           </Box>
         </Box>
         <Divider />
         {dashboard.posts.length === 0 ? (
-          <EmptyLabel>No posts yet</EmptyLabel>
+          <EmptyLabel>{t('home.noPosts', 'No posts yet')}</EmptyLabel>
         ) : (
           dashboard.posts.map((item) => (
             <PostRow key={item.ID} item={item} decolorize={decolorize} />
@@ -349,6 +364,9 @@ function ChangeRow({
   decolorize: boolean
   onOpen: () => void
 }) {
+  const { locale, t } = useI18n()
+  const unknownLabel = t('home.unknown', 'Unknown')
+
   return (
     <Box
       component="button"
@@ -382,9 +400,9 @@ function ChangeRow({
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.75, pl: 2.5 }}>
         <UserAvatar user={item.editor} decolorize={decolorize} />
         <Typography variant="body2">
-          {displayName(item.editor)}
+          {displayName(item.editor, unknownLabel)}
           <Box component="span" sx={{ color: 'text.secondary', ml: 0.75 }}>
-            • {formatAgo(item.modified_at)}
+            • {formatAgo(item.modified_at, { locale, yesterday: t('home.yesterday', 'yesterday') })}
           </Box>
         </Typography>
       </Box>
@@ -394,6 +412,7 @@ function ChangeRow({
 }
 
 function PostRow({ item, decolorize }: { item: HomePost; decolorize: boolean }) {
+  const { locale, t } = useI18n()
   const note = excerptNote(item.note)
 
   return (
@@ -401,7 +420,7 @@ function PostRow({ item, decolorize }: { item: HomePost; decolorize: boolean }) 
       <Box sx={{ display: 'flex', gap: 1.25 }}>
         <UserAvatar user={item.editor} decolorize={decolorize} />
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography sx={{ fontWeight: 800 }}>{displayName(item.editor)}</Typography>
+          <Typography sx={{ fontWeight: 800 }}>{displayName(item.editor, t('home.unknown', 'Unknown'))}</Typography>
           {note ? (
             <Typography
               variant="body2"
@@ -428,7 +447,7 @@ function PostRow({ item, decolorize }: { item: HomePost; decolorize: boolean }) 
             <BookmarkBorderIcon fontSize="small" color="info" />
           </Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.75 }}>
-            {formatAgo(item.modified_at)}
+            {formatAgo(item.modified_at, { locale, yesterday: t('home.yesterday', 'yesterday') })}
           </Typography>
         </Box>
       </Box>

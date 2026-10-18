@@ -2,14 +2,16 @@ import AddBoxOutlinedIcon from '@mui/icons-material/AddBoxOutlined'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { AppButton } from '@/components/ui'
+import { useI18n } from '@/i18n'
 
 const lifecycle = [
-  { n: 1, label: 'Submitted', detail: 'Your feedback is recorded immediately.' },
-  { n: 2, label: 'Reviewed', detail: 'The team assesses impact and next steps.' },
-  { n: 3, label: 'Updated', detail: 'You can follow progress from this page.' },
+  { n: 1, label: 'feedback.stepSubmitted', detail: 'feedback.stepSubmittedDetail' },
+  { n: 2, label: 'feedback.stepReviewed', detail: 'feedback.stepReviewedDetail' },
+  { n: 3, label: 'feedback.stepUpdated', detail: 'feedback.stepUpdatedDetail' },
 ]
 
 export function FeedbackEmptyState({ onSubmit }: { onSubmit: () => void }) {
+  const { t } = useI18n()
   return (
     <Box
       sx={{
@@ -26,12 +28,12 @@ export function FeedbackEmptyState({ onSubmit }: { onSubmit: () => void }) {
     >
       <Box>
         <AddBoxOutlinedIcon sx={{ color: 'secondary.main', fontSize: 36, mb: 1 }} />
-        <Typography sx={{ fontWeight: 800, fontSize: 24, color: 'secondary.main', mb: 1 }}>Share your first idea</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 24, color: 'secondary.main', mb: 1 }}>{t('feedback.emptyTitle', 'Share your first idea')}</Typography>
         <Typography sx={{ color: 'text.secondary', fontSize: 15, mb: 2.5, maxWidth: 520 }}>
-          Tell the MERKURflow team what would make your work easier. A focused submission normally takes about two minutes.
+          {t('feedback.emptyBody', 'Tell the MERKURflow team what would make your work easier. A focused submission normally takes about two minutes.')}
         </Typography>
         <AppButton color="secondary" onClick={onSubmit}>
-          Submit feedback
+          {t('feedback.submit', 'Submit feedback')}
         </AppButton>
       </Box>
       <Box component="ol" sx={{ m: 0, pl: 0, listStyle: 'none', display: 'grid', gap: 2 }}>
@@ -54,8 +56,8 @@ export function FeedbackEmptyState({ onSubmit }: { onSubmit: () => void }) {
               {step.n}
             </Box>
             <Box>
-              <Typography sx={{ fontWeight: 800, color: 'secondary.main' }}>{step.label}</Typography>
-              <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{step.detail}</Typography>
+              <Typography sx={{ fontWeight: 800, color: 'secondary.main' }}>{t(step.label)}</Typography>
+              <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{t(step.detail)}</Typography>
             </Box>
           </Box>
         ))}

@@ -12,7 +12,9 @@ export type LaunchpadVariant = 'featured' | 'secondary'
 export type LaunchpadCardItem = {
   id: string
   label: string
+  labelKey?: string
   shortLabel?: string
+  shortLabelKey?: string
   icon: SvgIconComponent
   variant: LaunchpadVariant
   emphasize?: boolean
@@ -33,6 +35,7 @@ export const homeLaunchpadCards: LaunchpadCardItem[] = [
   {
     id: 'latest-changes',
     label: 'Latest Changes',
+    labelKey: 'nav.latestChanges',
     icon: SyncOutlinedIcon,
     variant: 'secondary',
     hideBelowLg: true,
@@ -41,7 +44,9 @@ export const homeLaunchpadCards: LaunchpadCardItem[] = [
   {
     id: 'people-markets',
     label: 'People & Markets',
+    labelKey: 'nav.peopleMarkets',
     shortLabel: 'Ppl & Mkts',
+    shortLabelKey: 'nav.peopleMarketsShort',
     icon: GroupsOutlinedIcon,
     variant: 'featured',
     emphasize: true,
@@ -50,6 +55,7 @@ export const homeLaunchpadCards: LaunchpadCardItem[] = [
   {
     id: 'products',
     label: 'Products',
+    labelKey: 'nav.products',
     icon: Inventory2OutlinedIcon,
     variant: 'featured',
     emphasize: true,
@@ -59,6 +65,7 @@ export const homeLaunchpadCards: LaunchpadCardItem[] = [
   {
     id: 'roadmap',
     label: 'Roadmap',
+    labelKey: 'nav.roadmap',
     icon: MapOutlinedIcon,
     variant: 'featured',
     path: APP_PATHS.roadmap,
@@ -66,6 +73,7 @@ export const homeLaunchpadCards: LaunchpadCardItem[] = [
   {
     id: 'community',
     label: 'Community',
+    labelKey: 'nav.community',
     icon: ChatOutlinedIcon,
     variant: 'secondary',
     hideBelowLg: true,

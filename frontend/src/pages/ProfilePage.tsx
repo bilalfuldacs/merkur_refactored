@@ -29,7 +29,8 @@ import Typography from '@mui/material/Typography'
 import { ApiError, getMyProfile, updateMyPreferences } from '@/api'
 import type { AuthUser, NotificationPreference, ProfileLogin, ProfileStake } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { ChangePasswordDialog } from '@/components/profile'
 import { AppButton, AppTextField } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
@@ -55,11 +56,11 @@ const ENTITLEMENTS: {
   label: string
   tlp?: boolean
 }[] = [
-  { key: 'may_create-update_items', label: 'Create and update items' },
-  { key: 'may_delete_items', label: 'Delete items' },
-  { key: 'may_create-update-delete_system-items', label: 'Create, update and delete system items' },
-  { key: 'may_use_tlp-red', label: 'Use TLP:RED items', tlp: true },
-  { key: 'may_access_unsubscribed-markets', label: 'Access unsubscribed markets' },
+  { key: 'may_create-update_items', label: 'profile.entitlementCreate' },
+  { key: 'may_delete_items', label: 'profile.entitlementDelete' },
+  { key: 'may_create-update-delete_system-items', label: 'profile.entitlementSystem' },
+  { key: 'may_use_tlp-red', label: 'profile.useTlp', tlp: true },
+  { key: 'may_access_unsubscribed-markets', label: 'profile.entitlementMarkets' },
 ]
 
 function toColorInput(value: string | null | undefined, fallback: string): string {
@@ -116,14 +117,16 @@ function ColorField({
 
 function StakeChips({
   stakes,
+  emptyLabel,
   onOpen,
 }: {
   stakes: ProfileStake[]
+  emptyLabel: string
   onOpen: (id: number) => void
 }) {
   if (stakes.length === 0) {
     return (
-      <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>none</Typography>
+      <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>{emptyLabel}</Typography>
     )
   }
 
@@ -143,6 +146,7 @@ function StakeChips({
 }
 
 export default function ProfilePage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user, signOut, applyUser } = useAuth()
   const [profileUser, setProfileUser] = useState<AuthUser | null>(user)
@@ -178,11 +182,11 @@ export default function ProfilePage() {
   )
 
   useEffect(() => {
-    document.title = 'My Profile | MERKURflow'
+    document.title = `${t('pages.profile', 'My Profile')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -207,7 +211,7 @@ export default function ProfilePage() {
     }
   }, [applyProfileUser])
 
-  const firstname = profileUser?.firstname?.trim() || 'there'
+  const firstname = profileUser?.firstname?.trim() ?? ''
   const role = profileUser?.role
   const needsSubscriptions = Boolean(role?.needs_subscriptions)
   const canUseTlpRed = Boolean(role?.['may_use_tlp-red'])
@@ -229,7 +233,7 @@ export default function ProfilePage() {
     } catch (caught) {
       setNotice({
         kind: 'error',
-        text: caught instanceof ApiError ? caught.message : 'Your colors could not be saved.',
+        text: caught instanceof ApiError ? caught.message : t('profile.colorsFailed', 'Your colors could not be saved.'),
       })
     } finally {
       setSavingColors(false)
@@ -245,7 +249,7 @@ export default function ProfilePage() {
     } catch (caught) {
       setNotice({
         kind: 'error',
-        text: caught instanceof ApiError ? caught.message : 'Your job title could not be saved.',
+        text: caught instanceof ApiError ? caught.message : t('profile.jobFailed', 'Your job title could not be saved.'),
       })
     } finally {
       setSavingJob(false)
@@ -260,7 +264,7 @@ export default function ProfilePage() {
     } catch (caught) {
       setNotice({
         kind: 'error',
-        text: caught instanceof ApiError ? caught.message : 'Your notification setting could not be saved.',
+        text: caught instanceof ApiError ? caught.message : t('profile.notificationsFailed', 'Your notification setting could not be saved.'),
       })
     }
   }
@@ -275,14 +279,14 @@ export default function ProfilePage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">My Profile</Box>
+            <Box component="span">{t('pages.profile', 'My Profile')}</Box>
           </Box>
 
           <Typography
@@ -290,18 +294,21 @@ export default function ProfilePage() {
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15, mb: 2 }}
           >
             <PersonOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-            My Profile
+            {t('pages.profile', 'My Profile')}
           </Typography>
 
           {failed ? (
-            <Typography color="text.secondary">Your profile could not be loaded.</Typography>
+            <Typography color="text.secondary">{t('profile.loadFailed', 'Your profile could not be loaded.')}</Typography>
           ) : !loaded ? null : (
             <>
               <Typography
                 component="h2"
                 sx={{ textAlign: 'center', fontWeight: 300, fontSize: { xs: 32, md: 48 }, mb: 3 }}
               >
-                Hello, {firstname}! 👋
+                {firstname
+                  ? t('profile.hello', 'Hello, {name}!', { name: firstname })
+                  : t('profile.helloAnonymous', 'Hello!')}{' '}
+                👋
               </Typography>
 
               {notice ? (
@@ -328,9 +335,9 @@ export default function ProfilePage() {
                     flexWrap: 'wrap',
                   }}
                 >
-                  <ColorField id="avatar-background" label="Background" value={bcolor} onChange={setBcolor} />
+                  <ColorField id="avatar-background" label={t('profile.background', 'Background')} value={bcolor} onChange={setBcolor} />
                   <UserAvatar user={previewUser} size="xl" decolorize={Boolean(profileUser?.decolorize_avatars)} />
-                  <ColorField id="avatar-foreground" label="Foreground" value={color} onChange={setColor} />
+                  <ColorField id="avatar-foreground" label={t('profile.foreground', 'Foreground')} value={color} onChange={setColor} />
                 </Box>
                 <AppButton
                   size="medium"
@@ -340,25 +347,22 @@ export default function ProfilePage() {
                   onClick={() => void saveColors()}
                   sx={{ px: 3, py: 1, fontSize: 15, minWidth: 200, borderRadius: 2 }}
                 >
-                  {savingColors ? 'Saving…' : 'Set My Colors'}
+                  {savingColors ? t('common.saving', 'Saving…') : t('profile.setColors', 'Set My Colors')}
                 </AppButton>
               </Box>
               <Typography sx={{ mt: 3, mb: 3, fontSize: 18 }}>
-                This is your MERKURflow Profile.{' '}
-                <Box component="span" sx={{ fontWeight: 800 }}>
-                  Make it your own!
-                </Box>{' '}
-                Show Your Colors—your profile information will be visible in all Community features. Also, remember to keep
-                your Job Title up-to-date… then everybody will know what you are up to. 🙂
+                {t('profile.intro', 'This is your MERKURflow Profile. {own} Show Your Colors—your profile information will be visible in all Community features. Also, remember to keep your Job Title up-to-date… then everybody will know what you are up to. 🙂', {
+                  own: t('profile.own', 'Make it your own!'),
+                })}
               </Typography>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2, mb: 2 }}>
-                <AppTextField label="First Name" value={profileUser?.firstname ?? ''} slotProps={{ input: { readOnly: true } }} />
-                <AppTextField label="Last Name" value={profileUser?.lastname ?? ''} slotProps={{ input: { readOnly: true } }} />
+                <AppTextField label={t('profile.firstName', 'First Name')} value={profileUser?.firstname ?? ''} slotProps={{ input: { readOnly: true } }} />
+                <AppTextField label={t('profile.lastName', 'Last Name')} value={profileUser?.lastname ?? ''} slotProps={{ input: { readOnly: true } }} />
               </Box>
               <Box sx={{ display: 'flex', gap: 1, mb: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                 <AppTextField
-                  label="My Job"
+                  label={t('profile.myJob', 'My Job')}
                   value={jobtitle}
                   onChange={(event) => setJobtitle(event.target.value)}
                 />
@@ -369,11 +373,11 @@ export default function ProfilePage() {
                   onClick={() => void saveJob()}
                   sx={{ flexShrink: 0, alignSelf: { sm: 'center' }, mt: { sm: 1 } }}
                 >
-                  {savingJob ? 'Saving…' : 'Set My Job'}
+                  {savingJob ? t('common.saving', 'Saving…') : t('profile.setJob', 'Set My Job')}
                 </AppButton>
               </Box>
               <AppTextField
-                label="E-Mail Address"
+                label={t('profile.email', 'E-Mail Address')}
                 value={profileUser?.username ?? ''}
                 startIcon={<AlternateEmailOutlinedIcon />}
                 slotProps={{ input: { readOnly: true } }}
@@ -385,7 +389,7 @@ export default function ProfilePage() {
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: 22, mb: 1 }}
               >
                 <SettingsOutlinedIcon sx={{ color: 'info.main' }} />
-                Your MERKURflow Settings
+                {t('profile.settings', 'Your MERKURflow Settings')}
               </Typography>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, mb: 2 }}>
@@ -394,11 +398,11 @@ export default function ProfilePage() {
                     component="h3"
                     sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: 18, mt: 2, mb: 1.5 }}
                   >
-                    Access
+                    {t('profile.access', 'Access')}
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     <AppButton size="small" startIcon={<LogoutOutlinedIcon />} onClick={() => void handleLogout()}>
-                      Log out
+                      {t('profile.logout', 'Log out')}
                     </AppButton>
                     <AppButton
                       size="small"
@@ -406,7 +410,7 @@ export default function ProfilePage() {
                       startIcon={<KeyOutlinedIcon />}
                       onClick={() => setPasswordOpen(true)}
                     >
-                      Change Password
+                      {t('profile.changePassword', 'Change Password')}
                     </AppButton>
                   </Box>
                 </Box>
@@ -415,7 +419,7 @@ export default function ProfilePage() {
                     component="h3"
                     sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: 18, mt: 2, mb: 1.5 }}
                   >
-                    E-Mail Notifications
+                    {t('profile.notifications', 'E-Mail Notifications')}
                   </Typography>
                   <RadioGroup
                     row
@@ -429,7 +433,7 @@ export default function ProfilePage() {
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 700 }}>
                           <EventBusyOutlinedIcon sx={{ fontSize: 18 }} />
-                          off
+                          {t('profile.off', 'off')}
                         </Box>
                       }
                     />
@@ -439,7 +443,7 @@ export default function ProfilePage() {
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 700 }}>
                           <CalendarMonthOutlinedIcon sx={{ fontSize: 18 }} />
-                          daily
+                          {t('profile.daily', 'daily')}
                         </Box>
                       }
                     />
@@ -449,17 +453,13 @@ export default function ProfilePage() {
                       label={
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 700 }}>
                           <CalendarViewWeekOutlinedIcon sx={{ fontSize: 18 }} />
-                          weekly
+                          {t('profile.weekly', 'weekly')}
                         </Box>
                       }
                     />
                   </RadioGroup>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    {[
-                      'Changes to Watched Items',
-                      'New Community Mentions',
-                      'Due Tasks',
-                    ].map((item) => (
+                    {['profile.notifyWatched', 'profile.notifyMentions', 'profile.notifyTasks'].map((item) => (
                       <Box
                         key={item}
                         sx={{
@@ -475,7 +475,7 @@ export default function ProfilePage() {
                         }}
                       >
                         <CheckCircleOutlinedIcon sx={{ color: 'success.main', fontSize: 18 }} />
-                        {item}
+                        {t(item)}
                       </Box>
                     ))}
                   </Box>
@@ -489,7 +489,7 @@ export default function ProfilePage() {
                     sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: 18, mt: 2, mb: 1.5 }}
                   >
                     <VerifiedUserOutlinedIcon sx={{ color: 'info.main' }} />
-                    Your Role & Entitlements
+                    {t('profile.roleTitle', 'Your Role & Entitlements')}
                   </Typography>
                   <AppTextField value={role?.name ?? ''} slotProps={{ input: { readOnly: true } }} sx={{ mb: 1 }} />
                   {role?.description ? (
@@ -522,12 +522,12 @@ export default function ProfilePage() {
                           )}
                           {item.tlp ? (
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                              Use
+                              {t('profile.useTlp', 'Use {badge} items').split('{badge}')[0]}
                               <Chip size="small" color="error" label="TLP:RED" />
-                              items
+                              {t('profile.useTlp', 'Use {badge} items').split('{badge}')[1]}
                             </Box>
                           ) : (
-                            item.label
+                            t(item.label)
                           )}
                         </Box>
                       )
@@ -540,24 +540,26 @@ export default function ProfilePage() {
                     sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, fontSize: 18, mt: 2, mb: 1.5 }}
                   >
                     <HubOutlinedIcon sx={{ color: 'info.main' }} />
-                    Your Stakes
+                    {t('profile.stakes', 'Your Stakes')}
                   </Typography>
                   {needsSubscriptions ? (
                     <>
                       <Typography sx={{ mb: 1 }}>
-                        Your <Box component="strong">Jurisdictions</Box>
+                        {t('profile.yourJurisdictions', 'Your {name}', { name: t('profile.jurisdictions', 'Jurisdictions') })}
                       </Typography>
                       <StakeChips
                         stakes={primaryStakes}
+                        emptyLabel={t('profile.none', 'none')}
                         onOpen={(id) => navigate(`/tables/jurisdictions?id=${id}`)}
                       />
                       {canUseTlpRed ? (
                         <>
                           <Typography sx={{ mt: 2, mb: 1, color: 'error.main' }}>
-                            Your <Box component="strong">Jurisdictions</Box> as Deputy
+                            {t('profile.deputyJurisdictions', 'Your {name} as Deputy', { name: t('profile.jurisdictions', 'Jurisdictions') })}
                           </Typography>
                           <StakeChips
                             stakes={deputyStakes}
+                            emptyLabel={t('profile.none', 'none')}
                             onOpen={(id) => navigate(`/tables/jurisdictions?id=${id}`)}
                           />
                         </>
@@ -565,8 +567,10 @@ export default function ProfilePage() {
                     </>
                   ) : (
                     <Typography>
-                      Subscriptions apply to <Box component="strong">Product Organization</Box> and{' '}
-                      <Box component="strong">Sales</Box> only.
+                      {t('profile.subscriptions', 'Subscriptions apply to {product} and {sales} only.', {
+                        product: t('profile.productOrg', 'Product Organization'),
+                        sales: t('profile.sales', 'Sales'),
+                      })}
                     </Typography>
                   )}
                 </Box>
@@ -577,27 +581,27 @@ export default function ProfilePage() {
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: 22, mt: 2, mb: 1 }}
               >
                 <ShieldOutlinedIcon sx={{ color: 'info.main' }} />
-                MERKURflow Security
+                {t('profile.security', 'MERKURflow Security')}
               </Typography>
               <Typography sx={{ mb: 2 }}>
-                Your most recent MERKURflow sessions are shown below (all times UTC). —{' '}
-                <Box component="strong">Not you?</Box> Please notify Product Management immediately so we can take
-                appropriate steps.
+                {t('profile.securityBody', 'Your most recent MERKURflow sessions are shown below (all times UTC). — {notYou} Please notify Product Management immediately so we can take appropriate steps.', {
+                  notYou: t('profile.notYou', 'Not you?'),
+                })}
               </Typography>
               <Box sx={{ overflowX: 'auto', mb: 4, bgcolor: 'common.white', borderRadius: 2 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell>Date</TableCell>
-                      <TableCell>Client IP</TableCell>
-                      <TableCell>User Agent</TableCell>
+                      <TableCell>{t('profile.date', 'Date')}</TableCell>
+                      <TableCell>{t('profile.clientIp', 'Client IP')}</TableCell>
+                      <TableCell>{t('profile.userAgent', 'User Agent')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {logins.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={3}>
-                          <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>No sessions yet.</Typography>
+                          <Typography sx={{ color: 'text.secondary', fontStyle: 'italic' }}>{t('profile.noSessions', 'No sessions yet.')}</Typography>
                         </TableCell>
                       </TableRow>
                     ) : (
@@ -626,7 +630,7 @@ export default function ProfilePage() {
         onChanged={() =>
           setNotice({
             kind: 'success',
-            text: 'The new password is now active. Please update your password manager if applicable.',
+            text: t('profile.passwordActive', 'The new password is now active. Please update your password manager if applicable.'),
           })
         }
       />

@@ -4,6 +4,7 @@ import Typography from '@mui/material/Typography'
 import { getTablesCatalog } from '@/api'
 import type { TablesCatalog } from '@/api'
 import { tableBrowsePath } from '@/config/tablePages'
+import { groupTitle, useI18n } from '@/i18n'
 import { useAppPath } from '@/routing'
 import { TableCatalogCard } from './TableCatalogCard'
 import { TablesAboutCard } from './TablesAboutCard'
@@ -12,6 +13,7 @@ const emptyCatalog: TablesCatalog = { groups: [] }
 
 export function TablesCatalogView() {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   const [catalog, setCatalog] = useState<TablesCatalog>(emptyCatalog)
 
   useEffect(() => {
@@ -45,12 +47,12 @@ export function TablesCatalogView() {
     >
       <Box>
         {catalog.groups.length === 0 ? (
-          <Typography color="text.secondary">No tables available.</Typography>
+          <Typography color="text.secondary">{t('common.noTables', 'No tables available.')}</Typography>
         ) : (
           catalog.groups.map((group) => (
             <Box key={group.title} sx={{ mb: 3 }}>
               <Typography component="h2" sx={{ fontWeight: 800, fontSize: { xs: 22, md: 26 }, mb: 2 }}>
-                {group.title}
+                {groupTitle(t, group.title)}
               </Typography>
               <Box
                 sx={{

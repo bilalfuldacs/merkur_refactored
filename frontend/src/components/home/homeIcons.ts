@@ -37,6 +37,8 @@ const byKey: Record<string, SvgIconComponent> = {
   software_releases: CelebrationOutlinedIcon,
   markets_landbased: TrendingUpOutlinedIcon,
   markets_online: TrendingUpOutlinedIcon,
+  'field-trials': FlagOutlinedIcon,
+  field_trials: FlagOutlinedIcon,
 }
 
 export function iconForHomeKey(key: string | null | undefined): SvgIconComponent {

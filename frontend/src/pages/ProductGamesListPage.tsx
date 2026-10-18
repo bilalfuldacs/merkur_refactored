@@ -6,7 +6,8 @@ import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import { getProductGamesList } from '@/api/products'
 import type { ProductGamesListPayload } from '@/api/products'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { tableBrowsePath } from '@/config/tablePages'
 import { APP_PATHS, productGamesDocsPackagePath, useAppPath } from '@/routing'
 import { AppButton } from '@/components/ui'
@@ -27,17 +28,18 @@ function versionFromSearch(): number | null {
 }
 
 export default function ProductGamesListPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const versionId = versionFromSearch()
   const [payload, setPayload] = useState<ProductGamesListPayload | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    document.title = 'All Games | MERKURflow'
+    document.title = `${t('pages.allGames', 'All Games')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!versionId) {
@@ -50,7 +52,7 @@ export default function ProductGamesListPage() {
       .then((result) => {
         if (!cancelled) {
           setPayload(result)
-          document.title = `All Games in “${result.version.name}” | MERKURflow`
+          document.title = `${t('pages.allGamesIn', 'All Games in “{name}”', { name: result.version.name ?? '' })} | MERKURflow`
         }
       })
       .catch(() => {
@@ -68,23 +70,23 @@ export default function ProductGamesListPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 900, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14, flexWrap: 'wrap' }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14, flexWrap: 'wrap' }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.products)} sx={crumbSx}>
-              Products
+              {t('pages.products', 'Products')}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">All Games{payload?.version.name ? ` in “${payload.version.name}”` : ''}</Box>
+            <Box component="span">{payload?.version.name ? t('pages.allGamesIn', 'All Games in “{name}”', { name: payload.version.name }) : t('pages.allGames', 'All Games')}</Box>
           </Box>
           <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 28, md: 36 }, mb: 2 }}>
             <CasinoOutlinedIcon sx={{ color: '#FFCC00', fontSize: 34 }} />
-            All Games{payload?.version.name ? ` in “${payload.version.name}”` : ''}
+            {payload?.version.name ? t('pages.allGamesIn', 'All Games in “{name}”', { name: payload.version.name }) : t('pages.allGames', 'All Games')}
           </Typography>
-          {!versionId ? <Typography color="text.secondary">Choose a version from Products to see its full game list.</Typography> : null}
-          {failed ? <Typography color="text.secondary">The games list could not be loaded.</Typography> : null}
+          {!versionId ? <Typography color="text.secondary">{t('copy.gamesChoose', 'Choose a version from Products to see its full game list.')}</Typography> : null}
+          {failed ? <Typography color="text.secondary">{t('copy.gamesFailed', 'The games list could not be loaded.')}</Typography> : null}
           {payload ? (
             <>
               <Typography sx={{ mb: 2 }}>

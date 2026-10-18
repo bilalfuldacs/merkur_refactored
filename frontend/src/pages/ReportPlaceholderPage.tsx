@@ -2,7 +2,8 @@ import { useEffect } from 'react'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { reportIcon } from '@/config/reports'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -23,6 +24,7 @@ export default function ReportPlaceholderPage({
   name: string
   title: string
 }) {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const Icon = reportIcon(name)
 
@@ -38,15 +40,15 @@ export default function ReportPlaceholderPage({
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 860, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, fontSize: 14 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, fontSize: 14 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.reports)} sx={crumbSx}>
-              Reports
+              {t('pages.reports', 'Reports')}
             </Box>
             <Box component="span" color="text.secondary">
               /

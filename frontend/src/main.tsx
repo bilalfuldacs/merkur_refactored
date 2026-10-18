@@ -2,10 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import CssBaseline from '@mui/material/CssBaseline'
 import { ThemeProvider } from '@mui/material/styles'
-import App from './App.tsx'
+import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './auth'
+import { I18nProvider } from './i18n'
 import { LoadingProvider } from './loading'
-import { AppPathProvider } from './routing'
+import { router } from './routing/router'
 import { theme } from './theme'
 import { registerIcePwa } from './pwa'
 
@@ -15,13 +16,13 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppPathProvider>
+      <I18nProvider>
         <AuthProvider>
           <LoadingProvider>
-            <App />
+            <RouterProvider router={router} />
           </LoadingProvider>
         </AuthProvider>
-      </AppPathProvider>
+      </I18nProvider>
     </ThemeProvider>
   </StrictMode>,
 )

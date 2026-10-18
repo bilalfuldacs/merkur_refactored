@@ -12,7 +12,7 @@ export {
   monthsForGrid,
   monthsFromGames,
   monthsFromRows,
-  rangeLabel,
+  rangeParts,
   sliderMonthSpan,
 } from './format'
 export type { RoadmapFilterState } from './format'

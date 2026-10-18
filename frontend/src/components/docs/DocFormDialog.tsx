@@ -11,6 +11,7 @@ import Typography from '@mui/material/Typography'
 import { ApiError } from '@/api'
 import type { StaticDoc, StaticDocInput } from '@/api'
 import { AppButton, AppTextField } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { completenessLabel } from './format'
 
 export function DocFormDialog({
@@ -35,6 +36,7 @@ export function DocFormDialog({
   const [complete, setComplete] = useState<'complete' | 'excerpt' | 'none'>('none')
   const [pdf, setPdf] = useState<File | null>(null)
   const [thumbnail, setThumbnail] = useState<File | null>(null)
+  const { t } = useI18n()
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -54,11 +56,11 @@ export function DocFormDialog({
   async function submit() {
     const nextTitle = title.trim()
     if (!nextTitle) {
-      setError('Title is required.')
+      setError(t('docs.titleRequired', 'Title is required.'))
       return
     }
     if (creating && !pdf) {
-      setError('Please attach a PDF.')
+      setError(t('docs.pdfRequired', 'Please attach a PDF.'))
       return
     }
     setError(null)
@@ -72,14 +74,14 @@ export function DocFormDialog({
         thumbnail,
       })
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'The document could not be saved.')
+      setError(caught instanceof ApiError ? caught.message : t('docs.couldNotSave', 'The document could not be saved.'))
     }
   }
 
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="sm">
       <DialogTitle sx={{ fontWeight: 800, color: 'secondary.main' }}>
-        {creating ? 'Upload document' : 'Edit document'}
+        {creating ? t('docs.uploadDocument', 'Upload document') : t('docs.editDocument', 'Edit document')}
       </DialogTitle>
       <DialogContent dividers>
         {error ? (
@@ -87,12 +89,12 @@ export function DocFormDialog({
             {error}
           </Alert>
         ) : null}
-        <AppTextField label="Title" value={title} onChange={(event) => setTitle(event.target.value)} sx={{ mb: 2 }} />
+        <AppTextField label={t('fields.title', 'Title')} value={title} onChange={(event) => setTitle(event.target.value)} sx={{ mb: 2 }} />
         <AppTextField
-          label="Section"
+          label={t('docs.section', 'Section')}
           value={subfolder}
           onChange={(event) => setSubfolder(event.target.value)}
-          helperText="Documents are grouped by section, like “The BOOK 2026”."
+          helperText={t('docs.sectionHelp', 'Documents are grouped by section, like “The BOOK 2026”.')}
           sx={{ mb: 1 }}
         />
         {sections.length > 0 ? (
@@ -111,7 +113,7 @@ export function DocFormDialog({
           </Box>
         ) : null}
         <AppTextField
-          label="Description"
+          label={t('fields.description', 'Description')}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           multiline
@@ -120,21 +122,21 @@ export function DocFormDialog({
         />
         <AppTextField
           select
-          label="Kind"
+          label={t('docs.kind', 'Kind')}
           value={complete}
           onChange={(event) => setComplete(event.target.value as typeof complete)}
           sx={{ mb: 2 }}
         >
-          <MenuItem value="none">Unspecified</MenuItem>
-          <MenuItem value="complete">Complete / full manual</MenuItem>
-          <MenuItem value="excerpt">Excerpt</MenuItem>
+          <MenuItem value="none">{t('docs.unspecified', 'Unspecified')}</MenuItem>
+          <MenuItem value="complete">{t('docs.completeFull', 'Complete / full manual')}</MenuItem>
+          <MenuItem value="excerpt">{t('docs.excerpt', 'Excerpt')}</MenuItem>
         </AppTextField>
         <Box sx={{ mb: 2 }}>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.75 }}>
-            PDF{creating ? '' : ' (optional replacement)'}
+            {creating ? 'PDF' : t('docs.pdfOptional', 'PDF (optional replacement)')}
           </Typography>
           <AppButton variant="outlined" color="secondary" component="label" size="small">
-            {pdf ? pdf.name : creating ? 'Choose PDF' : 'Replace PDF'}
+            {pdf ? pdf.name : creating ? t('docs.choosePdf', 'Choose PDF') : t('docs.replacePdf', 'Replace PDF')}
             <input
               hidden
               type="file"
@@ -143,13 +145,13 @@ export function DocFormDialog({
             />
           </AppButton>
           <Typography sx={{ color: 'text.secondary', fontSize: 12, mt: 0.75 }}>
-            PDF up to 50 MB. A cover is generated if you do not attach an image.
+            {t('docs.pdfHint', 'PDF up to 50 MB. A cover is generated if you do not attach an image.')}
           </Typography>
         </Box>
         <Box>
           <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.75 }}>Cover image (optional)</Typography>
           <AppButton variant="outlined" color="secondary" component="label" size="small">
-            {thumbnail ? thumbnail.name : 'Choose PNG or JPG'}
+            {thumbnail ? thumbnail.name : t('docs.chooseImage', 'Choose PNG or JPG')}
             <input
               hidden
               type="file"
@@ -164,7 +166,7 @@ export function DocFormDialog({
           Cancel
         </AppButton>
         <AppButton onClick={() => void submit()} disabled={saving}>
-          {saving ? 'Saving…' : creating ? 'Upload' : 'Save'}
+          {saving ? t('common.saving', 'Saving…') : creating ? t('common.upload', 'Upload') : t('common.save', 'Save')}
         </AppButton>
       </DialogActions>
     </Dialog>

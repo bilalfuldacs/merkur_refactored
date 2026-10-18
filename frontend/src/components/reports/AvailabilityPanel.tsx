@@ -2,6 +2,7 @@ import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import Typography from '@mui/material/Typography'
 import type { AvailabilityMarket } from '@/api'
+import { useI18n } from '@/i18n'
 import { tableBrowsePath } from '@/config/tablePages'
 import { useAppPath } from '@/routing'
 
@@ -14,11 +15,12 @@ export function AvailabilityPanel({
   intent: AvailabilityMarket[]
   noIntent: AvailabilityMarket[]
 }) {
+  const { t } = useI18n()
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <MarketGroup title="Available in" color="#A2C617" items={available} />
-      <MarketGroup title="Also intended for" color="#009FE3" items={intent} />
-      <MarketGroup title="Not intended for" color="#EB0000" items={noIntent} />
+      <MarketGroup title={t('reports.availableIn', 'Available in')} color="#A2C617" items={available} />
+      <MarketGroup title={t('reports.alsoIntended', 'Also intended for')} color="#009FE3" items={intent} />
+      <MarketGroup title={t('reports.notIntended', 'Not intended for')} color="#EB0000" items={noIntent} />
     </Box>
   )
 }
@@ -33,6 +35,7 @@ function MarketGroup({
   items: AvailabilityMarket[]
 }) {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
 
   return (
     <Box
@@ -46,10 +49,10 @@ function MarketGroup({
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography sx={{ fontWeight: 800, fontSize: 18, color }}>{title}</Typography>
-        <Chip size="small" label={`${items.length} ${items.length === 1 ? 'jurisdiction' : 'jurisdictions'}`} />
+        <Chip size="small" label={items.length === 1 ? t('reports.oneJurisdiction', '1 jurisdiction') : t('reports.manyJurisdictions', '{count} jurisdictions', { count: items.length })} />
       </Box>
       {items.length === 0 ? (
-        <Typography color="text.secondary">None listed.</Typography>
+        <Typography color="text.secondary">{t('reports.noneListed', 'None listed.')}</Typography>
       ) : (
         <Box
           sx={{

@@ -1,24 +1,25 @@
 import type { FeedbackStatus, FeedbackType } from '@/api'
+import type { Translate } from '@/i18n'
 
 export const FEEDBACK_TYPES: {
   id: FeedbackType
-  label: string
-  detail: string
+  labelKey: string
+  detailKey: string
 }[] = [
   {
     id: 'improvement',
-    label: 'Improvement',
-    detail: 'Make an existing feature easier or better.',
+    labelKey: 'feedback.typeImprovement',
+    detailKey: 'feedback.typeImprovementDetail',
   },
   {
     id: 'problem',
-    label: 'Problem',
-    detail: 'Something is confusing or not working as expected.',
+    labelKey: 'feedback.typeProblem',
+    detailKey: 'feedback.typeProblemDetail',
   },
   {
     id: 'idea',
-    label: 'New idea',
-    detail: 'Suggest a capability that does not exist yet.',
+    labelKey: 'feedback.typeIdea',
+    detailKey: 'feedback.typeIdeaDetail',
   },
 ]
 
@@ -36,20 +37,42 @@ export const FEEDBACK_AREAS = [
 
 export const DESCRIPTION_MAX = 1200
 
-export const STATUS_LABELS: Record<FeedbackStatus, string> = {
-  new: 'Submitted',
-  under_review: 'Under review',
-  planned: 'Planned',
-  in_progress: 'In progress',
-  completed: 'Updated',
-  declined: 'Declined',
+const STATUS_KEYS: Record<FeedbackStatus, string> = {
+  new: 'feedback.statusNew',
+  under_review: 'feedback.statusUnderReview',
+  planned: 'feedback.statusPlanned',
+  in_progress: 'feedback.statusInProgress',
+  completed: 'feedback.statusCompleted',
+  declined: 'feedback.statusDeclined',
 }
 
-export function typeLabel(type: FeedbackType): string {
-  return FEEDBACK_TYPES.find((item) => item.id === type)?.label ?? 'Improvement'
+const AREA_KEYS: Record<string, string> = {
+  General: 'feedback.areaGeneral',
+  Products: 'feedback.areaProducts',
+  Roadmap: 'feedback.areaRoadmap',
+  'People & Markets': 'feedback.areaPeopleMarkets',
+  Community: 'feedback.areaCommunity',
+  Docs: 'feedback.areaDocs',
+  Help: 'feedback.areaHelp',
+  Tables: 'feedback.areaTables',
+  Home: 'feedback.areaHome',
 }
 
-export function formatSubmittedAt(value: string | null): string {
+export function feedbackStatusLabel(t: Translate, status: FeedbackStatus): string {
+  return t(STATUS_KEYS[status], status)
+}
+
+export function feedbackTypeLabel(t: Translate, type: FeedbackType): string {
+  const option = FEEDBACK_TYPES.find((item) => item.id === type)
+  return option ? t(option.labelKey, type) : type
+}
+
+export function feedbackAreaLabel(t: Translate, area: string): string {
+  const key = AREA_KEYS[area]
+  return key ? t(key, area) : area
+}
+
+export function formatSubmittedAt(value: string | null, locale?: string): string {
   if (!value) {
     return ''
   }
@@ -57,5 +80,5 @@ export function formatSubmittedAt(value: string | null): string {
   if (Number.isNaN(date.getTime())) {
     return value
   }
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })
 }

@@ -7,6 +7,7 @@ import Slider from '@mui/material/Slider'
 import Switch from '@mui/material/Switch'
 import ToggleButton from '@mui/material/ToggleButton'
 import Typography from '@mui/material/Typography'
+import { useI18n } from '@/i18n'
 import type { RoadmapMonth } from './format'
 
 const yearPillSx = {
@@ -39,6 +40,7 @@ export function MonthRangeSlider({
   toKey: string | null
   onChange: (next: { fromKey: string; toKey: string | null }) => void
 }) {
+  const { t } = useI18n()
   const lastClosedEnd = useRef<string | null>(toKey)
   if (span.length === 0) {
     return null
@@ -93,8 +95,8 @@ export function MonthRangeSlider({
 
   return (
     <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.75 }}>Time range</Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+      <Typography sx={{ fontWeight: 700, fontSize: 13, mb: 0.75 }}>{t('roadmap.timeRange', 'Time range')}</Typography>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
         {years.map((year) => {
           const first = span.find((month) => month.year === year)
           const last = [...span].reverse().find((month) => month.year === year)
@@ -122,7 +124,7 @@ export function MonthRangeSlider({
           marks={marks}
           valueLabelDisplay="auto"
           valueLabelFormat={(index) => span[index]?.label ?? ''}
-          getAriaLabel={(index) => (index === 0 ? 'Start month' : 'End month')}
+          getAriaLabel={(index) => (index === 0 ? t('roadmap.startMonth', 'Start month') : t('roadmap.endMonth', 'End month'))}
           onChange={(_event, value) => {
             const [nextStart, nextEnd] = value as number[]
             const nextFrom = span[nextStart].key
@@ -156,7 +158,7 @@ export function MonthRangeSlider({
         }}
       >
         <Box>
-          <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>Start</Typography>
+          <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{t('roadmap.start', 'Start')}</Typography>
           <Typography sx={{ color: 'info.main', fontWeight: 800, fontSize: 20, lineHeight: 1.2 }}>
             {span[startIndex < 0 ? 0 : startIndex]?.label}
           </Typography>
@@ -164,7 +166,7 @@ export function MonthRangeSlider({
         <ArrowForwardOutlinedIcon sx={{ color: 'text.disabled', mb: 0.5 }} />
         <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, ml: 'auto' }}>
           <Box>
-            <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>End</Typography>
+            <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>{t('roadmap.end', 'End')}</Typography>
             {openEnd ? (
               <Typography
                 sx={{
@@ -178,7 +180,7 @@ export function MonthRangeSlider({
                 }}
               >
                 <AllInclusiveOutlinedIcon fontSize="small" />
-                open
+                {t('roadmap.open', 'open')}
               </Typography>
             ) : (
               <Typography sx={{ color: 'success.main', fontWeight: 800, fontSize: 20, lineHeight: 1.2 }}>
@@ -193,10 +195,10 @@ export function MonthRangeSlider({
                 size="small"
                 checked={openEnd}
                 onChange={(event) => toggleOpenEnd(event.target.checked)}
-                inputProps={{ 'aria-label': 'Open end' }}
+                slotProps={{ input: { 'aria-label': t('roadmap.openEnd', 'Open end') } }}
               />
             }
-            label={<AllInclusiveOutlinedIcon fontSize="small" titleAccess="Open end" />}
+            label={<AllInclusiveOutlinedIcon fontSize="small" titleAccess={t('roadmap.openEnd', 'Open end')} />}
           />
         </Box>
       </Box>

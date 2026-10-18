@@ -5,6 +5,7 @@ use App\Services\Ice2027Service;
 use App\Services\TableHistoryService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -53,3 +54,5 @@ Artisan::command('scout:remind {--dry-run : Count recipients without sending mai
 
     return 0;
 })->purpose('Send daily scouting reminder emails');
+
+Schedule::command('scout:remind')->dailyAt('07:00');

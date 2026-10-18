@@ -5,7 +5,8 @@ import Typography from '@mui/material/Typography'
 import { ApiError, getAdminTableHistory } from '@/api'
 import type { AdminTableHistoryRow } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -20,6 +21,7 @@ const crumbSx = {
 } as const
 
 export default function AdminTableHistoryPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
@@ -35,11 +37,11 @@ export default function AdminTableHistoryPage() {
   }, [])
 
   useEffect(() => {
-    document.title = 'Table history | MERKURflow'
+    document.title = `${t('pages.tableHistory', 'Table history')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!isSuperuser) {
@@ -58,28 +60,27 @@ export default function AdminTableHistoryPage() {
     <PageBackground>
       <AppHeader />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 3, maxWidth: 900, mx: 'auto', width: '100%' }}>
-        <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
+        <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-            Start
+            <CrumbHome />
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.admin)} sx={crumbSx}>
-            Admin
+            {t('pages.adminCrumb', 'Admin')}
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
-          <Box component="span">Table history</Box>
+          <Box component="span">{t('pages.tableHistory', 'Table history')}</Box>
         </Box>
 
         <Typography component="h1" sx={{ fontWeight: 800, fontSize: 28, mb: 1, color: 'secondary.main' }}>
-          Table history
+          {t('pages.tableHistory', 'Table history')}
         </Typography>
         <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-          Edit history is enabled per catalog table via Artisan. Run the command on the server to create history tables and
-          triggers for every configured table.
+          {t('copy.historyIntro', 'Edit history is enabled per catalog table via Artisan. Run the command on the server to create history tables and triggers for every configured table.')}
         </Typography>
 
         <Box

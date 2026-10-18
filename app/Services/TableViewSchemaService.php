@@ -333,6 +333,10 @@ class TableViewSchemaService
             return 'json';
         }
 
+        if (in_array($typeName, ['int', 'integer', 'bigint', 'smallint', 'mediumint', 'decimal', 'numeric', 'float', 'double', 'real'], true)) {
+            return 'number';
+        }
+
         return 'text';
     }
 

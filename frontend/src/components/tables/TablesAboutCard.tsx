@@ -4,10 +4,12 @@ import LockIcon from '@mui/icons-material/Lock'
 import LockOpenIcon from '@mui/icons-material/LockOpen'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 
 export function TablesAboutCard() {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   return (
     <Box
       sx={{
@@ -32,33 +34,31 @@ export function TablesAboutCard() {
         }}
       >
         <InfoOutlinedIcon sx={{ color: 'info.main' }} />
-        About Tables
+        {t('common.aboutTables', 'About Tables')}
       </Typography>
       <Typography sx={{ mb: 1.5 }}>
-        This page contains <Box component="strong">all constituent data</Box> for MERKURflow,
-        organized into tables.
+        {t('common.allConstituent', 'This page contains all constituent data for MERKURflow, organized into tables.')}
       </Typography>
       <Typography sx={{ mb: 0.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
         <LockOpenIcon sx={{ fontSize: 18, color: 'success.main', mt: '2px' }} />
         <span>
-          You may <Box component="strong">view and edit</Box> this table.
+          {t('common.mayViewEdit', 'You may view and edit this table.')}
         </span>
       </Typography>
       <Typography sx={{ mb: 0.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
         <LockIcon sx={{ fontSize: 18, color: 'error.main', mt: '2px' }} />
         <span>
-          You may <Box component="strong">view</Box> this table, but you{' '}
-          <Box component="strong">cannot edit</Box>.
+          {t('common.mayViewOnly', 'You may view this table, but you cannot edit.')}
         </span>
       </Typography>
       <Typography sx={{ mb: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
         <HistoryIcon sx={{ fontSize: 18, color: 'success.main', mt: '2px' }} />
         <span>
-          This table preserves <Box component="strong">edit history</Box>.
+          {t('common.preservesHistory', 'This table preserves edit history.')}
         </span>
       </Typography>
       <Typography color="text.secondary">
-        <Box component="em">See also:</Box>{' '}
+        <Box component="em">{t('common.seeAlso', 'See also:')}</Box>{' '}
         <Box
           component="button"
           type="button"
@@ -74,7 +74,7 @@ export function TablesAboutCard() {
             '&:hover': { textDecoration: 'underline' },
           }}
         >
-          Latest Changes
+          {t('pages.latestChanges', 'Latest Changes')}
         </Box>
       </Typography>
     </Box>

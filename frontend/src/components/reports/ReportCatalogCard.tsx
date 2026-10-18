@@ -2,6 +2,7 @@ import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import type { ReportsCatalogReport } from '@/api'
 import { reportIcon } from '@/config/reports'
+import { translateCatalogText, useI18n } from '@/i18n'
 
 export function ReportCatalogCard({
   item,
@@ -10,6 +11,7 @@ export function ReportCatalogCard({
   item: ReportsCatalogReport
   onOpen: (item: ReportsCatalogReport) => void
 }) {
+  const { phrase } = useI18n()
   const Icon = reportIcon(item.name)
 
   return (
@@ -53,7 +55,7 @@ export function ReportCatalogCard({
           {item.title}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {item.description}
+          {translateCatalogText(item.description, phrase)}
         </Typography>
       </Box>
     </Box>

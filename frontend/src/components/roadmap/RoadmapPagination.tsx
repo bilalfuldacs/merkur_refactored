@@ -3,6 +3,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Pagination from '@mui/material/Pagination'
 import Typography from '@mui/material/Typography'
 import { AppTextField } from '@/components/ui'
+import { useI18n } from '@/i18n'
 
 export const ROADMAP_PAGE_SIZES = [10, 25, 50, 100]
 
@@ -10,20 +11,29 @@ export function RoadmapPagination({
   page,
   pageSize,
   total,
-  itemLabel,
+  kind,
   onPageChange,
   onPageSizeChange,
 }: {
   page: number
   pageSize: number
   total: number
-  itemLabel: string
+  kind: 'game' | 'version'
   onPageChange: (page: number) => void
   onPageSizeChange: (pageSize: number) => void
 }) {
+  const { t } = useI18n()
   const lastPage = Math.max(1, Math.ceil(total / pageSize))
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1
   const to = Math.min(page * pageSize, total)
+  const items =
+    kind === 'game'
+      ? total === 1
+        ? t('roadmap.game', 'game')
+        : t('roadmap.manyGames', '{count} games', { count: '' }).trim()
+      : total === 1
+        ? t('roadmap.version', 'version')
+        : t('roadmap.manyVersions', '{count} versions', { count: '' }).trim()
 
   return (
     <Box
@@ -38,14 +48,16 @@ export function RoadmapPagination({
     >
       <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
         {total === 0
-          ? `No ${itemLabel}s`
-          : `Showing ${from}–${to} of ${total} ${itemLabel}${total === 1 ? '' : 's'}`}
+          ? kind === 'game'
+            ? t('roadmap.noGamesPage', 'No games')
+            : t('roadmap.noVersionsPage', 'No versions')
+          : t('roadmap.showing', 'Showing {from}–{to} of {total} {items}', { from, to, total, items })}
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
         <AppTextField
           select
           size="small"
-          label="Per page"
+          label={t('roadmap.perPage', 'Per page')}
           value={String(pageSize)}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
           fullWidth={false}

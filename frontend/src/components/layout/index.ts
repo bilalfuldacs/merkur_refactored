@@ -1,4 +1,6 @@
 export { AppFooter } from './AppFooter'
+export { CrumbHome } from './CrumbHome'
+export { LanguageSwitcher } from './LanguageSwitcher'
 export { AppHeader } from './AppHeader'
 export type { AppHeaderProps } from './AppHeader'
 export { AppNav } from './AppNav'

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined'
 import CelebrationOutlinedIcon from '@mui/icons-material/CelebrationOutlined'
 import CheckOutlinedIcon from '@mui/icons-material/CheckOutlined'
@@ -8,6 +8,7 @@ import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined'
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined'
+import { catalogItem, catalogTitle, useI18n } from '@/i18n'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import KeyboardDoubleArrowDownIcon from '@mui/icons-material/KeyboardDoubleArrowDown'
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
@@ -53,6 +54,7 @@ export function TableRecordDialog({
   schema,
   recordId,
   creating = false,
+  initialValues,
   onClose,
   onSaved,
   onCreated,
@@ -64,12 +66,14 @@ export function TableRecordDialog({
   schema: TableViewSchema
   recordId: number | null
   creating?: boolean
+  initialValues?: Record<string, unknown>
   onClose: () => void
   onSaved: () => void
   onCreated?: (id: number) => void
   onDeleted?: () => void
   onOpenRelated?: (table: string, id: number) => void
 }) {
+  const { t } = useI18n()
   const [record, setRecord] = useState<TableRow | null>(null)
   const [draft, setDraft] = useState<Record<string, unknown>>({})
   const [lookups, setLookups] = useState<Record<string, RelationLookupOption[]>>({})
@@ -101,6 +105,9 @@ export function TableRecordDialog({
     () => splitColumns(visibleColumns, schema.collapseItem, schema.primaryColumnCount),
     [visibleColumns, schema.collapseItem, schema.primaryColumnCount],
   )
+  const initialRef = useRef(initialValues)
+  initialRef.current = initialValues
+  const preset = JSON.stringify(initialValues ?? null)
 
   useEffect(() => {
     const creatingBlank = creating && recordId === null
@@ -136,7 +143,7 @@ export function TableRecordDialog({
 
         if (creatingBlank) {
           setRecord({ ID: 0 })
-          setDraft(emptyDraft(schema.columns))
+          setDraft({ ...emptyDraft(schema.columns), ...(initialRef.current ?? {}) })
           setLookups((results[0] as Record<string, RelationLookupOption[]>) ?? {})
           return
         }
@@ -180,7 +187,7 @@ export function TableRecordDialog({
     return () => {
       cancelled = true
     }
-  }, [creating, open, recordId, schema.canEdit, schema.columns, table])
+  }, [creating, open, preset, recordId, schema.canEdit, schema.columns, table])
 
   useEffect(() => {
     if (!open || creating || recordId === null) {
@@ -295,10 +302,10 @@ export function TableRecordDialog({
 
   const editorName = record && !isNew ? relationLabel(record.editor) : null
   const savedAt = record && !isNew ? formatSavedAt(record.mod_date) : null
+  const itemLabel = catalogItem(t, schema.table, schema.itemName || catalogTitle(t, schema.table, schema.title))
   const heading = isNew
-    ? `New ${schema.itemName || schema.title}`
-    : `${schema.itemName || schema.title} #${recordId ?? '…'}`
-  const itemLabel = schema.itemName || schema.title
+    ? t('common.newItem', 'New {name}', { name: itemLabel })
+    : t('common.recordTitle', '{name} #{id}', { name: itemLabel, id: recordId ?? '…' })
 
   return (
     <>
@@ -371,21 +378,21 @@ export function TableRecordDialog({
             value="item"
             icon={<HeadingIcon sx={{ fontSize: 18 }} />}
             iconPosition="start"
-            label={schema.itemName || 'Item'}
+            label={itemLabel || t('common.item', 'Item')}
             sx={{ minHeight: 48, fontWeight: 800 }}
           />
           <Tab
             value="assets"
             icon={<HubOutlinedIcon sx={{ fontSize: 18 }} />}
             iconPosition="start"
-            label="Assets"
+            label={t('common.assets', 'Assets')}
             sx={{ minHeight: 48, fontWeight: 800 }}
           />
           <Tab
             value="history"
             icon={<HistoryOutlinedIcon sx={{ fontSize: 18 }} />}
             iconPosition="start"
-            label="History"
+            label={t('common.history', 'History')}
             sx={{ minHeight: 48, fontWeight: 800 }}
           />
         </Tabs>
@@ -415,11 +422,12 @@ export function TableRecordDialog({
           <Box>
             <Typography sx={{ textAlign: 'center', mb: 2, color: 'text.secondary' }}>
               {isNew ? (
-                'Fill in the fields and save to add this record.'
+                t('common.fillFields', 'Fill in the fields and save to add this record.')
               ) : (
                 <>
-                  {editorName ? <Box component="strong">{editorName}</Box> : 'Unknown'}
-                  {' · Last saved '}
+                  {editorName ? <Box component="strong">{editorName}</Box> : t('home.unknown', 'Unknown')}
+                  {' · '}
+                  {t('common.lastSaved', 'Last saved')}{' '}
                   <Box component="strong">{savedAt ?? '—'}</Box>
                 </>
               )}
@@ -471,7 +479,7 @@ export function TableRecordDialog({
                   onClick={() => setShowMore((current) => !current)}
                   sx={{ mt: 1.5 }}
                 >
-                  {showMore ? 'Less Attributes' : 'More Attributes'}
+                  {showMore ? t('common.lessAttributes', 'Less Attributes') : t('common.moreAttributes', 'More Attributes')}
                 </AppButton>
               </>
             ) : null}
@@ -562,12 +570,12 @@ export function TableRecordDialog({
             disabled={saving || loading}
             startIcon={<ContentCopyOutlinedIcon />}
           >
-            Duplicate
+            {t('common.duplicate', 'Duplicate')}
           </AppButton>
         ) : null}
         {duplicateMode ? (
           <Typography sx={{ color: 'success.main', fontWeight: 700, alignSelf: 'center' }}>
-            {itemLabel} has been duplicated.
+            {t('common.duplicated', '{name} has been duplicated.', { name: itemLabel })}
           </Typography>
         ) : null}
         {schema.canEdit ? (
@@ -578,12 +586,12 @@ export function TableRecordDialog({
             disabled={saving || loading || (!isNew && recordId === null)}
             startIcon={<CheckOutlinedIcon />}
           >
-            {saving ? (isNew ? 'Creating…' : 'Saving…') : isNew ? 'Create' : 'Save'}
+            {saving ? (isNew ? t('common.creating', 'Creating…') : t('common.saving', 'Saving…')) : isNew ? t('common.create', 'Create') : t('common.save', 'Save')}
           </AppButton>
         ) : null}
       </DialogActions>
       <Dialog open={confirmDelete} onClose={() => setConfirmDelete(false)} aria-labelledby="delete-record-title">
-        <DialogTitle id="delete-record-title">Delete this {itemLabel.toLowerCase()}?</DialogTitle>
+        <DialogTitle id="delete-record-title">{t('common.deleteAsk', 'Delete this {name}?', { name: itemLabel })}</DialogTitle>
         <DialogContent>
           <DialogContentText>
             This removes the {itemLabel.toLowerCase()} from the table. Files in Asset Hub stay on disk until they are
@@ -592,10 +600,10 @@ export function TableRecordDialog({
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <AppButton type="button" size="medium" variant="outlined" color="inherit" onClick={() => setConfirmDelete(false)}>
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </AppButton>
           <AppButton type="button" size="medium" color="error" onClick={() => void handleDelete()} disabled={deleting}>
-            {deleting ? 'Deleting…' : 'Delete'}
+            {deleting ? t('common.deleting', 'Deleting…') : t('common.delete', 'Delete')}
           </AppButton>
         </DialogActions>
       </Dialog>

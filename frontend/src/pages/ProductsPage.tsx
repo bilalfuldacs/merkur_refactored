@@ -12,7 +12,8 @@ import Typography from '@mui/material/Typography'
 import { getProductPanorama } from '@/api'
 import type { ProductScope, ProductVersion } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { ProductFilters, VersionDetail, VersionList, emptyProductFilters, filterVersions } from '@/components/products'
 import type { ProductFilterState } from '@/components/products'
 import { AppButton, AppTextField } from '@/components/ui'
@@ -81,7 +82,11 @@ function readProductsSearch(): { scope: ProductScope; id: number | null } {
   return { scope, id: Number.isInteger(id) && id > 0 ? id : null }
 }
 
-function writeProductsSearch(scope: ProductScope, id: number | null) {
+function writeProductsSearch(
+  navigate: (to: string, options?: { replace?: boolean }) => void,
+  scope: ProductScope,
+  id: number | null,
+) {
   const params = new URLSearchParams()
   if (scope !== 'available') {
     params.set('scope', scope)
@@ -92,11 +97,12 @@ function writeProductsSearch(scope: ProductScope, id: number | null) {
   const query = params.toString()
   const href = query ? `${APP_PATHS.products}?${query}` : APP_PATHS.products
   if (`${window.location.pathname}${window.location.search}` !== href) {
-    window.history.replaceState(null, '', href)
+    navigate(href, { replace: true })
   }
 }
 
 export default function ProductsPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const initial = readProductsSearch()
@@ -109,11 +115,11 @@ export default function ProductsPage() {
   const canEdit = Boolean(user?.role?.['may_create-update_items'])
 
   useEffect(() => {
-    document.title = 'Products Panorama | MERKURflow'
+    document.title = `${t('pages.productsPanorama', 'Products Panorama')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -147,14 +153,14 @@ export default function ProductsPage() {
       return
     }
     if (!filtered.length) {
-      writeProductsSearch(scope, null)
+      writeProductsSearch(navigate, scope, null)
       return
     }
     const nextId = selected?.ID ?? filtered[0].ID
     if (selectedId !== nextId) {
       setSelectedId(nextId)
     }
-    writeProductsSearch(scope, nextId)
+    writeProductsSearch(navigate, scope, nextId)
   }, [versions, filtered, scope, selected, selectedId])
 
   function changeScope(next: ProductScope) {
@@ -169,14 +175,14 @@ export default function ProductsPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1680, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Products</Box>
+            <Box component="span">{t('pages.products', 'Products')}</Box>
           </Box>
 
           <Typography
@@ -184,14 +190,14 @@ export default function ProductsPage() {
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15, mb: 2 }}
           >
             <Inventory2OutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-            Products
+            {t('pages.products', 'Products')}
             <Box component="span" sx={{ fontWeight: 600, fontSize: 16, color: 'text.secondary' }}>
-              Panorama
+              {t('pages.panorama', 'Panorama')}
             </Box>
           </Typography>
 
           {failed ? (
-            <Typography color="text.secondary">This panorama could not be loaded.</Typography>
+            <Typography color="text.secondary">{t('copy.panoramaFailed', 'This panorama could not be loaded.')}</Typography>
           ) : (
             <>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
@@ -220,7 +226,7 @@ export default function ProductsPage() {
                 <AppTextField
                   value={filters.query}
                   onChange={(event) => setFilters((current) => ({ ...current, query: event.target.value }))}
-                  placeholder="Search by version name"
+                  placeholder={t('search.versions', 'Search by version name')}
                   size="small"
                   startIcon={<SearchIcon />}
                   aria-label="Search by version name"

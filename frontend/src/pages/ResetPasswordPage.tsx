@@ -11,9 +11,11 @@ import { BrandWordmark, MerkurLogo } from '@/components/brand'
 import { AuthShell } from '@/components/layout'
 import { PASSWORD_PATTERN } from '@/components/profile/ChangePasswordDialog'
 import { AppButton, AppCard, AppTextField } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 
 export default function ResetPasswordPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const token = useMemo(() => new URLSearchParams(search).get('token') ?? '', [search])
   const [valid, setValid] = useState<boolean | null>(null)
@@ -27,7 +29,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     if (!token) {
       setValid(false)
-      setInvalidMessage('This reset link is invalid or has expired. Request a new one.')
+      setInvalidMessage(t('reset.invalid', 'This reset link is invalid or has expired. Request a new one.'))
       return
     }
     let cancelled = false
@@ -35,19 +37,19 @@ export default function ResetPasswordPage() {
       .then((result) => {
         if (!cancelled) {
           setValid(result.valid)
-          setInvalidMessage(result.message ?? 'This reset link is invalid or has expired. Request a new one.')
+          setInvalidMessage(result.message ?? t('reset.invalid', 'This reset link is invalid or has expired. Request a new one.'))
         }
       })
       .catch(() => {
         if (!cancelled) {
           setValid(false)
-          setInvalidMessage('This reset link is invalid or has expired. Request a new one.')
+          setInvalidMessage(t('reset.invalid', 'This reset link is invalid or has expired. Request a new one.'))
         }
       })
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [token, t])
 
   const ready = PASSWORD_PATTERN.test(password) && password === confirm && password.length <= 50
 
@@ -55,7 +57,7 @@ export default function ResetPasswordPage() {
     event.preventDefault()
     setFormError('')
     if (!ready) {
-      setFormError('Please note the password rules and make sure both fields match.')
+      setFormError(t('reset.rules', 'Please note the password rules and make sure both fields match.'))
       return
     }
     setIsSubmitting(true)
@@ -63,7 +65,7 @@ export default function ResetPasswordPage() {
       await completePasswordReset({ token, password, password_confirmation: confirm })
       setSaved(true)
     } catch (error) {
-      setFormError(error instanceof ApiError ? error.message : 'The password could not be saved.')
+      setFormError(error instanceof ApiError ? error.message : t('reset.saveFailed', 'The password could not be saved.'))
     } finally {
       setIsSubmitting(false)
     }
@@ -105,31 +107,31 @@ export default function ResetPasswordPage() {
               {saved ? (
                 <Stack spacing={2.5}>
                   <Typography variant="h5" component="h1" sx={{ fontWeight: 800, textAlign: 'center' }}>
-                    Password saved
+                    {t('reset.saved', 'Password saved')}
                   </Typography>
-                  <Alert severity="success">Your password has been saved. You can sign in now.</Alert>
+                  <Alert severity="success">{t('reset.savedBody', 'Your password has been saved. You can sign in now.')}</Alert>
                   <AppButton fullWidth onClick={() => navigate(APP_PATHS.home)}>
-                    Sign in
+                    {t('login.submit', 'Sign in')}
                   </AppButton>
                 </Stack>
               ) : valid === false ? (
                 <Stack spacing={2.5}>
                   <Typography variant="h5" component="h1" sx={{ fontWeight: 800, textAlign: 'center' }}>
-                    Reset password
+                    {t('reset.title', 'Reset password')}
                   </Typography>
                   <Alert severity="error">{invalidMessage}</Alert>
                   <AppButton fullWidth onClick={() => navigate(APP_PATHS.forgotPassword)}>
-                    Request a new link
+                    {t('reset.request', 'Request a new link')}
                   </AppButton>
                 </Stack>
               ) : (
                 <Stack component="form" onSubmit={handleSubmit} spacing={2.5} noValidate>
                   <Stack spacing={0.5} sx={{ mb: 1, textAlign: 'center' }}>
                     <Typography variant="h5" component="h1" sx={{ fontWeight: 800 }}>
-                      Choose a new password
+                      {t('reset.choose', 'Choose a new password')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      Your new password needs to have at least 10 characters, a lowercase letter, an uppercase letter, and a digit.
+                      {t('reset.hint', 'Your new password needs to have at least 10 characters, a lowercase letter, an uppercase letter, and a digit.')}
                     </Typography>
                   </Stack>
                   {formError ? (
@@ -141,7 +143,7 @@ export default function ResetPasswordPage() {
                     type="password"
                     name="password"
                     autoComplete="new-password"
-                    label="New password"
+                    label={t('reset.newPassword', 'New password')}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     disabled={isSubmitting || valid !== true}
@@ -151,14 +153,14 @@ export default function ResetPasswordPage() {
                     type="password"
                     name="password_confirmation"
                     autoComplete="new-password"
-                    label="Repeat password"
+                    label={t('reset.repeat', 'Repeat password')}
                     value={confirm}
                     onChange={(event) => setConfirm(event.target.value)}
                     disabled={isSubmitting || valid !== true}
                     slotProps={{ htmlInput: { maxLength: 50 } }}
                   />
                   <AppButton type="submit" fullWidth loading={isSubmitting} disabled={!ready} endIcon={<ArrowForwardIcon />}>
-                    Save password
+                    {t('reset.save', 'Save password')}
                   </AppButton>
                 </Stack>
               )}

@@ -20,7 +20,8 @@ import Typography from '@mui/material/Typography'
 import { getTasks } from '@/api'
 import type { TaskRow, TasksPayload, TasksPeople, TasksTime } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { StatusBadge } from '@/components/products/StatusBadge'
 import { UserAvatar } from '@/components/user'
 import { tableBrowsePath } from '@/config/tablePages'
@@ -105,6 +106,7 @@ function jurisdictionLabel(row: TaskRow): string {
 }
 
 export default function TasksPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const [people, setPeople] = useState<TasksPeople>(() => peopleFromSearch())
@@ -114,17 +116,17 @@ export default function TasksPage() {
   const decolorize = Boolean(user?.decolorize_avatars)
 
   useEffect(() => {
-    document.title = 'My Tasks | MERKURflow'
+    document.title = `${t('pages.tasks', 'My Tasks')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const next = `${APP_PATHS.tasks}?p=${people}&t=${time}`
     const current = `${window.location.pathname}${window.location.search}`
     if (current !== next) {
-      window.history.replaceState(null, '', next)
+      navigate(next, { replace: true })
     }
 
     let cancelled = false
@@ -145,7 +147,7 @@ export default function TasksPage() {
     return () => {
       cancelled = true
     }
-  }, [people, time])
+  }, [people, time, navigate])
 
   function openTable(table: string, id: number) {
     navigate(`${tableBrowsePath(table)}?id=${id}`)
@@ -177,14 +179,14 @@ export default function TasksPage() {
           }}
         >
           <Box sx={{ flexShrink: 0 }}>
-            <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
+            <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
               <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-                Start
+                <CrumbHome />
               </Box>
               <Box component="span" color="text.secondary">
                 /
               </Box>
-              <Box component="span">My Tasks</Box>
+              <Box component="span">{t('pages.tasks', 'My Tasks')}</Box>
             </Box>
 
             <Typography
@@ -192,7 +194,7 @@ export default function TasksPage() {
               sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 40 }, mb: 2 }}
             >
               <CalendarMonthOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
-              My Tasks
+              {t('pages.tasks', 'My Tasks')}
             </Typography>
 
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1.5 }}>

@@ -49,22 +49,6 @@ export const GAME_STATUS_COLORS: Record<RoadmapGameStatusKey, { bg: string; fg: 
   rel: { bg: '#a2c617', fg: '#022052' },
 }
 
-const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-const MONTH_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-]
-
 export type RoadmapMonth = {
   key: string
   label: string
@@ -169,7 +153,7 @@ export type RoadmapGameGroup = {
   games: RoadmapGame[]
 }
 
-export function groupRoadmapGames(games: RoadmapGame[], filters: RoadmapFilterState): RoadmapGameGroup[] {
+export function groupRoadmapGames(games: RoadmapGame[], filters: RoadmapFilterState, locale?: string): RoadmapGameGroup[] {
   const sorted = [...games].sort((left, right) => compareGames(left, right, filters))
   if (filters.sortBy === 'nam') {
     return [{ key: 'name', label: 'By name', games: sorted }]
@@ -195,7 +179,7 @@ export function groupRoadmapGames(games: RoadmapGame[], filters: RoadmapFilterSt
     })
     .map(([key, items]) => ({
       key,
-      label: key === 'unknown' ? 'Unknown date' : monthLabel(key),
+      label: key === 'unknown' ? 'unknown' : monthLabel(key, locale),
       games: items,
     }))
 }
@@ -240,7 +224,11 @@ function gameSearchText(game: RoadmapGame): string {
     .toLowerCase()
 }
 
-export function monthsFromRows(rows: RoadmapRow[]): RoadmapMonth[] {
+function monthName(year: number, month: number, style: 'short' | 'long', locale?: string): string {
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(locale, { month: style, timeZone: 'UTC' })
+}
+
+export function monthsFromRows(rows: RoadmapRow[], locale?: string): RoadmapMonth[] {
   const keys = new Set<string>()
   for (const row of rows) {
     for (const milestone of row.milestones) {
@@ -249,10 +237,10 @@ export function monthsFromRows(rows: RoadmapRow[]): RoadmapMonth[] {
       }
     }
   }
-  return monthsFromKeys([...keys])
+  return monthsFromKeys([...keys], locale)
 }
 
-export function monthsFromGames(games: RoadmapGame[]): RoadmapMonth[] {
+export function monthsFromGames(games: RoadmapGame[], locale?: string): RoadmapMonth[] {
   const keys = new Set<string>()
   for (const game of games) {
     for (const status of Object.values(game.statuses)) {
@@ -264,10 +252,10 @@ export function monthsFromGames(games: RoadmapGame[]): RoadmapMonth[] {
       }
     }
   }
-  return monthsFromKeys([...keys])
+  return monthsFromKeys([...keys], locale)
 }
 
-function monthsFromKeys(keys: string[]): RoadmapMonth[] {
+function monthsFromKeys(keys: string[], locale?: string): RoadmapMonth[] {
   const sorted = [...new Set(keys)].sort()
   if (sorted.length === 0) {
     return []
@@ -284,7 +272,7 @@ function monthsFromKeys(keys: string[]): RoadmapMonth[] {
     const key = `${year}-${String(month).padStart(2, '0')}`
     months.push({
       key,
-      label: `${MONTH_SHORT[month - 1]} ${year}`,
+      label: `${monthName(year, month, 'short', locale)} ${year}`,
       year,
       month,
     })
@@ -297,22 +285,32 @@ function monthsFromKeys(keys: string[]): RoadmapMonth[] {
   return months
 }
 
-export function rangeLabel(months: RoadmapMonth[]): string {
+export function rangeParts(months: RoadmapMonth[], locale?: string): { kind: 'empty' | 'month' | 'sameYear' | 'years'; from: string; to: string; year: number } {
   if (months.length === 0) {
-    return 'Dynamic roadmap'
+    return { kind: 'empty', from: '', to: '', year: 0 }
   }
   const first = months[0]
   const last = months[months.length - 1]
   if (first.year === last.year && first.month === last.month) {
-    return `Dynamic roadmap ${MONTH_LONG[first.month - 1]} ${first.year}`
+    return { kind: 'month', from: `${monthName(first.year, first.month, 'long', locale)} ${first.year}`, to: '', year: first.year }
   }
   if (first.year === last.year) {
-    return `Dynamic roadmap ${MONTH_LONG[first.month - 1]}–${MONTH_LONG[last.month - 1]} ${first.year}`
+    return {
+      kind: 'sameYear',
+      from: monthName(first.year, first.month, 'long', locale),
+      to: monthName(last.year, last.month, 'long', locale),
+      year: first.year,
+    }
   }
-  return `Dynamic roadmap ${MONTH_LONG[first.month - 1]} ${first.year} – ${MONTH_LONG[last.month - 1]} ${last.year}`
+  return {
+    kind: 'years',
+    from: `${monthName(first.year, first.month, 'long', locale)} ${first.year}`,
+    to: `${monthName(last.year, last.month, 'long', locale)} ${last.year}`,
+    year: first.year,
+  }
 }
 
-export function sliderMonthSpan(dataMonths: RoadmapMonth[]): RoadmapMonth[] {
+export function sliderMonthSpan(dataMonths: RoadmapMonth[], locale?: string): RoadmapMonth[] {
   const currentYear = new Date().getFullYear()
   let minYear = currentYear - 2
   let maxYear = currentYear + 3
@@ -320,7 +318,7 @@ export function sliderMonthSpan(dataMonths: RoadmapMonth[]): RoadmapMonth[] {
     minYear = Math.min(minYear, month.year)
     maxYear = Math.max(maxYear, month.year)
   }
-  return monthsFromKeys([`${minYear}-01`, `${maxYear}-12`])
+  return monthsFromKeys([`${minYear}-01`, `${maxYear}-12`], locale)
 }
 
 export function defaultTimeRange(view: 'versions' | 'games'): { fromKey: string; toKey: string | null } {
@@ -360,12 +358,12 @@ export function monthsForGrid(
   return span.filter((month) => month.key >= filters.fromKey && month.key <= to)
 }
 
-export function monthLabel(key: string): string {
+export function monthLabel(key: string, locale?: string): string {
   const parsed = parseMonthKey(key)
   if (!parsed) {
     return key
   }
-  return `${MONTH_SHORT[parsed.month - 1]} ${parsed.year}`
+  return `${monthName(parsed.year, parsed.month, 'short', locale)} ${parsed.year}`
 }
 
 export function filtersAreDefault(

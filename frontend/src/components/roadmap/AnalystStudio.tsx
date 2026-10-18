@@ -11,6 +11,7 @@ import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import type { RoadmapGame } from '@/api'
+import { useI18n } from '@/i18n'
 
 type Perspective = 'pry-design-target-mkt' | 'studio'
 type ChartType = 'bar' | 'column' | 'pie' | 'donut'
@@ -19,13 +20,13 @@ type Slice = { label: string; count: number; color: string }
 
 const DEFAULT_COLORS = ['#009FE3', '#022052', '#E83181', '#A2C617', '#F07E26', '#EB0000', '#FFCC00', '#566A8C']
 
-function slicesFromGames(games: RoadmapGame[], perspective: Perspective): Slice[] {
+function slicesFromGames(games: RoadmapGame[], perspective: Perspective, emptyLabel: string): Slice[] {
   const buckets = new Map<string, Slice>()
   games.forEach((game) => {
     const label =
       perspective === 'studio'
-        ? game.studio || '∅ (NULL)'
-        : game.target_market?.name || game.target_market?.iso3166 || '∅ (NULL)'
+        ? game.studio || emptyLabel
+        : game.target_market?.name || game.target_market?.iso3166 || emptyLabel
     const color =
       perspective === 'studio'
         ? DEFAULT_COLORS[buckets.size % DEFAULT_COLORS.length]
@@ -38,51 +39,53 @@ function slicesFromGames(games: RoadmapGame[], perspective: Perspective): Slice[
 }
 
 export function AnalystStudio({ games }: { games: RoadmapGame[] }) {
+  const { t } = useI18n()
   const [perspective, setPerspective] = useState<Perspective>('pry-design-target-mkt')
   const [chartType, setChartType] = useState<ChartType>('bar')
   const [percent, setPercent] = useState(false)
   const [heading, setHeading] = useState(true)
   const [legend, setLegend] = useState(true)
-  const slices = useMemo(() => slicesFromGames(games, perspective), [games, perspective])
+  const emptyLabel = t('roadmap.emptyNull', '∅ (NULL)')
+  const slices = useMemo(() => slicesFromGames(games, perspective, emptyLabel), [games, perspective, emptyLabel])
   const total = slices.reduce((sum, slice) => sum + slice.count, 0)
-  const title = perspective === 'studio' ? 'Studio' : 'Primary Design Target Market'
+  const title = perspective === 'studio' ? t('roadmap.studio', 'Studio') : t('roadmap.targetMarketTitle', 'Primary Design Target Market')
 
   return (
     <Accordion sx={{ mb: 2, background: 'linear-gradient(90deg, rgba(232,49,129,0.08), rgba(0,159,227,0.08))' }}>
       <AccordionSummary expandIcon={<ExpandMoreIcon />}>
         <Typography sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
           <BoltOutlinedIcon sx={{ color: 'merkur.pink' }} />
-          Analyst Studio
+          {t('roadmap.analyst', 'Analyst Studio')}
         </Typography>
       </AccordionSummary>
       <AccordionDetails>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 2fr' }, gap: 2 }}>
           <Box>
-            <Typography sx={{ fontWeight: 800, mb: 1 }}>1 Perspective</Typography>
+            <Typography sx={{ fontWeight: 800, mb: 1 }}>{t('roadmap.perspective', '1 Perspective')}</Typography>
             <RadioGroup value={perspective} onChange={(event) => setPerspective(event.target.value as Perspective)}>
-              <FormControlLabel value="pry-design-target-mkt" control={<Radio size="small" />} label="Pry Design Target Mkt" />
-              <FormControlLabel value="studio" control={<Radio size="small" />} label="Studio" />
+              <FormControlLabel value="pry-design-target-mkt" control={<Radio size="small" />} label={t('roadmap.targetMarket', 'Pry Design Target Mkt')} />
+              <FormControlLabel value="studio" control={<Radio size="small" />} label={t('roadmap.studio', 'Studio')} />
             </RadioGroup>
           </Box>
           <Box>
-            <Typography sx={{ fontWeight: 800, mb: 1 }}>2 Parameters</Typography>
+            <Typography sx={{ fontWeight: 800, mb: 1 }}>{t('roadmap.parameters', '2 Parameters')}</Typography>
             <RadioGroup value={chartType} onChange={(event) => setChartType(event.target.value as ChartType)}>
-              <FormControlLabel value="bar" control={<Radio size="small" />} label="Bar" />
-              <FormControlLabel value="column" control={<Radio size="small" />} label="Column" />
-              <FormControlLabel value="pie" control={<Radio size="small" />} label="Pie" />
-              <FormControlLabel value="donut" control={<Radio size="small" />} label="Donut" />
+              <FormControlLabel value="bar" control={<Radio size="small" />} label={t('roadmap.bar', 'Bar')} />
+              <FormControlLabel value="column" control={<Radio size="small" />} label={t('roadmap.column', 'Column')} />
+              <FormControlLabel value="pie" control={<Radio size="small" />} label={t('roadmap.pie', 'Pie')} />
+              <FormControlLabel value="donut" control={<Radio size="small" />} label={t('roadmap.donut', 'Donut')} />
             </RadioGroup>
-            <FormControlLabel control={<Switch size="small" checked={percent} onChange={(event) => setPercent(event.target.checked)} />} label="Calculate percentage" />
-            <FormControlLabel control={<Switch size="small" checked={heading} onChange={(event) => setHeading(event.target.checked)} />} label="Heading" />
-            <FormControlLabel control={<Switch size="small" checked={legend} onChange={(event) => setLegend(event.target.checked)} />} label="Legend" />
+            <FormControlLabel control={<Switch size="small" checked={percent} onChange={(event) => setPercent(event.target.checked)} />} label={t('roadmap.percent', 'Calculate percentage')} />
+            <FormControlLabel control={<Switch size="small" checked={heading} onChange={(event) => setHeading(event.target.checked)} />} label={t('roadmap.heading', 'Heading')} />
+            <FormControlLabel control={<Switch size="small" checked={legend} onChange={(event) => setLegend(event.target.checked)} />} label={t('roadmap.legend', 'Legend')} />
           </Box>
           <Box>
-            <Typography sx={{ fontWeight: 800, mb: 1 }}>3 Output</Typography>
+            <Typography sx={{ fontWeight: 800, mb: 1 }}>{t('roadmap.output', '3 Output')}</Typography>
             {heading ? (
               <Typography sx={{ fontWeight: 800, mb: 1.5 }}>{title}</Typography>
             ) : null}
             {slices.length === 0 ? (
-              <Typography color="text.secondary">No games in the current period.</Typography>
+              <Typography color="text.secondary">{t('roadmap.noGamesPeriod', 'No games in the current period.')}</Typography>
             ) : chartType === 'bar' || chartType === 'column' ? (
               <BarChart slices={slices} total={total} percent={percent} columns={chartType === 'column'} />
             ) : (

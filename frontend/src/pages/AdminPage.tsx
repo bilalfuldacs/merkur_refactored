@@ -3,7 +3,8 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 
 const crumbSx = {
@@ -48,48 +49,61 @@ const LINKS: AdminLink[] = [
 ]
 
 export default function AdminPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
 
   useEffect(() => {
-    document.title = 'Admin | MERKURflow'
+    document.title = `${t('pages.adminCrumb', 'Admin')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   return (
     <PageBackground>
       <AppHeader />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 3, maxWidth: 720, mx: 'auto', width: '100%' }}>
-        <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
+        <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-            Start
+            <CrumbHome />
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
-          <Box component="span">Admin</Box>
+          <Box component="span">{t('pages.adminCrumb', 'Admin')}</Box>
         </Box>
 
         <Typography component="h1" sx={{ fontWeight: 800, fontSize: 28, mb: 1, color: 'secondary.main' }}>
-          Administration
+          {t('pages.admin', 'Administration')}
         </Typography>
         <Typography sx={{ color: 'text.secondary', mb: 3 }}>
-          Superuser tools for accounts, feedback, attachments, and table history.
+          {t('copy.adminIntro', 'Superuser tools for accounts, feedback, attachments, and table history.')}
         </Typography>
 
         {!isSuperuser ? (
-          <Alert severity="warning">Superuser access is required for the admin hub.</Alert>
+          <Alert severity="warning">{t('copy.adminRequired', 'Superuser access is required for the admin hub.')}</Alert>
         ) : (
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-            {LINKS.map((item) => (
-              <Box key={item.id} component="button" type="button" onClick={() => navigate(item.path)} sx={linkCardSx}>
-                <Typography sx={{ fontWeight: 800, fontSize: 16 }}>{item.label}</Typography>
-                <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{item.description}</Typography>
-              </Box>
-            ))}
+            {LINKS.map((item) => {
+              const text: Record<string, [string, string]> = {
+                users: ['pages.users', 'copy.usersLink'],
+                roles: ['pages.roles', 'copy.rolesLink'],
+                feedback: ['nav.feedbackAdmin', 'copy.feedbackLink'],
+                words: ['nav.merkuriosityWords', 'copy.wordsLink'],
+                trash: ['pages.attachmentTrash', 'copy.trashLink'],
+                activity: ['pages.userActivity', 'copy.activityLink'],
+                history: ['pages.tableHistory', 'copy.historyLink'],
+              }
+              const [labelKey, hintKey] = text[item.id]
+              return (
+                <Box key={item.id} component="button" type="button" onClick={() => navigate(item.path)} sx={linkCardSx}>
+                  <Typography sx={{ fontWeight: 800, fontSize: 16 }}>{t(labelKey, item.label)}</Typography>
+                  <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{t(hintKey, item.description)}</Typography>
+                </Box>
+              )
+            })}
           </Box>
         )}
       </Box>

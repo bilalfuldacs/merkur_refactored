@@ -14,9 +14,10 @@ import Typography from '@mui/material/Typography'
 import { ApiError } from '@/api'
 import type { FeedbackInput, FeedbackType } from '@/api'
 import { AppButton, AppTextField } from '@/components/ui'
-import { DESCRIPTION_MAX, FEEDBACK_AREAS, FEEDBACK_TYPES, typeLabel } from './constants'
+import { useI18n } from '@/i18n'
+import { DESCRIPTION_MAX, FEEDBACK_AREAS, FEEDBACK_TYPES, feedbackAreaLabel, feedbackTypeLabel } from './constants'
 
-const STEPS = ['Feedback type', 'Details', 'Review'] as const
+const STEPS = ['stepType', 'stepDetails', 'stepReview'] as const
 
 type Draft = {
   type: FeedbackType
@@ -45,6 +46,7 @@ export function SubmitFeedbackDialog({
   onClose: () => void
   onSubmit: (input: FeedbackInput) => Promise<void>
 }) {
+  const { t } = useI18n()
   const [step, setStep] = useState(0)
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [error, setError] = useState<string | null>(null)
@@ -63,29 +65,29 @@ export function SubmitFeedbackDialog({
   const titleCopy = useMemo(() => {
     if (draft.type === 'problem') {
       return {
-        heading: 'Tell us what went wrong',
-        hint: 'Describe what you were doing and what you expected instead.',
+        heading: t('feedback.headingProblem', 'Tell us what went wrong'),
+        hint: t('feedback.hintProblem', 'Describe what you were doing and what you expected instead.'),
       }
     }
     if (draft.type === 'idea') {
       return {
-        heading: 'Tell us what you would add',
-        hint: 'Describe the outcome you need. You do not need to propose a technical solution.',
+        heading: t('feedback.headingIdea', 'Tell us what you would add'),
+        hint: t('feedback.hintOutcome', 'Describe the outcome you need. You do not need to propose a technical solution.'),
       }
     }
     return {
-      heading: 'Tell us what would improve',
-      hint: 'Describe the outcome you need. You do not need to propose a technical solution.',
+      heading: t('feedback.headingImprove', 'Tell us what would improve'),
+      hint: t('feedback.hintOutcome', 'Describe the outcome you need. You do not need to propose a technical solution.'),
     }
-  }, [draft.type])
+  }, [draft.type, t])
 
   function validateDetails(): boolean {
     const next: { subject?: string; description?: string } = {}
     if (!draft.subject.trim()) {
-      next.subject = 'Add a short title that summarizes the need.'
+      next.subject = t('feedback.titleRequired', 'Add a short title that summarizes the need.')
     }
     if (!draft.description.trim()) {
-      next.description = 'Describe what you are trying to achieve.'
+      next.description = t('feedback.descriptionRequired', 'Describe what you are trying to achieve.')
     }
     setFieldErrors(next)
     return Object.keys(next).length === 0
@@ -110,7 +112,7 @@ export function SubmitFeedbackDialog({
         screenshot: draft.screenshot,
       })
     } catch (caught) {
-      setError(caught instanceof ApiError ? caught.message : 'Your feedback could not be submitted.')
+      setError(caught instanceof ApiError ? caught.message : t('feedback.submitFailed', 'Your feedback could not be submitted.'))
     }
   }
 
@@ -118,7 +120,7 @@ export function SubmitFeedbackDialog({
     <Dialog open={open} onClose={saving ? undefined : onClose} fullWidth maxWidth="sm">
       <Box sx={{ p: { xs: 2.5, md: 3.5 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2.5 }}>
-          <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>Submit feedback</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>{t('feedback.dialogTitle', 'Submit feedback')}</Typography>
           <AppButton
             variant="text"
             color="inherit"
@@ -128,12 +130,12 @@ export function SubmitFeedbackDialog({
             disabled={saving}
             sx={{ color: 'text.secondary' }}
           >
-            Cancel
+            {t('common.cancel', 'Cancel')}
           </AppButton>
         </Box>
 
         <Typography sx={{ color: 'text.secondary', fontSize: 13, fontWeight: 700, mb: 1.25 }}>
-          Step {step + 1} of {STEPS.length}
+          {t('feedback.stepOf', 'Step {current} of {total}', { current: step + 1, total: STEPS.length })}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           {STEPS.map((label, index) => {
@@ -164,7 +166,7 @@ export function SubmitFeedbackDialog({
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {label}
+                  {t(`feedback.${label}`)}
                 </Typography>
                 {index < STEPS.length - 1 ? (
                   <Box sx={{ flex: 1, height: 2, bgcolor: index < step ? 'info.main' : 'grey.200', mx: 0.5, minWidth: 16 }} />
@@ -183,10 +185,10 @@ export function SubmitFeedbackDialog({
         {step === 0 ? (
           <Box>
             <Typography sx={{ fontWeight: 800, fontSize: 20, color: 'secondary.main', mb: 0.5 }}>
-              What would you like to share?
+              {t('feedback.whatShare', 'What would you like to share?')}
             </Typography>
             <Typography sx={{ color: 'text.secondary', fontSize: 14, mb: 2 }}>
-              Choosing a type helps the right team review it faster.
+              {t('feedback.typeHint', 'Choosing a type helps the right team review it faster.')}
             </Typography>
             <RadioGroup
               value={draft.type}
@@ -214,8 +216,8 @@ export function SubmitFeedbackDialog({
                       control={<Radio />}
                       label={
                         <Box sx={{ py: 0.5 }}>
-                          <Typography sx={{ fontWeight: 800, color: 'secondary.main' }}>{option.label}</Typography>
-                          <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{option.detail}</Typography>
+                          <Typography sx={{ fontWeight: 800, color: 'secondary.main' }}>{t(option.labelKey)}</Typography>
+                          <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{t(option.detailKey)}</Typography>
                         </Box>
                       }
                       sx={{ m: 0, width: '100%', alignItems: 'flex-start' }}
@@ -232,11 +234,11 @@ export function SubmitFeedbackDialog({
             <Typography sx={{ fontWeight: 800, fontSize: 20, color: 'secondary.main', mb: 0.5 }}>{titleCopy.heading}</Typography>
             <Typography sx={{ color: 'text.secondary', fontSize: 14, mb: 2.5 }}>{titleCopy.hint}</Typography>
             <AppTextField
-              label="Short title"
+              label={t('feedback.shortTitle', 'Short title')}
               value={draft.subject}
               onChange={(event) => setDraft((current) => ({ ...current, subject: event.target.value }))}
-              placeholder="Example: Make roadmap filters easier to reuse"
-              helperText={fieldErrors.subject ?? 'Summarize the need in one sentence.'}
+              placeholder={t('feedback.titlePlaceholder', 'Example: Make roadmap filters easier to reuse')}
+              helperText={fieldErrors.subject ?? t('feedback.titleHelper', 'Summarize the need in one sentence.')}
               error={Boolean(fieldErrors.subject)}
               slotProps={{ htmlInput: { maxLength: 200 } }}
               sx={{ mb: 2 }}
@@ -251,20 +253,39 @@ export function SubmitFeedbackDialog({
             >
               <AppTextField
                 select
-                label="Area"
+                label={t('feedback.area', 'Area')}
                 value={draft.area}
                 onChange={(event) => setDraft((current) => ({ ...current, area: event.target.value }))}
               >
                 {FEEDBACK_AREAS.map((area) => (
                   <MenuItem key={area} value={area}>
-                    {area}
+                    {feedbackAreaLabel(t, area)}
                   </MenuItem>
                 ))}
               </AppTextField>
               <Box>
                 <Typography component="label" htmlFor="feedback-screenshot" sx={{ display: 'block', fontSize: 12, fontWeight: 700, mb: 0.75 }}>
-                  Screenshot (optional)
+                  {t('feedback.screenshotOptional', 'Screenshot (optional)')}
                 </Typography>
+                <Box
+                  component="label"
+                  htmlFor="feedback-screenshot"
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    px: 1.5,
+                    py: 0.75,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    cursor: 'pointer',
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: 'secondary.main',
+                  }}
+                >
+                  {draft.screenshot?.name || t('feedback.chooseFile', 'Choose file')}
+                </Box>
                 <Box
                   component="input"
                   id="feedback-screenshot"
@@ -273,24 +294,22 @@ export function SubmitFeedbackDialog({
                   onChange={(event) =>
                     setDraft((current) => ({ ...current, screenshot: event.currentTarget.files?.[0] ?? null }))
                   }
-                  sx={{
-                    width: '100%',
-                    font: 'inherit',
-                    fontSize: 13,
-                    py: 1.25,
-                  }}
+                  sx={{ display: 'none' }}
                 />
-                <Typography sx={{ color: 'text.secondary', fontSize: 12, mt: 0.5 }}>PNG or JPG, up to 2 MB.</Typography>
+                <Typography sx={{ color: 'text.secondary', fontSize: 12, mt: 0.5 }}>{t('feedback.screenshotHint', 'PNG or JPG, up to 2 MB.')}</Typography>
               </Box>
             </Box>
             <AppTextField
-              label="What are you trying to achieve?"
+              label={t('feedback.achieve', 'What are you trying to achieve?')}
               value={draft.description}
               onChange={(event) =>
                 setDraft((current) => ({ ...current, description: event.target.value.slice(0, DESCRIPTION_MAX) }))
               }
-              placeholder="Explain what you were doing, what made it difficult, and what outcome would help you."
-              helperText={fieldErrors.description ?? `${draft.description.length} / ${DESCRIPTION_MAX} characters`}
+              placeholder={t('feedback.descriptionPlaceholder', 'Explain what you were doing, what made it difficult, and what outcome would help you.')}
+              helperText={
+                fieldErrors.description ??
+                t('feedback.characters', '{count} / {max} characters', { count: draft.description.length, max: DESCRIPTION_MAX })
+              }
               error={Boolean(fieldErrors.description)}
               multiline
               minRows={5}
@@ -300,16 +319,16 @@ export function SubmitFeedbackDialog({
 
         {step === 2 ? (
           <Box>
-            <Typography sx={{ fontWeight: 800, fontSize: 20, color: 'secondary.main', mb: 0.5 }}>Review your feedback</Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: 20, color: 'secondary.main', mb: 0.5 }}>{t('feedback.reviewTitle', 'Review your feedback')}</Typography>
             <Typography sx={{ color: 'text.secondary', fontSize: 14, mb: 2.5 }}>
-              Check the details before submitting. You can return to the previous step to make changes.
+              {t('feedback.reviewHint', 'Check the details before submitting. You can return to the previous step to make changes.')}
             </Typography>
             <Box sx={{ display: 'grid', gap: 1.5 }}>
-              <ReviewRow label="Type" value={typeLabel(draft.type)} />
-              <ReviewRow label="Title" value={draft.subject.trim()} />
-              <ReviewRow label="Area" value={draft.area} />
-              <ReviewRow label="Description" value={draft.description.trim()} />
-              {draft.screenshot ? <ReviewRow label="Screenshot" value={draft.screenshot.name} /> : null}
+              <ReviewRow label={t('feedback.type', 'Type')} value={feedbackTypeLabel(t, draft.type)} />
+              <ReviewRow label={t('feedback.title', 'Title')} value={draft.subject.trim()} />
+              <ReviewRow label={t('feedback.area', 'Area')} value={feedbackAreaLabel(t, draft.area)} />
+              <ReviewRow label={t('feedback.description', 'Description')} value={draft.description.trim()} />
+              {draft.screenshot ? <ReviewRow label={t('feedback.screenshot', 'Screenshot')} value={draft.screenshot.name} /> : null}
             </Box>
           </Box>
         ) : null}
@@ -317,18 +336,18 @@ export function SubmitFeedbackDialog({
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3, gap: 1 }}>
           {step > 0 ? (
             <AppButton variant="text" color="inherit" startIcon={<ArrowBackOutlinedIcon />} onClick={() => setStep((current) => current - 1)} disabled={saving}>
-              Back
+              {t('feedback.back', 'Back')}
             </AppButton>
           ) : (
             <span />
           )}
           {step < STEPS.length - 1 ? (
             <AppButton color="secondary" endIcon={<ArrowForwardOutlinedIcon />} onClick={goNext}>
-              Continue
+              {t('feedback.continue', 'Continue')}
             </AppButton>
           ) : (
             <AppButton color="secondary" startIcon={<SendOutlinedIcon />} onClick={() => void submit()} disabled={saving}>
-              {saving ? 'Submitting…' : 'Submit feedback'}
+              {saving ? t('feedback.submitting', 'Submitting…') : t('feedback.submit', 'Submit feedback')}
             </AppButton>
           )}
         </Box>

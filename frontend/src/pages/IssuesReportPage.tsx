@@ -10,7 +10,8 @@ import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { apiRequest } from '@/api/client'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { tableBrowsePath } from '@/config/tablePages'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -44,16 +45,17 @@ const crumbSx = {
 } as const
 
 export default function IssuesReportPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const [payload, setPayload] = useState<IssuesPayload | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    document.title = 'Issues | MERKURflow'
+    document.title = `${t('pages.issues', 'Issues')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -78,23 +80,23 @@ export default function IssuesReportPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.reports)} sx={crumbSx}>
               Reports
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">Issues</Box>
+            <Box component="span">{t('pages.issues', 'Issues')}</Box>
           </Box>
           <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 40 }, mb: 1 }}>
             <ReportProblemOutlinedIcon sx={{ color: '#EB0000', fontSize: 36 }} />
-            Issues
+            {t('pages.issues', 'Issues')}
           </Typography>
-          <Typography sx={{ mb: 2 }}>This report lists items that might need your attention as they are incomplete or outdated.</Typography>
-          {failed ? <Typography color="text.secondary">The report could not be loaded.</Typography> : null}
+          <Typography sx={{ mb: 2 }}>{t('copy.issuesIntro', 'This report lists items that might need your attention as they are incomplete or outdated.')}</Typography>
+          {failed ? <Typography color="text.secondary">{t('copy.issuesFailed', 'The report could not be loaded.')}</Typography> : null}
           {payload ? (
             <>
               <Typography component="h2" sx={{ fontWeight: 800, fontSize: 22, mb: 1.5 }}>

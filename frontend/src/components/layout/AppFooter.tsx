@@ -1,8 +1,10 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import hubLogo from '@/assets/brand/strategic-intelligence-hub-light.svg'
+import { useI18n } from '@/i18n'
 
 export function AppFooter() {
+  const { t } = useI18n()
   return (
     <Box
       component="footer"
@@ -27,22 +29,22 @@ export function AppFooter() {
         }}
       >
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-          Made with{' '}
+          {t('footer.madeWith', 'Made with')}{' '}
           <Box component="span" aria-hidden="true" sx={{ color: 'error.main' }}>
             ♥
           </Box>{' '}
-          in Meckenheim &amp; Lübbecke
+          {t('footer.location', 'in Meckenheim & Lübbecke')}
         </Typography>
 
         <Box
           component="img"
           src={hubLogo}
-          alt="powered by Strategic Intelligence Hub"
+          alt={t('footer.poweredBy', 'powered by Strategic Intelligence Hub')}
           sx={{ width: 120, height: 28, objectFit: 'contain', display: 'block' }}
         />
 
         <Typography variant="caption" color="text.secondary">
-          © 2022–2026, adp MERKUR GmbH • Authorized use only
+          {t('footer.copyright', '© 2022–2026, adp MERKUR GmbH • Authorized use only')}
         </Typography>
       </Box>
     </Box>

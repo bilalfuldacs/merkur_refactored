@@ -18,6 +18,7 @@ import type { InstallationJurisdiction } from '@/api'
 import { AppTextField } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
 import { tableBrowsePath } from '@/config/tablePages'
+import { useI18n } from '@/i18n'
 import { useAppPath } from '@/routing'
 import { PERF_SLICES } from './chartConfig'
 
@@ -37,6 +38,7 @@ export function JurisdictionTable({
   decolorize?: boolean
 }) {
   const { navigate } = useAppPath()
+  const { t, locale } = useI18n()
   const [filter, setFilter] = useState<StatusFilter>('all')
   const [query, setQuery] = useState('')
   const [openId, setOpenId] = useState<number | null>(null)
@@ -76,9 +78,11 @@ export function JurisdictionTable({
     >
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, p: 2 }}>
         <Box sx={{ flex: 1, minWidth: 180 }}>
-          <Typography sx={{ fontWeight: 800, fontSize: 18 }}>Installed by jurisdiction</Typography>
+          <Typography sx={{ fontWeight: 800, fontSize: 18 }}>{t('reports.installedBy', 'Installed by jurisdiction')}</Typography>
           <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-            {visible.length} {visible.length === 1 ? 'jurisdiction' : 'jurisdictions'} shown
+            {visible.length === 1
+              ? t('reports.oneJurisdictionShown', '1 jurisdiction shown')
+              : t('reports.manyJurisdictionsShown', '{count} jurisdictions shown', { count: visible.length })}
           </Typography>
         </Box>
         <ToggleButtonGroup
@@ -91,17 +95,17 @@ export function JurisdictionTable({
             }
           }}
         >
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="live">Live</ToggleButton>
-          <ToggleButton value="test">Test</ToggleButton>
-          <ToggleButton value="planned">Planned</ToggleButton>
+          <ToggleButton value="all">{t('reports.all', 'All')}</ToggleButton>
+          <ToggleButton value="live">{t('reports.live', 'Live')}</ToggleButton>
+          <ToggleButton value="test">{t('reports.test', 'Test')}</ToggleButton>
+          <ToggleButton value="planned">{t('reports.planned', 'Planned')}</ToggleButton>
         </ToggleButtonGroup>
         <AppTextField
           size="small"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Country, market or code"
-          aria-label="Search jurisdictions"
+          placeholder={t('reports.searchJurisdictions', 'Country, market or code')}
+          aria-label={t('reports.searchJurisdictionsLabel', 'Search jurisdictions')}
           startIcon={<SearchIcon />}
           sx={{ width: { xs: '100%', sm: 240 } }}
         />
@@ -112,13 +116,13 @@ export function JurisdictionTable({
           <TableHead>
             <TableRow>
               <TableCell sx={{ ...headerSx, width: 48 }} />
-              <TableCell sx={headerSx}>Jurisdiction</TableCell>
-              <TableCell sx={headerSx}>First installed</TableCell>
-              <TableCell sx={{ ...headerSx, textAlign: 'right' }}>Live</TableCell>
-              <TableCell sx={{ ...headerSx, textAlign: 'right' }}>Test</TableCell>
-              <TableCell sx={{ ...headerSx, textAlign: 'right' }}>Planned</TableCell>
-              <TableCell sx={{ ...headerSx, textAlign: 'center' }}>Performance</TableCell>
-              <TableCell sx={{ ...headerSx, textAlign: 'center' }}>Technical</TableCell>
+              <TableCell sx={headerSx}>{t('reports.jurisdiction', 'Jurisdiction')}</TableCell>
+              <TableCell sx={headerSx}>{t('reports.firstInstalled', 'First installed')}</TableCell>
+              <TableCell sx={{ ...headerSx, textAlign: 'right' }}>{t('reports.live', 'Live')}</TableCell>
+              <TableCell sx={{ ...headerSx, textAlign: 'right' }}>{t('reports.test', 'Test')}</TableCell>
+              <TableCell sx={{ ...headerSx, textAlign: 'right' }}>{t('reports.planned', 'Planned')}</TableCell>
+              <TableCell sx={{ ...headerSx, textAlign: 'center' }}>{t('reports.performance', 'Performance')}</TableCell>
+              <TableCell sx={{ ...headerSx, textAlign: 'center' }}>{t('reports.technical', 'Technical')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -126,7 +130,7 @@ export function JurisdictionTable({
               <TableRow>
                 <TableCell colSpan={8}>
                   <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
-                    No jurisdictions match this view.
+                    {t('reports.noJurisdictions', 'No jurisdictions match this view.')}
                   </Typography>
                 </TableCell>
               </TableRow>
@@ -141,6 +145,7 @@ export function JurisdictionTable({
                     decolorize={decolorize}
                     onToggle={() => setOpenId(open ? null : row.ID)}
                     onOpenSite={(id) => navigate(`${tableBrowsePath('installations')}?id=${id}`)}
+                    locale={locale}
                   />
                 )
               })
@@ -158,18 +163,21 @@ function JurisdictionRows({
   decolorize,
   onToggle,
   onOpenSite,
+  locale,
 }: {
   row: InstallationJurisdiction
   open: boolean
   decolorize: boolean
   onToggle: () => void
   onOpenSite: (id: number) => void
+  locale: string
 }) {
+  const { t } = useI18n()
   return (
     <>
       <TableRow hover sx={{ '& td': { borderBottom: open ? 0 : undefined } }}>
         <TableCell>
-          <IconButton size="small" aria-label={open ? 'Hide venues' : 'Show venues'} onClick={onToggle}>
+          <IconButton size="small" aria-label={open ? t('reports.hideVenues', 'Hide venues') : t('reports.showVenues', 'Show venues')} onClick={onToggle}>
             {open ? <KeyboardArrowUpOutlinedIcon /> : <KeyboardArrowDownOutlinedIcon />}
           </IconButton>
         </TableCell>
@@ -193,7 +201,7 @@ function JurisdictionRows({
             </Box>
           </Box>
         </TableCell>
-        <TableCell>{formatDate(row.first_installed)}</TableCell>
+        <TableCell>{formatDate(row.first_installed, locale, t('reports.notRecorded', 'Not recorded'))}</TableCell>
         <TableCell align="right" sx={{ fontWeight: 800 }}>
           {row.live}
         </TableCell>
@@ -249,13 +257,13 @@ function JurisdictionRows({
                     <Typography color="text.secondary" sx={{ fontSize: 12.5 }}>
                       {[site.first_install_type, site.rtp ? `RTP ${site.rtp}` : null, site.comment]
                         .filter(Boolean)
-                        .join(' · ') || 'No extra notes'}
+                        .join(' · ') || t('reports.noNotes', 'No extra notes')}
                     </Typography>
                   </Box>
-                  <Typography color="text.secondary">{formatDate(site.date)}</Typography>
-                  <Typography sx={{ fontWeight: 700 }}>{site.live} live</Typography>
-                  <Typography>{site.test} test</Typography>
-                  <Typography>{site.planned} planned</Typography>
+                  <Typography color="text.secondary">{formatDate(site.date, locale, t('reports.notRecorded', 'Not recorded'))}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{t('reports.liveCount', '{count} live', { count: site.live })}</Typography>
+                  <Typography>{t('reports.testCount', '{count} test', { count: site.test })}</Typography>
+                  <Typography>{t('reports.plannedCount', '{count} planned', { count: site.planned })}</Typography>
                   <PerfBadge value={site.perf_label} />
                   <TechDot rating={site.tech_rating} />
                 </Box>
@@ -269,15 +277,16 @@ function JurisdictionRows({
 }
 
 function PerfBadge({ value }: { value: string | null }) {
+  const { t } = useI18n()
   if (!value) {
     return (
       <Typography color="text.secondary" sx={{ fontSize: 13 }}>
-        No data
+        {t('reports.noData', 'No data')}
       </Typography>
     )
   }
   if (value === 'mixed') {
-    return <Chip size="small" label="Mixed" />
+    return <Chip size="small" label={t('reports.mixed', 'Mixed')} />
   }
   const slice = PERF_SLICES.find((item) => item.label === value)
   return (
@@ -312,13 +321,14 @@ function TechCell({
   green: number
   reports: number
 }) {
+  const { t } = useI18n()
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75 }}>
       <TechDot rating="red" dim={red === 0} />
       <TechDot rating="yellow" dim={yellow === 0} />
       <TechDot rating="green" dim={green === 0} />
       <Typography color="text.secondary" sx={{ fontSize: 12 }}>
-        {reports} {reports === 1 ? 'report' : 'reports'}
+        {reports === 1 ? t('reports.oneReport', '1 report') : t('reports.manyReports', '{count} reports', { count: reports })}
       </Typography>
     </Box>
   )
@@ -340,13 +350,13 @@ function TechDot({ rating, dim = false }: { rating: 'red' | 'yellow' | 'green' |
   )
 }
 
-function formatDate(value: string | null): string {
+function formatDate(value: string | null, locale: string, empty: string): string {
   if (!value) {
-    return 'Not recorded'
+    return empty
   }
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return value
   }
-  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })
 }

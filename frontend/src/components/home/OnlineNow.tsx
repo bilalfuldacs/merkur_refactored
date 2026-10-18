@@ -4,28 +4,31 @@ import Typography from '@mui/material/Typography'
 import { getOnlineUsers, type OnlineUser } from '@/api'
 import { useAuth } from '@/auth'
 import { UserAvatar } from '@/components/user'
+import { useI18n } from '@/i18n'
 
-function formatHm(value: Date): string {
-  return value.toLocaleTimeString([], {
+function formatHm(value: Date, locale: string): string {
+  return value.toLocaleTimeString(locale, {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   })
 }
 
-function useLocalClock(): string {
-  const [label, setLabel] = useState(() => formatHm(new Date()))
+function useLocalClock(locale: string): string {
+  const [label, setLabel] = useState(() => formatHm(new Date(), locale))
 
   useEffect(() => {
-    const id = window.setInterval(() => setLabel(formatHm(new Date())), 30_000)
+    setLabel(formatHm(new Date(), locale))
+    const id = window.setInterval(() => setLabel(formatHm(new Date(), locale)), 30_000)
     return () => window.clearInterval(id)
-  }, [])
+  }, [locale])
 
   return label
 }
 
 export function OnlineNow() {
-  const nowLabel = useLocalClock()
+  const { locale, t } = useI18n()
+  const nowLabel = useLocalClock(locale)
   const { user } = useAuth()
   const [users, setUsers] = useState<OnlineUser[]>([])
 
@@ -52,7 +55,7 @@ export function OnlineNow() {
   return (
     <Box
       component="section"
-      aria-label="Online now"
+      aria-label={t('home.onlineNow', 'Online now')}
       sx={{
         display: 'flex',
         justifyContent: 'center',
@@ -73,7 +76,7 @@ export function OnlineNow() {
         }}
       >
         <Typography component="span" sx={{ fontSize: 15, color: 'text.secondary', pr: 0.5 }}>
-          Online
+          {t('home.online', 'Online')}
         </Typography>
         <Box
           sx={{
@@ -89,7 +92,7 @@ export function OnlineNow() {
               'linear-gradient(90deg, #E83181BF 0%, #E831817F 65%, #E831811F 100%)',
           }}
         >
-          Now{' '}
+          {t('home.now', 'Now')}{' '}
           <Box component="span" sx={{ fontWeight: 800, color: 'secondary.main', ml: 0.5 }}>
             {nowLabel}
           </Box>
@@ -110,7 +113,7 @@ export function OnlineNow() {
               decolorize={Boolean(user?.decolorize_avatars)}
             />
             <Typography component="span" sx={{ fontSize: 14, color: 'text.secondary' }}>
-              {formatHm(new Date(onlineUser.last_login_at))}
+              {formatHm(new Date(onlineUser.last_login_at), locale)}
             </Typography>
           </Box>
         ))}

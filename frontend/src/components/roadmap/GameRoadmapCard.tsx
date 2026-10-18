@@ -9,9 +9,28 @@ import Typography from '@mui/material/Typography'
 import type { RoadmapGame, RoadmapGameStatus, RoadmapGameStatusKey, RoadmapPerson } from '@/api'
 import { UserAvatar } from '@/components/user/UserAvatar'
 import { AppButton } from '@/components/ui'
-import { GAME_STATUS_COLORS, GAME_STATUS_KEYS, flagLabel } from './format'
+import { useI18n } from '@/i18n'
+import type { Translate } from '@/i18n'
+import { GAME_STATUS_COLORS, GAME_STATUS_KEYS } from './format'
 
-function StatusDate({ status }: { status: RoadmapGameStatus | null }) {
+const STATUS_LABEL: Record<RoadmapGameStatusKey, string> = {
+  req: 'roadmap.statusRequested',
+  dev: 'roadmap.statusDev',
+  tri: 'roadmap.statusTrial',
+  rel: 'roadmap.statusReleased',
+}
+
+function yesNo(t: Translate, value: boolean | null | undefined): string {
+  if (value === true) {
+    return t('common.yes', 'Yes')
+  }
+  if (value === false) {
+    return t('common.no', 'No')
+  }
+  return t('roadmap.unknown', 'Unknown')
+}
+
+function StatusDate({ status, target }: { status: RoadmapGameStatus | null; target: string }) {
   if (!status) {
     return <HelpOutlineOutlinedIcon sx={{ fontSize: 16, color: 'info.main', verticalAlign: 'middle' }} />
   }
@@ -27,7 +46,7 @@ function StatusDate({ status }: { status: RoadmapGameStatus | null }) {
     return (
       <Box component="span" sx={{ color: 'info.main', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
         <Typography component="span" sx={{ color: 'text.secondary', fontSize: 11 }}>
-          tgt:
+          {target}
         </Typography>
         <HourglassEmptyOutlinedIcon sx={{ fontSize: 14 }} />
         {status.expected_label}
@@ -77,6 +96,7 @@ export function GameRoadmapCard({
   decolorize: boolean
   onOpen: () => void
 }) {
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const expanded = expandAll || open
   const trademarks = game.details.trademarks ?? []
@@ -120,9 +140,9 @@ export function GameRoadmapCard({
                   whiteSpace: 'nowrap',
                 }}
               >
-                {labels[key] ?? key}
+                {t(STATUS_LABEL[key], labels[key] ?? key)}
               </Box>
-              <StatusDate status={game.statuses[key]} />
+              <StatusDate status={game.statuses[key]} target={t('roadmap.tgt', 'tgt:')} />
             </Box>
           )
         })}
@@ -148,13 +168,13 @@ export function GameRoadmapCard({
 
         <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5 }}>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-            <Field label="Studio" value={game.studio} />
+            <Field label={t('roadmap.studio', 'Studio')} value={game.studio} />
             <People people={[game.studio_owner]} decolorize={decolorize} />
           </Box>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
             <Typography component="span" sx={{ fontSize: 13 }}>
               <Box component="em" sx={{ mr: 0.75, fontStyle: 'italic', color: 'text.secondary' }}>
-                PM Owner
+                {t('roadmap.pmOwner', 'PM Owner')}
               </Box>
             </Typography>
             <People people={game.pm_owners} decolorize={decolorize} />
@@ -162,20 +182,20 @@ export function GameRoadmapCard({
         </Box>
 
         <Box sx={{ mt: 1 }}>
-          <Field label="Pry Design Target Mkt" value={game.target_market?.name} />
-          <Field label="Portfolio Strategy" value={game.portfolio_strategy} />
+          <Field label={t('roadmap.targetMarket', 'Pry Design Target Mkt')} value={game.target_market?.name} />
+          <Field label={t('roadmap.portfolio', 'Portfolio Strategy')} value={game.portfolio_strategy} />
         </Box>
 
         <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 1, flexWrap: 'wrap' }}>
           <Box>
             <Box>
-              <Field label="Platform" value={game.platform?.name} />
-              <Field label="Resolution" value={game.resolution} />
-              <Field label="Code" value={game.code} />
+              <Field label={t('roadmap.platform', 'Platform')} value={game.platform?.name} />
+              <Field label={t('roadmap.resolution', 'Resolution')} value={game.resolution} />
+              <Field label={t('roadmap.code', 'Code')} value={game.code} />
             </Box>
             <Box>
-              <Field label="Version ≥" value={game.version_from} />
-              <Field label="Supports Signage" value={flagLabel(game.supports_signage)} />
+              <Field label={t('roadmap.versionFrom', 'Version ≥')} value={game.version_from} />
+              <Field label={t('roadmap.signage', 'Supports Signage')} value={yesNo(t, game.supports_signage)} />
             </Box>
           </Box>
           <AppButton
@@ -185,48 +205,48 @@ export function GameRoadmapCard({
             endIcon={<ExpandMoreOutlinedIcon sx={{ transform: expanded ? 'rotate(180deg)' : 'none' }} />}
             onClick={() => setOpen((value) => !value)}
           >
-            Details
+            {t('roadmap.details', 'Details')}
           </AppButton>
         </Box>
 
         <Collapse in={expanded}>
           <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
             <Box sx={{ mb: 1 }}>
-              <Field label="Base Game USP" value={game.details.base_game_USP} />
+              <Field label={t('roadmap.baseUsp', 'Base Game USP')} value={game.details.base_game_USP} />
             </Box>
             <Box sx={{ mb: 1 }}>
-              <Field label="Feature Game USP" value={game.details.feature_game_USP} />
+              <Field label={t('roadmap.featureUsp', 'Feature Game USP')} value={game.details.feature_game_USP} />
             </Box>
             <Box sx={{ mb: 1 }}>
-              <Field label="IP Licensed" value={flagLabel(game.details.IP_licensed)} />
+              <Field label={t('roadmap.ipLicensed', 'IP Licensed')} value={yesNo(t, game.details.IP_licensed)} />
               <Typography component="span" sx={{ fontSize: 13 }}>
                 <Box component="em" sx={{ mr: 1, fontStyle: 'italic', color: 'text.secondary' }}>
-                  Trademarked
+                  {t('roadmap.trademarked', 'Trademarked')}
                 </Box>
                 {trademarks.map((item) => (
                   <Box component="span" key={item.region} sx={{ mr: 1.5 }}>
-                    <Box component="strong">{item.region}</Box> {flagLabel(item.value)}
+                    <Box component="strong">{item.region}</Box> {yesNo(t, item.value)}
                   </Box>
                 ))}
               </Typography>
             </Box>
             <Box sx={{ mb: 1 }}>
-              <Field label="Theme" value={game.details.theme} />
+              <Field label={t('roadmap.theme', 'Theme')} value={game.details.theme} />
             </Box>
             <Box sx={{ mb: 1 }}>
-              <Field label="Reels" value={game.details.reels} />
-              <Field label="Progressive Type" value={game.details.progressive_type} />
+              <Field label={t('roadmap.reels', 'Reels')} value={game.details.reels} />
+              <Field label={t('roadmap.progressive', 'Progressive Type')} value={game.details.progressive_type} />
             </Box>
             <Box sx={{ mb: 1 }}>
-              <Field label="Cash on Reels" value={flagLabel(game.details.cash_on_reels)} />
-              <Field label="Hold and Spin" value={flagLabel(game.details.hold_and_spin)} />
-              <Field label="Feature in Feature" value={flagLabel(game.details.feature_in_feature)} />
+              <Field label={t('roadmap.cashOnReels', 'Cash on Reels')} value={yesNo(t, game.details.cash_on_reels)} />
+              <Field label={t('roadmap.holdAndSpin', 'Hold and Spin')} value={yesNo(t, game.details.hold_and_spin)} />
+              <Field label={t('roadmap.featureInFeature', 'Feature in Feature')} value={yesNo(t, game.details.feature_in_feature)} />
             </Box>
             <Box sx={{ mb: 1 }}>
-              <Field label="Num PP Pots" value={game.details.num_PP_pots} />
-              <Field label="True Persistence" value={game.details.true_persistence} />
+              <Field label={t('roadmap.numPots', 'Num PP Pots')} value={game.details.num_PP_pots} />
+              <Field label={t('roadmap.truePersistence', 'True Persistence')} value={game.details.true_persistence} />
             </Box>
-            <Field label="Estimated Effort" value={game.details.estimated_effort} />
+            <Field label={t('roadmap.effort', 'Estimated Effort')} value={game.details.estimated_effort} />
           </Box>
         </Collapse>
       </Box>

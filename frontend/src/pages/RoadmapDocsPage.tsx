@@ -5,7 +5,8 @@ import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { TableRecordAssets } from '@/components/tableView'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -26,29 +27,30 @@ const seeAlsoSx = {
 } as const
 
 export default function RoadmapDocsPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
 
   useEffect(() => {
-    document.title = 'Roadmap Docs | MERKURflow'
+    document.title = `${t('pages.roadmapDocs', 'Roadmap Docs')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   return (
     <PageBackground>
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Roadmap Docs</Box>
+            <Box component="span">{t('pages.roadmapDocs', 'Roadmap Docs')}</Box>
           </Box>
 
           <Typography
@@ -56,7 +58,7 @@ export default function RoadmapDocsPage() {
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15, mb: 3 }}
           >
             <MapOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-            Roadmap Docs
+            {t('pages.roadmapDocs', 'Roadmap Docs')}
           </Typography>
 
           <Box

@@ -18,6 +18,7 @@ import {
   updateCommunityPost,
 } from '@/api'
 import type { CommunityPost, MentionablePerson } from '@/api'
+import { useI18n } from '@/i18n'
 import { useAuth } from '@/auth'
 import { PostCard } from '@/components/community'
 import { MentionField } from '@/components/community/MentionField'
@@ -43,6 +44,7 @@ export function TableRecordCommunity({
   onClose: () => void
   onCountChange?: (count: number) => void
 }) {
+  const { t } = useI18n()
   const { user } = useAuth()
   const [posts, setPosts] = useState<CommunityPost[] | null>(null)
   const [people, setPeople] = useState<MentionablePerson[]>([])
@@ -69,7 +71,7 @@ export function TableRecordCommunity({
       .catch(() => {
         if (!cancelled) {
           setPosts([])
-          setError('Community posts could not be loaded.')
+          setError(t('community.itemFailed', 'Community posts could not be loaded.'))
         }
       })
     void getMentionablePeople()
@@ -87,7 +89,7 @@ export function TableRecordCommunity({
     return () => {
       cancelled = true
     }
-  }, [open, table, recordId])
+  }, [open, table, recordId, t])
 
   function replacePost(updated: CommunityPost) {
     setPosts(
@@ -153,15 +155,15 @@ export function TableRecordCommunity({
         }}
       >
         <ChatOutlinedIcon sx={{ color: 'merkur.pink' }} />
-        <Typography sx={{ fontWeight: 800, flex: 1 }}>Community</Typography>
-        <IconButton aria-label="Close community" onClick={onClose} size="small">
+        <Typography sx={{ fontWeight: 800, flex: 1 }}>{t('common.community', 'Community')}</Typography>
+        <IconButton aria-label={t('common.closeCommunity', 'Close community')} onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
       </Box>
 
       <Box sx={{ p: 2, overflow: 'auto', flex: 1, minHeight: 0 }}>
         <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1.5 }}>
-          Posts about this {itemLabel.toLowerCase()}. They also appear on the Community page.
+          {t('community.aboutItem', 'Posts about this {name}. They also appear on the Community page.', { name: itemLabel.toLowerCase() })}
         </Typography>
 
         <Box
@@ -184,7 +186,7 @@ export function TableRecordCommunity({
                 onChange={(value) => setNote(value.slice(0, 280))}
                 maxLength={280}
                 minRows={2}
-                placeholder="What’s on your mind?"
+                placeholder={t('home.composer', 'What’s on your mind?')}
               />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 1, flexWrap: 'wrap' }}>
                 {EMOJIS.map((emoji) => (

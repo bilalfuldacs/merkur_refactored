@@ -33,7 +33,8 @@ import Typography from '@mui/material/Typography'
 import { getMarketReport, isLandbasedMarket, isOnlineMarket } from '@/api'
 import type { MarketReportLandbased, MarketReportPayload } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import {
   AvailabilityChips,
   InstallationVersions,
@@ -94,6 +95,7 @@ function signedPercent(value: number | null | undefined): string {
 }
 
 export default function MarketReportPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const { user } = useAuth()
   const [payload, setPayload] = useState<MarketReportPayload | null>(null)
@@ -128,13 +130,13 @@ export default function MarketReportPage() {
 
   useEffect(() => {
     const title = payload
-      ? `#${payload.jurisdiction.id} ${payload.jurisdiction.flag ?? ''} ${payload.jurisdiction.name_english ?? ''} (Market)`
-      : 'Market Report'
+      ? `#${payload.jurisdiction.id} ${payload.jurisdiction.flag ?? ''} ${payload.jurisdiction.name_english ?? ''} ${t('pages.marketSuffix', '(Market)')}`
+      : t('pages.marketReport', 'Market Report')
     document.title = `${title} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [payload])
+  }, [payload, t])
 
   useEffect(() => {
     if (!payload) {
@@ -177,9 +179,9 @@ export default function MarketReportPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box className={execSummary ? 'exec-summary' : undefined} sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
@@ -363,7 +365,7 @@ export default function MarketReportPage() {
                         onClick={(event) => {
                           event.preventDefault()
                           document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                          window.history.replaceState(null, '', `${marketReportPath(jurisdiction.id)}#${item.id}`)
+                          navigate(`${marketReportPath(jurisdiction.id)}#${item.id}`, { replace: true })
                         }}
                         sx={{
                           ...tocItemSx,

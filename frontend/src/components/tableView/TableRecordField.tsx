@@ -11,6 +11,7 @@ import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import OpenInNewIcon from '@mui/icons-material/OpenInNew'
 import { AppButton, AppTextField } from '@/components/ui'
+import { fieldLabel, useI18n } from '@/i18n'
 import { emptyMatrix, getMatrixTemplate } from '@/api/matrixTemplate'
 import type { RelationLookupOption } from '@/api'
 import type { TableColumn } from '@/tableView'
@@ -53,6 +54,8 @@ export function TableRecordField({
   onChange: (key: string, value: unknown) => void
   onOpenRelated?: (table: string, id: number) => void
 }) {
+  const { t } = useI18n()
+  const label = fieldLabel(t, column.key, column.label)
   const readOnly =
     !canEdit || column.disabled || (!creating && (column.primary || column.kind === 'id'))
   const relatedId = typeof value === 'number' ? value : Number(value)
@@ -74,7 +77,7 @@ export function TableRecordField({
         htmlFor={`field-${column.key}`}
         sx={{ fontWeight: 700, pt: { md: 1.1 }, color: column.link ? 'text.primary' : 'text.secondary' }}
       >
-        {column.label}
+        {label}
         {creating && !column.nullable && !readOnly ? ' *' : ''}
       </Typography>
       <Box>
@@ -88,7 +91,7 @@ export function TableRecordField({
                 onChange={(event) => onChange(column.key, event.target.checked)}
               />
             }
-            label={isFilledBoolean(value) ? 'Yes' : 'No'}
+            label={isFilledBoolean(value) ? t('common.yes', 'Yes') : t('common.no', 'No')}
           />
         ) : column.kind === 'relation' ? (
           <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'stretch' }}>
@@ -109,7 +112,7 @@ export function TableRecordField({
             </AppTextField>
             {column.openRelated && column.relatedTable && Number.isFinite(relatedId) && relatedId > 0 ? (
               <IconButton
-                aria-label={`Open related ${column.label}`}
+                aria-label={`${t('common.view', 'View')} ${label}`}
                 onClick={() => onOpenRelated?.(column.relatedTable as string, relatedId)}
                 sx={{ border: '1px solid', borderColor: 'success.main', borderRadius: 1, color: 'success.main' }}
               >
@@ -262,6 +265,20 @@ export function TableRecordField({
               onChange={(next) => onChange(column.key, next)}
             />
           )
+        ) : column.kind === 'number' ? (
+          <AppTextField
+            id={`field-${column.key}`}
+            type="number"
+            size="small"
+            value={value === null || value === undefined || value === '' ? '' : String(value)}
+            disabled={readOnly}
+            placeholder={column.placeholder ?? undefined}
+            slotProps={{ htmlInput: { step: 1 } }}
+            onChange={(event) => {
+              const next = event.target.value
+              onChange(column.key, next === '' ? null : Number(next))
+            }}
+          />
         ) : (
           <AppTextField
             id={`field-${column.key}`}

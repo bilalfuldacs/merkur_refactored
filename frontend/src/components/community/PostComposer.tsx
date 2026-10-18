@@ -15,15 +15,10 @@ import Typography from '@mui/material/Typography'
 import type { AuthUser, MentionablePerson } from '@/api'
 import { AppButton } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
+import { useI18n } from '@/i18n'
 import type { ComposerKind } from './format'
 import { MentionField } from './MentionField'
 import type { MentionFieldHandle } from './MentionField'
-
-const placeholders: Record<ComposerKind, string> = {
-  update: 'Share an update with the team… Type @ to mention someone.',
-  question: 'What do you want to ask, and who can help? Type @ to mention them.',
-  idea: 'Explain your idea, the problem it solves, and whose feedback you need… Type @ to mention someone.',
-}
 
 const pillGroupSx = {
   gap: 1,
@@ -72,7 +67,13 @@ export function PostComposer({
   const [note, setNote] = useState('')
   const [fileName, setFileName] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const { t } = useI18n()
   const remaining = 280 - note.length
+  const placeholders: Record<ComposerKind, string> = {
+    update: t('community.placeholderUpdate', 'Share an update with the team… Type @ to mention someone.'),
+    question: t('community.placeholderQuestion', 'What do you want to ask, and who can help? Type @ to mention them.'),
+    idea: t('community.placeholderIdea', 'Explain your idea, the problem it solves, and whose feedback you need… Type @ to mention someone.'),
+  }
 
   function clearFile() {
     if (imagePreview) {
@@ -118,7 +119,7 @@ export function PostComposer({
       }}
     >
       <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'secondary.main', mb: 1.25 }}>
-        Start a conversation
+        {t('community.start', 'Start a conversation')}
       </Typography>
       <ToggleButtonGroup
         exclusive
@@ -129,20 +130,20 @@ export function PostComposer({
             setKind(value)
           }
         }}
-        aria-label="Post type"
+        aria-label={t('community.postType', 'Post type')}
         sx={{ ...pillGroupSx, mb: 1.5 }}
       >
         <ToggleButton value="update" sx={pillSx}>
           <CampaignOutlinedIcon sx={{ fontSize: 16, mr: 0.75 }} />
-          Share update
+          {t('community.shareUpdate', 'Share update')}
         </ToggleButton>
         <ToggleButton value="question" sx={pillSx}>
           <HelpOutlineOutlinedIcon sx={{ fontSize: 16, mr: 0.75 }} />
-          Ask question
+          {t('community.ask', 'Ask question')}
         </ToggleButton>
         <ToggleButton value="idea" sx={pillSx}>
           <LightbulbOutlinedIcon sx={{ fontSize: 16, mr: 0.75 }} />
-          Suggest idea
+          {t('community.suggest', 'Suggest idea')}
         </ToggleButton>
       </ToggleButtonGroup>
 
@@ -181,12 +182,12 @@ export function PostComposer({
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1.5 }}>
         <Box>
           <input ref={fileRef} type="file" hidden onChange={handleFile} />
-          <IconButton size="small" aria-label="Add file" onClick={() => fileRef.current?.click()}>
+          <IconButton size="small" aria-label={t('community.addFile', 'Add file')} onClick={() => fileRef.current?.click()}>
             <AttachFileOutlinedIcon />
           </IconButton>
           <IconButton
             size="small"
-            aria-label="Mention someone"
+            aria-label={t('community.mention', 'Mention someone')}
             onClick={() => mentionRef.current?.startMention()}
           >
             <AlternateEmailOutlinedIcon />
@@ -195,7 +196,7 @@ export function PostComposer({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Typography sx={{ fontSize: 12, color: remaining < 20 ? 'error.main' : 'text.secondary' }}>{remaining}</Typography>
           <AppButton size="small" disabled={!note.trim() || posting} onClick={() => void submit()}>
-            {posting ? 'Posting…' : 'Post'}
+            {posting ? t('community.posting', 'Posting…') : t('community.post', 'Post')}
           </AppButton>
         </Box>
       </Box>

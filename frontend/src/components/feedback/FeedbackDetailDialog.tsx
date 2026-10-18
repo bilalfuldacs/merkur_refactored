@@ -7,7 +7,8 @@ import Typography from '@mui/material/Typography'
 import type { FeedbackSubmission } from '@/api'
 import { openFeedbackScreenshot } from '@/api'
 import { AppButton } from '@/components/ui'
-import { formatSubmittedAt, STATUS_LABELS } from './constants'
+import { useI18n } from '@/i18n'
+import { feedbackAreaLabel, feedbackStatusLabel, formatSubmittedAt } from './constants'
 
 export function FeedbackDetailDialog({
   item,
@@ -16,6 +17,7 @@ export function FeedbackDetailDialog({
   item: FeedbackSubmission | null
   onClose: () => void
 }) {
+  const { locale, t } = useI18n()
   return (
     <Dialog open={Boolean(item)} onClose={onClose} fullWidth maxWidth="sm">
       {item ? (
@@ -29,19 +31,19 @@ export function FeedbackDetailDialog({
                 {item.subject}
               </Typography>
             </Box>
-            <IconButton aria-label="Close" onClick={onClose}>
+            <IconButton aria-label={t('common.close', 'Close')} onClick={onClose}>
               <CloseOutlinedIcon />
             </IconButton>
           </Box>
-          <Chip size="small" label={STATUS_LABELS[item.status] ?? item.status} sx={{ fontWeight: 700, mb: 2 }} />
+          <Chip size="small" label={feedbackStatusLabel(t, item.status)} sx={{ fontWeight: 700, mb: 2 }} />
           <Box sx={{ display: 'grid', gap: 1.5 }}>
-            <DetailRow label="Area" value={item.related_area || 'General'} />
-            <DetailRow label="Submitted" value={formatSubmittedAt(item.submitted_at)} />
-            <DetailRow label="Description" value={item.description} />
+            <DetailRow label={t('feedback.area', 'Area')} value={feedbackAreaLabel(t, item.related_area || 'General')} />
+            <DetailRow label={t('feedback.submitted', 'Submitted')} value={formatSubmittedAt(item.submitted_at, locale)} />
+            <DetailRow label={t('feedback.description', 'Description')} value={item.description} />
           </Box>
           {item.has_screenshot ? (
             <AppButton variant="outlined" color="secondary" size="small" sx={{ mt: 2.5 }} onClick={() => void openFeedbackScreenshot(item.id)}>
-              Open screenshot
+              {t('feedback.openScreenshot', 'Open screenshot')}
             </AppButton>
           ) : null}
         </Box>

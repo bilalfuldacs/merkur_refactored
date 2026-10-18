@@ -12,7 +12,8 @@ import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import { apiRequest } from '@/api/client'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { UserAvatar } from '@/components/user'
 import { tableBrowsePath } from '@/config/tablePages'
 import { APP_PATHS, useAppPath } from '@/routing'
@@ -73,6 +74,7 @@ const headerCellSx = {
 } as const
 
 export default function FocusGroupsReportPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const [payload, setPayload] = useState<FocusPayload | null>(null)
@@ -81,11 +83,11 @@ export default function FocusGroupsReportPage() {
   const decolorize = Boolean(user?.decolorize_avatars)
 
   useEffect(() => {
-    document.title = 'Focus Groups | MERKURflow'
+    document.title = `${t('pages.focusGroups', 'Focus Groups')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -110,38 +112,38 @@ export default function FocusGroupsReportPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.reports)} sx={crumbSx}>
-              Reports
+              {t('pages.reports', 'Reports')}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">Focus Groups</Box>
+            <Box component="span">{t('pages.focusGroups', 'Focus Groups')}</Box>
           </Box>
           <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 40 }, mb: 1 }}>
             <GroupsOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
-            Focus Groups
+            {t('pages.focusGroups', 'Focus Groups')}
           </Typography>
           <Typography sx={{ mb: 2 }}>
-            See all Focus Groups for all{' '}
+            {t('reports.seeFocus', 'See all focus groups for all {versions}.').split('{versions}')[0]}
             <Box component="button" type="button" onClick={() => navigate(tableBrowsePath('versions'))} sx={crumbSx}>
-              Versions
+              {t('reports.linkVersion', 'Version')}
             </Box>
-            .
+            {t('reports.seeFocus', 'See all focus groups for all {versions}.').split('{versions}')[1]}
           </Typography>
-          {payload ? <Typography color="text.secondary" sx={{ mb: 2 }}>This report was generated on {payload.generated_at}.</Typography> : null}
-          {failed ? <Typography color="text.secondary">The report could not be loaded.</Typography> : null}
+          {payload ? <Typography color="text.secondary" sx={{ mb: 2 }}>{t('reports.generatedOn', 'This report was generated on {date}.', { date: payload.generated_at })}</Typography> : null}
+          {failed ? <Typography color="text.secondary">{t('copy.issuesFailed', 'The report could not be loaded.')}</Typography> : null}
           {payload ? (
             <>
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={headerCellSx}>Version</TableCell>
+                    <TableCell sx={headerCellSx}>{t('reports.version', 'Version')}</TableCell>
                     <TableCell sx={{ ...headerCellSx, width: 110 }} />
-                    <TableCell sx={{ ...headerCellSx, width: 140 }}>1st Date</TableCell>
+                    <TableCell sx={{ ...headerCellSx, width: 140 }}>{t('reports.firstDate', '1st date')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -154,7 +156,7 @@ export default function FocusGroupsReportPage() {
                           <TableCell>
                             <IconButton
                               size="small"
-                              aria-label="Show jurisdictions"
+                              aria-label={t('reports.showJurisdictions', 'Show jurisdictions')}
                               onClick={() => setOpenId(open ? null : index)}
                               sx={{ bgcolor: 'secondary.main', color: '#fff', '&:hover': { bgcolor: 'secondary.dark' } }}
                             >
@@ -170,9 +172,9 @@ export default function FocusGroupsReportPage() {
                                 <Table size="small">
                                   <TableHead>
                                     <TableRow>
-                                      <TableCell sx={{ fontWeight: 700 }}>Jurisdiction</TableCell>
+                                      <TableCell sx={{ fontWeight: 700 }}>{t('reports.jurisdiction', 'Jurisdiction')}</TableCell>
                                       <TableCell sx={{ fontWeight: 700, width: 56 }} />
-                                      <TableCell sx={{ fontWeight: 700, width: 120 }}>Date</TableCell>
+                                      <TableCell sx={{ fontWeight: 700, width: 120 }}>{t('reports.date', 'Date')}</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
@@ -197,7 +199,7 @@ export default function FocusGroupsReportPage() {
                                         <TableCell>
                                           <IconButton
                                             size="small"
-                                            aria-label="Open focus group"
+                                            aria-label={t('reports.openFocusGroup', 'Open focus group')}
                                             onClick={() => navigate(`${tableBrowsePath('focus_groups')}?id=${group.ID}`)}
                                             sx={{ bgcolor: 'info.main', color: '#fff' }}
                                           >

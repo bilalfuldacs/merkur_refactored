@@ -24,7 +24,8 @@ import { ApiError } from '@/api'
 import { ICE_EVAL_CATEGORIES } from '@/api/ice2027'
 import type { IceCompetitor, IceEvalRow, IceEvaluationPayload, IceGame } from '@/api/ice2027'
 import { IceEventPicker, IceHero, IceOfflineBar, IceSectionHead, IceTabs, iceCrumbSx, iceStickyBarSx } from '@/components/ice2027'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton, AppTextField } from '@/components/ui'
 import {
   clearIceEvalDraft,
@@ -330,8 +331,10 @@ function buildRowFields({
     newProduct: (
       <Checkbox
         checked={Boolean(row.is_new_product)}
+        disabled={typeof row.game_ID === 'number' && row.game_ID > 0}
+        title={typeof row.game_ID === 'number' && row.game_ID > 0 ? 'New to me is only for a game you type, not one from the list.' : 'New to me'}
         onChange={(event) => onPatch({ is_new_product: event.target.checked })}
-        slotProps={{ input: { 'aria-label': 'New product' } }}
+        slotProps={{ input: { 'aria-label': 'New to me' } }}
         sx={mobile ? { p: 0.5 } : undefined}
       />
     ),
@@ -414,7 +417,7 @@ function MobileEvalFields({ fields }: { fields: RowFields }) {
       </Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, py: 0.25 }}>
         <Typography component="span" sx={{ ...labelSx, mb: 0 }}>
-          New product
+          New to me
         </Typography>
         {fields.newProduct}
       </Box>
@@ -451,6 +454,7 @@ function MobileEvalFields({ fields }: { fields: RowFields }) {
 }
 
 export default function Ice2027EvaluationPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
@@ -519,18 +523,18 @@ export default function Ice2027EvaluationPage() {
       : {
           chip: isScout ? ('error' as const) : ('default' as const),
           alert: isScout ? ('warning' as const) : ('info' as const),
-          label: isScout ? 'Not started' : 'Optional',
+          label: isScout ? t('ice.notStarted', 'Not started') : t('ice.optional', 'Optional'),
           detail: isScout
             ? `Rate at least ${required} games. Start with ${required} rows and add more if you want.`
             : `You are not on a scouting team, so this evaluation is optional. Fill at least ${required} rows if you want it to count as done.`,
         }
 
   useEffect(() => {
-    document.title = `${eventName} Evaluation | MERKURflow`
+    document.title = `${eventName} ${t('pages.evaluation', 'Evaluation')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [eventName])
+  }, [eventName, t])
 
   const applyRows = useCallback(
     (top5: IceEvalRow[] | Record<string, IceEvalRow> | undefined, rowRequired: number, rowMax: number) => {
@@ -607,6 +611,21 @@ export default function Ice2027EvaluationPage() {
       }
     }, 400)
     return () => window.clearTimeout(timer)
+  }, [rows, baseline, payload])
+
+  useEffect(() => {
+    const dirty = Boolean(payload) && baseline.length > 0 && (
+      rows.length !== baseline.length || rows.some((row, index) => iceEvalRowSignature(row) !== (baseline[index] ?? ''))
+    )
+    if (!dirty) {
+      return
+    }
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
   }, [rows, baseline, payload])
 
   if (!eventSlug) {
@@ -689,7 +708,7 @@ export default function Ice2027EvaluationPage() {
       patch(index, { game_ID: '', game_name: '' })
       return
     }
-    patch(index, { game_ID: Number(value), game_name: '' })
+    patch(index, { game_ID: Number(value), game_name: '', is_new_product: false })
   }
 
   function toggleRow(index: number) {
@@ -825,11 +844,11 @@ export default function Ice2027EvaluationPage() {
         <Box sx={{ maxWidth: 1480, mx: 'auto', width: '100%' }}>
           <Box
             component="nav"
-            aria-label="Breadcrumb"
+            aria-label={t('common.breadcrumb', 'Breadcrumb')}
             sx={{ display: { xs: 'none', md: 'flex' }, flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}
           >
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
@@ -840,11 +859,11 @@ export default function Ice2027EvaluationPage() {
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Evaluation</Box>
+            <Box component="span">{t('pages.evaluation', 'Evaluation')}</Box>
           </Box>
 
           <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <IceHero kicker="Game evaluation" title={eventName}>
+            <IceHero kicker={t('ice.gameEval', 'Game evaluation')} title={eventName}>
               {isScout
                 ? `Required. Rate at least ${required} games. Your assigned competitors are listed first; pick one of their games, type a new game, or type a new competitor name.`
                 : `Optional. Rate at least ${required} games. Pick a competitor, then one of their games, or type a new name.`}
@@ -1241,7 +1260,7 @@ export default function Ice2027EvaluationPage() {
                           <TableCell sx={{ minWidth: 176 }}>Competitor</TableCell>
                           <TableCell sx={{ minWidth: 220 }}>Game</TableCell>
                           <TableCell align="center" sx={{ minWidth: 88 }}>
-                            New product
+                            New to me
                           </TableCell>
                           <TableCell sx={{ minWidth: 120 }}>Category</TableCell>
                           {CRITERIA.map(([field, label]) => (

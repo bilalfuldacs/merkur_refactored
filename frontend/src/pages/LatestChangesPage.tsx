@@ -11,7 +11,8 @@ import Typography from '@mui/material/Typography'
 import { getLatestChanges, LATEST_CHANGES_COUNTS } from '@/api'
 import type { LatestChangesCount, LatestChangesGroup, LatestChangesTable } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { iconForTable } from '@/components/tables/tableIcons'
 import { AppTextField } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
@@ -193,6 +194,7 @@ function GroupBlock({
 }
 
 export default function LatestChangesPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const [count, setCount] = useState<LatestChangesCount>(countFromSearch)
@@ -201,11 +203,11 @@ export default function LatestChangesPage() {
   const decolorize = Boolean(user?.decolorize_avatars)
 
   useEffect(() => {
-    document.title = 'Latest Changes (Report) | MERKURflow'
+    document.title = `${t('pages.latestChangesReport', 'Latest Changes (Report)')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -239,7 +241,7 @@ export default function LatestChangesPage() {
           onChange={(event) => {
             const next = Number(event.target.value) as LatestChangesCount
             setCount(next)
-            window.history.replaceState(null, '', `${APP_PATHS.latestChanges}?c=${next}`)
+            navigate(`${APP_PATHS.latestChanges}?c=${next}`, { replace: true })
           }}
           size="small"
           sx={{
@@ -290,9 +292,9 @@ export default function LatestChangesPage() {
       >
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <Box sx={{ flexShrink: 0 }}>
-            <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, fontSize: 13 }}>
+            <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, fontSize: 13 }}>
               <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-                Start
+                <CrumbHome />
               </Box>
               <Box component="span" color="text.secondary">
                 /
@@ -303,14 +305,14 @@ export default function LatestChangesPage() {
               <Box component="span" color="text.secondary">
                 /
               </Box>
-              <Box component="span">Latest Changes</Box>
+              <Box component="span">{t('pages.latestChanges', 'Latest Changes')}</Box>
             </Box>
             <Typography
               component="h1"
               sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 32 }, mb: 1.5 }}
             >
               <SyncOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 32 }} />
-              Latest Changes
+              {t('pages.latestChanges', 'Latest Changes')}
             </Typography>
             <Box sx={{ mb: 2 }}>{heading}</Box>
           </Box>

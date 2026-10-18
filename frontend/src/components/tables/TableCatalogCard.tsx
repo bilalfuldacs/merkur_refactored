@@ -5,11 +5,8 @@ import SettingsIcon from '@mui/icons-material/Settings'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import type { TablesCatalogTable } from '@/api'
+import { catalogTitle, translateCatalogText, useI18n } from '@/i18n'
 import { iconForTable } from './tableIcons'
-
-function itemLabel(count: number): string {
-  return count === 1 ? '1 item' : `${count} items`
-}
 
 export function TableCatalogCard({
   item,
@@ -18,7 +15,10 @@ export function TableCatalogCard({
   item: TablesCatalogTable
   onOpen?: (item: TablesCatalogTable) => void
 }) {
+  const { t, phrase } = useI18n()
   const Icon = iconForTable(item.icon)
+  const title = catalogTitle(t, item.table, item.title)
+  const countLabel = item.item_count === 1 ? t('common.oneItem', '1 item') : t('common.manyItems', '{count} items', { count: item.item_count })
   const clickable = Boolean(onOpen)
 
   return (
@@ -60,10 +60,10 @@ export function TableCatalogCard({
           }}
         >
           <Icon sx={{ color: item.color || 'merkur.pink', fontSize: 22, mt: '2px' }} />
-          {item.title}
+          {title}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {item.description}
+          {translateCatalogText(item.description, phrase)}
         </Typography>
       </Box>
       <Box
@@ -79,7 +79,7 @@ export function TableCatalogCard({
           borderColor: 'divider',
         }}
       >
-        <Typography sx={{ fontWeight: 800, fontSize: 14 }}>{itemLabel(item.item_count)}</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 14 }}>{countLabel}</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', color: 'text.secondary' }}>
           {item.is_system ? <SettingsIcon sx={{ fontSize: 18, color: 'info.main' }} /> : null}
           {item.has_history ? (

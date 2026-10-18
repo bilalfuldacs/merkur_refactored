@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography'
 import type { StaticDoc } from '@/api'
 import { openStaticDocPdf, staticDocThumbnailPath } from '@/api'
 import { AppButton } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { completenessLabel, creatorName, formatDocDate, formatDocSize, useAuthFileUrl } from './format'
 
 export function DocCard({
@@ -26,10 +27,16 @@ export function DocCard({
   onEdit: () => void
   onDelete: () => void
 }) {
+  const { t } = useI18n()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [opening, setOpening] = useState(false)
   const thumbSrc = useAuthFileUrl(doc.has_thumbnail ? staticDocThumbnailPath(doc.id) : null)
-  const label = completenessLabel(doc.is_complete)
+  const completeness = completenessLabel(doc.is_complete)
+  const label = completeness === 'Complete'
+    ? t('docs.complete', 'Complete')
+    : completeness === 'Excerpt'
+      ? t('docs.excerpt', 'Excerpt')
+      : null
   const size = formatDocSize(doc.file_size)
   const kind = label ? `${label} · ` : ''
 
@@ -80,14 +87,14 @@ export function DocCard({
         {label ? (
           <Chip
             size="small"
-            icon={label === 'Complete' ? <CheckCircleOutlinedIcon /> : <ContentCutOutlinedIcon />}
+            icon={completeness === 'Complete' ? <CheckCircleOutlinedIcon /> : <ContentCutOutlinedIcon />}
             label={label}
             sx={{
               position: 'absolute',
               top: 12,
               left: 12,
               fontWeight: 700,
-              bgcolor: label === 'Complete' ? 'success.main' : 'info.main',
+              bgcolor: completeness === 'Complete' ? 'success.main' : 'info.main',
               color: 'common.white',
               '& .MuiChip-icon': { color: 'common.white' },
             }}
@@ -115,7 +122,7 @@ export function DocCard({
             onClick={() => void openPdf()}
             startIcon={<VisibilityOutlinedIcon />}
           >
-            {opening ? 'Opening…' : 'PDF'}
+            {opening ? t('docs.opening', 'Opening…') : 'PDF'}
           </AppButton>
         </Box>
       </Box>
@@ -137,7 +144,7 @@ export function DocCard({
         </Typography>
         {doc.can_edit || doc.can_delete ? (
           <>
-            <IconButton size="small" aria-label="Document actions" onClick={(event) => setMenuAnchor(event.currentTarget)}>
+            <IconButton size="small" aria-label={t('docs.actions', 'Document actions')} onClick={(event) => setMenuAnchor(event.currentTarget)}>
               <MoreHorizOutlinedIcon fontSize="small" />
             </IconButton>
             <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>

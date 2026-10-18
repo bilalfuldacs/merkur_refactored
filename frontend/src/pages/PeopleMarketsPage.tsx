@@ -16,7 +16,8 @@ import Typography from '@mui/material/Typography'
 import { getPeopleMarkets } from '@/api'
 import type { PeopleMarketsPayload } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { MarketDetailPanel, PersonDetailPanel } from '@/components/peopleMarkets/DetailPanels'
 import { DirectoryList, DirectoryListItem } from '@/components/peopleMarkets/DirectoryList'
 import {
@@ -74,6 +75,7 @@ const pillSx = {
 type BrowseMode = 'market' | 'person'
 
 export default function PeopleMarketsPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user, setDecolorizeAvatars } = useAuth()
   const [payload, setPayload] = useState<PeopleMarketsPayload | null>(null)
@@ -89,11 +91,11 @@ export default function PeopleMarketsPage() {
   const decolorize = Boolean(user?.decolorize_avatars)
 
   useEffect(() => {
-    document.title = 'People & Markets Panorama | MERKURflow'
+    document.title = `${t('pages.peoplePanorama', 'People & Markets Panorama')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -192,14 +194,14 @@ export default function PeopleMarketsPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1840, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">People & Markets</Box>
+            <Box component="span">{t('pages.peopleMarkets', 'People & Markets')}</Box>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 2 }}>
@@ -208,7 +210,7 @@ export default function PeopleMarketsPage() {
               sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15 }}
             >
               <GroupsOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-              People & Markets
+              {t('pages.peopleMarkets', 'People & Markets')}
             </Typography>
             {myMarketCount > 0 ? (
               <Chip size="small" color="success" variant="outlined" label={`Your markets: ${myMarketCount}`} />
@@ -248,7 +250,7 @@ export default function PeopleMarketsPage() {
                 <AppTextField
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Search markets or people"
+                  placeholder={t('search.markets', 'Search markets or people')}
                   size="small"
                   startIcon={<SearchIcon />}
                   sx={{ flex: '1 1 280px', minWidth: 220 }}

@@ -4,9 +4,11 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { BrandWordmark, MerkurLogo } from '@/components/brand'
 import { AuthShell } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { LoginForm } from './LoginForm'
 
 export default function LoginPage() {
+  const { t } = useI18n()
   return (
     <AuthShell headerVariant="light">
       <Container maxWidth="lg" sx={{ width: '100%' }}>
@@ -33,20 +35,20 @@ export default function LoginPage() {
               component="p"
              
             >
-              The MERKUR Portal
+              {t('login.portal', 'The MERKUR Portal')}
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 400, lineHeight: 1.4 }}>
-              People{' '}
+              {t('login.taglinePeople', 'People')}{' '}
               <Box component="span" sx={{ fontWeight: 800 }}>
                 ×
               </Box>{' '}
-              Markets{' '}
+              {t('login.taglineMarkets', 'Markets')}{' '}
               <Box component="span" sx={{ fontWeight: 800 }}>
                 ×
               </Box>{' '}
-              Products
+              {t('login.taglineProducts', 'Products')}
               <br />
-              — it’s all in <BrandWordmark />.
+              {t('login.taglineEnd', '— it’s all in')} <BrandWordmark />.
             </Typography>
           </Stack>
 

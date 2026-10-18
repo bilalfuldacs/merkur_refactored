@@ -13,6 +13,7 @@ import { getGlobalSearch } from '@/api/search'
 import type { FindCategory } from '@/api/search'
 import { AppButton, AppTextField } from '@/components/ui'
 import { tableBrowsePath } from '@/config/tablePages'
+import { useI18n } from '@/i18n'
 import { findPath, useAppPath } from '@/routing'
 import { FIND_QUICK_LINKS, matchQuickLink } from './quickLinks'
 
@@ -28,6 +29,7 @@ export function FindModal({
   onClose: () => void
 }) {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   const [query, setQuery] = useState(seed)
   const [categories, setCategories] = useState<FindCategory[]>([])
   const [selected, setSelected] = useState(-1)
@@ -111,8 +113,8 @@ export function FindModal({
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Game, Feature, Version, #t, …"
-              aria-label="Find"
+              placeholder={t('search.placeholder', 'Game, Feature, Version, #t, …')}
+              aria-label={t('search.aria', 'Find')}
               startIcon={<SearchIcon fontSize="small" />}
               sx={{
                 flex: 1,
@@ -125,13 +127,13 @@ export function FindModal({
               startIcon={quickLink ? <BoltOutlinedIcon /> : <SearchIcon />}
               sx={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0, px: 2 }}
             >
-              {quickLink ? 'Go' : 'Find'}
+              {quickLink ? t('search.go', 'Go') : t('search.find', 'Find')}
             </AppButton>
           </Box>
         </Box>
 
         {quickLink ? (
-          <Typography sx={{ mt: 1.5, fontWeight: 700, color: 'secondary.main' }}>{quickLink.label}</Typography>
+          <Typography sx={{ mt: 1.5, fontWeight: 700, color: 'secondary.main' }}>{t(quickLink.labelKey, quickLink.label)}</Typography>
         ) : null}
 
         {categories.length === 0 ? (
@@ -139,7 +141,7 @@ export function FindModal({
             {listedLinks.map((item) => (
               <ListItemButton key={item.key} onClick={() => go(item.path)}>
                 <ListItemText
-                  primary={item.label}
+                  primary={t(item.labelKey, item.label)}
                   secondary={item.key}
                   primaryTypographyProps={{ fontWeight: 700 }}
                   secondaryTypographyProps={{ fontWeight: 800, color: 'secondary.main' }}

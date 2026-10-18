@@ -13,7 +13,8 @@ import {
 } from '@/api'
 import type { FeedbackStatus, FeedbackSubmission } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -57,6 +58,7 @@ function statusLabel(status: string): string {
 }
 
 export default function FeedbackAdminPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
@@ -95,11 +97,11 @@ export default function FeedbackAdminPage() {
   }, [filterQuery])
 
   useEffect(() => {
-    document.title = 'Feedback Admin | MERKURflow'
+    document.title = `${t('nav.feedbackAdmin', 'Feedback Admin')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!isSuperuser) {
@@ -174,33 +176,33 @@ export default function FeedbackAdminPage() {
     <PageBackground>
       <AppHeader />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 3, maxWidth: 1100, mx: 'auto', width: '100%' }}>
-        <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
+        <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-            Start
+            <CrumbHome />
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.admin)} sx={crumbSx}>
-            Admin
+            {t('pages.adminCrumb', 'Admin')}
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.feedback)} sx={crumbSx}>
-            Feedback
+            {t('pages.feedback', 'Feedback')}
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
-          <Box component="span">Admin</Box>
+          <Box component="span">{t('nav.feedbackAdmin', 'Feedback Admin')}</Box>
         </Box>
 
         <Typography component="h1" sx={{ fontWeight: 800, fontSize: 28, mb: 1, color: 'secondary.main' }}>
-          Feedback review
+          {t('pages.feedbackReview', 'Feedback review')}
         </Typography>
         <Typography sx={{ color: 'text.secondary', mb: 3 }}>
-          Review submissions, update status, and keep internal notes.
+          {t('copy.feedbackReviewIntro', 'Review submissions, update status, and keep internal notes.')}
         </Typography>
 
         {!isSuperuser ? (

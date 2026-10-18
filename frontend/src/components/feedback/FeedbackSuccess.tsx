@@ -2,8 +2,10 @@ import CheckCircleOutlineOutlinedIcon from '@mui/icons-material/CheckCircleOutli
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import { AppButton } from '@/components/ui'
+import { useI18n } from '@/i18n'
 
 export function FeedbackSuccess({ onView, onSubmitAnother }: { onView: () => void; onSubmitAnother: () => void }) {
+  const { t } = useI18n()
   return (
     <Box
       sx={{
@@ -21,18 +23,20 @@ export function FeedbackSuccess({ onView, onSubmitAnother }: { onView: () => voi
     >
       <CheckCircleOutlineOutlinedIcon sx={{ color: 'success.main', fontSize: 36 }} />
       <Box sx={{ flex: 1, minWidth: 220 }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 18, color: 'secondary.main' }}>Feedback submitted</Typography>
+        <Typography sx={{ fontWeight: 800, fontSize: 18, color: 'secondary.main' }}>{t('feedback.successTitle', 'Feedback submitted')}</Typography>
         <Typography sx={{ color: 'text.secondary', fontSize: 14 }}>
-          Your feedback has been recorded as <Box component="span" sx={{ fontWeight: 800 }}>Under review</Box>. You can
-          follow its progress from My feedback.
+          {t('feedback.successBody', 'Your feedback has been recorded as {status}. You can follow its progress from {mine}.', {
+            status: t('feedback.statusUnderReview', 'Under review'),
+            mine: t('feedback.mine', 'My feedback'),
+          })}
         </Typography>
       </Box>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
         <AppButton color="secondary" size="small" onClick={onView}>
-          View my feedback
+          {t('feedback.viewMine', 'View my feedback')}
         </AppButton>
         <AppButton variant="text" color="inherit" size="small" onClick={onSubmitAnother} sx={{ color: 'info.main' }}>
-          Submit another
+          {t('feedback.submitAnother', 'Submit another')}
         </AppButton>
       </Box>
     </Box>

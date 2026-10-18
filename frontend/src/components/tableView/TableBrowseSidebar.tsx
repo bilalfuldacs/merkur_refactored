@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography'
 import type { TableExportFormat } from '@/api'
 import { TableSettingsPanel } from '@/components/tableView/TableSettingsPanel'
 import { AppButton } from '@/components/ui'
+import { catalogItem, useI18n } from '@/i18n'
 import type { TableViewSchema, TableViewState } from '@/tableView'
 
 export function TableBrowseSidebar({
@@ -38,6 +39,8 @@ export function TableBrowseSidebar({
   onExport?: (format: TableExportFormat, preview?: Window | null) => void
 }) {
   const [showMore, setShowMore] = useState(false)
+  const { t } = useI18n()
+  const itemName = catalogItem(t, schema.table, schema.itemName)
 
   return (
     <TableSettingsPanel
@@ -53,7 +56,7 @@ export function TableBrowseSidebar({
       actions={
         <TableActions
           canEdit={schema.canEdit}
-          itemName={schema.itemName}
+          itemName={itemName}
           exporting={exporting}
           onNew={onNew}
           onExport={onExport}
@@ -76,6 +79,7 @@ function TableActions({
   onNew?: () => void
   onExport?: (format: TableExportFormat, preview?: Window | null) => void
 }) {
+  const { t } = useI18n()
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
 
   function openMenu(event: MouseEvent<HTMLButtonElement>) {
@@ -102,7 +106,7 @@ function TableActions({
         sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: 16, mb: 1.25 }}
       >
         <BoltIcon sx={{ color: 'info.main', fontSize: 20 }} />
-        Actions
+        {t('common.actions', 'Actions')}
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
         <AppButton
@@ -112,7 +116,7 @@ function TableActions({
           disabled={!canEdit}
           onClick={onNew}
         >
-          New {itemName}
+          {t('common.newItem', 'New {name}', { name: itemName })}
         </AppButton>
         <AppButton
           size="medium"
@@ -123,7 +127,7 @@ function TableActions({
           onClick={openMenu}
         >
           <PrintOutlinedIcon sx={{ mr: 0.75, fontSize: 18 }} />
-          {exporting ? 'Exporting…' : 'Print'}
+          {exporting ? t('common.exporting', 'Exporting…') : t('common.print', 'Print')}
         </AppButton>
         <Menu
           anchorEl={anchor}
@@ -133,19 +137,19 @@ function TableActions({
         >
           <MenuItem onClick={() => choose('print')}>
             <PrintOutlinedIcon sx={{ mr: 1.25, fontSize: 18 }} />
-            Print
+            {t('common.print', 'Print')}
           </MenuItem>
           <MenuItem onClick={() => choose('pdf')}>
             <PictureAsPdfOutlinedIcon sx={{ mr: 1.25, fontSize: 18 }} />
-            Download PDF
+            {t('common.downloadPdf', 'Download PDF')}
           </MenuItem>
           <MenuItem onClick={() => choose('csv')}>
             <TableChartOutlinedIcon sx={{ mr: 1.25, fontSize: 18 }} />
-            Download CSV
+            {t('common.downloadCsv', 'Download CSV')}
           </MenuItem>
           <MenuItem onClick={() => choose('xlsx')}>
             <GridOnOutlinedIcon sx={{ mr: 1.25, fontSize: 18 }} />
-            Download Excel
+            {t('common.downloadExcel', 'Download Excel')}
           </MenuItem>
         </Menu>
       </Box>

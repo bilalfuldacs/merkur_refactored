@@ -35,7 +35,8 @@ import {
 import type { IceAdminPayload, IceCompetitor, IceGame, IceTeam } from '@/api/ice2027'
 import { useAuth } from '@/auth'
 import { IceEventPicker, IceHero, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton, AppTextField } from '@/components/ui'
 import { APP_PATHS, eventSlugFromSearch, ice2027AdminPath, ice2027HubPath, useAppPath } from '@/routing'
 
@@ -45,6 +46,7 @@ function personLabel(person: { name?: string | null; firstname?: string | null; 
 }
 
 export default function Ice2027AdminPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const eventSlug = useMemo(() => eventSlugFromSearch(search), [search])
   const { user, applyUser } = useAuth()
@@ -66,11 +68,11 @@ export default function Ice2027AdminPage() {
   const eventName = payload?.event?.name ?? 'Exhibition'
 
   useEffect(() => {
-    document.title = `${eventName} Admin | MERKURflow`
+    document.title = `${eventName} ${t('pages.adminCrumb', 'Admin')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [eventName])
+  }, [eventName, t])
 
   useEffect(() => {
     if (!eventSlug) {
@@ -245,20 +247,20 @@ export default function Ice2027AdminPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1200, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
               {eventName}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">Admin</Box>
+            <Box component="span">{t('pages.adminCrumb', 'Admin')}</Box>
           </Box>
 
-          <IceHero kicker="Administration" title={eventName}>
-            Mark attendants, assign them to scouting teams, then add competitors and games.
+          <IceHero kicker={t('ice.adminKicker', 'Administration')} title={eventName}>
+            {t('ice.adminIntro', 'Mark attendants, assign them to scouting teams, then add competitors and games.')}
           </IceHero>
 
           <IceTabs
@@ -407,6 +409,7 @@ export default function Ice2027AdminPage() {
                         <TableRow>
                           <TableCell>Name</TableCell>
                           <TableCell>E-mail</TableCell>
+                          <TableCell>Team</TableCell>
                           <TableCell align="center" sx={{ width: 110 }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                               <Checkbox
@@ -446,6 +449,7 @@ export default function Ice2027AdminPage() {
                             <TableRow key={person.ID}>
                               <TableCell>{person.name || [person.firstname, person.lastname].filter(Boolean).join(' ')}</TableCell>
                               <TableCell>{person.username}</TableCell>
+                              <TableCell>{person.team_name || '—'}</TableCell>
                               <TableCell align="center">
                                 <Checkbox
                                   size="small"

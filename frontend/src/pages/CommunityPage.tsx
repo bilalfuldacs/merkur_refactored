@@ -17,8 +17,9 @@ import type { CommunityFeedView, CommunityPost, MentionablePerson } from '@/api'
 import { useAuth } from '@/auth'
 import { CommunitySidebar, PostCard, PostComposer, postKind } from '@/components/community'
 import type { FeedTab } from '@/components/community'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
 import { AppButton } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 
 const crumbSx = {
@@ -60,6 +61,7 @@ const pillSx = {
 
 export default function CommunityPage() {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   const { user } = useAuth()
   const decolorize = Boolean(user?.decolorize_avatars)
   const [view, setView] = useState<CommunityFeedView>('timeline')
@@ -73,11 +75,11 @@ export default function CommunityPage() {
   const [people, setPeople] = useState<MentionablePerson[]>([])
 
   useEffect(() => {
-    document.title = 'Community | MERKURflow'
+    document.title = `${t('pages.community', 'Community')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -206,12 +208,12 @@ export default function CommunityPage() {
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
           <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Community</Box>
+            <Box component="span">{t('pages.community', 'Community')}</Box>
           </Box>
 
           <Typography
@@ -219,7 +221,7 @@ export default function CommunityPage() {
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15, mb: 2 }}
           >
             <ChatOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-            Community
+            {t('pages.community', 'Community')}
           </Typography>
 
           <ToggleButtonGroup
@@ -231,25 +233,25 @@ export default function CommunityPage() {
                 setView('timeline')
               }
             }}
-            aria-label="Conversation type"
+            aria-label={t('community.type', 'Conversation type')}
             sx={{ ...pillGroupSx, mb: 2 }}
           >
             <ToggleButton value="all" sx={pillSx}>
-              All conversations
+              {t('community.all', 'All conversations')}
             </ToggleButton>
             <ToggleButton value="idea" sx={pillSx}>
-              Ideas
+              {t('community.ideas', 'Ideas')}
             </ToggleButton>
             <ToggleButton value="question" sx={pillSx}>
-              Questions
+              {t('community.questions', 'Questions')}
             </ToggleButton>
             <ToggleButton value="update" sx={pillSx}>
-              Updates
+              {t('community.updates', 'Updates')}
             </ToggleButton>
           </ToggleButtonGroup>
 
           {failed ? (
-            <Typography color="text.secondary">The community feed could not be loaded.</Typography>
+            <Typography color="text.secondary">{t('community.feedFailed', 'The community feed could not be loaded.')}</Typography>
           ) : (
             <Box
               sx={{
@@ -265,7 +267,9 @@ export default function CommunityPage() {
                   <PostComposer user={user} people={people} decolorize={decolorize} posting={posting} onPost={handlePost} />
                 ) : (
                   <Typography sx={{ fontWeight: 800, mb: 2 }}>
-                    {view === 'mentions' ? `Mentions of @${user?.initials || 'you'}` : 'Saved bookmarks'}
+                    {view === 'mentions'
+                      ? t('community.mentionsOf', 'Mentions of @{name}', { name: user?.initials || t('community.you', 'you') })
+                      : t('community.savedBookmarks', 'Saved bookmarks')}
                   </Typography>
                 )}
                 {posts === null ? (
@@ -273,10 +277,10 @@ export default function CommunityPage() {
                 ) : visible.length === 0 ? (
                   <Typography color="text.secondary">
                     {view === 'mentions'
-                      ? `No mentions yet. Others can tag you with @${user?.initials || 'your initials'}.`
+                      ? t('community.noMentions', 'No mentions yet. Others can tag you with @{name}.', { name: user?.initials || t('community.yourInitials', 'your initials') })
                       : view === 'bookmarks'
-                        ? 'No saved bookmarks yet.'
-                        : 'No conversations in this view yet.'}
+                        ? t('community.noBookmarks', 'No saved bookmarks yet.')
+                        : t('community.noConversations', 'No conversations in this view yet.')}
                   </Typography>
                 ) : (
                   visible.map((post) => (
@@ -295,7 +299,7 @@ export default function CommunityPage() {
                 )}
                 {posts && page < lastPage ? (
                   <AppButton variant="outlined" color="secondary" onClick={() => void loadMore()} sx={{ display: 'block', mx: 'auto', mt: 1 }}>
-                    Load more
+                    {t('common.loadMore', 'Load more')}
                   </AppButton>
                 ) : null}
               </Box>

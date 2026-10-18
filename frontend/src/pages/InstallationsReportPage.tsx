@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined'
 import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined'
@@ -11,7 +12,8 @@ import Typography from '@mui/material/Typography'
 import { getInstallationReport } from '@/api'
 import type { InstallationReportPayload, InstallationReportVersion } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AvailabilityPanel, JurisdictionTable, PerformanceChart } from '@/components/reports'
 import type { ChartShape } from '@/components/reports'
 import { AppButton } from '@/components/ui'
@@ -56,6 +58,7 @@ function tabFromSearch(): 'installations' | 'availability' {
 }
 
 export default function InstallationsReportPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const [payload, setPayload] = useState<InstallationReportPayload | null>(null)
@@ -66,12 +69,12 @@ export default function InstallationsReportPage() {
 
   useEffect(() => {
     document.title = payload?.version
-      ? `${payload.version.label} | Installations (Report) | MERKURflow`
-      : 'Installations (Report) | MERKURflow'
+      ? `${payload.version.label} | ${t('pages.installationsReport', 'Installations (Report)')} | MERKURflow`
+      : `${t('pages.installationsReport', 'Installations (Report)')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [payload?.version])
+  }, [payload?.version, t])
 
   useEffect(() => {
     let cancelled = false
@@ -100,7 +103,7 @@ export default function InstallationsReportPage() {
       params.set('tab', 'availability')
     }
     const query = params.toString()
-    window.history.replaceState(null, '', `${APP_PATHS.installationsReport}${query ? `?${query}` : ''}`)
+    navigate(`${APP_PATHS.installationsReport}${query ? `?${query}` : ''}`, { replace: true })
   }
 
   function selectVersion(id: number) {
@@ -125,20 +128,20 @@ export default function InstallationsReportPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, fontSize: 14 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1.5, fontSize: 14 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.reports)} sx={crumbSx}>
-              Reports
+              {t('pages.reports', 'Reports')}
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Installations</Box>
+            <Box component="span">{t('pages.installations', 'Installations')}</Box>
           </Box>
 
           <Box
@@ -157,10 +160,10 @@ export default function InstallationsReportPage() {
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 40 } }}
               >
                 <RocketLaunchOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
-                Installation report
+                {t('pages.installationReport', 'Installation report')}
               </Typography>
               <Typography color="text.secondary">
-                {version?.label ?? 'No version'} · Generated {payload.generated_at}
+                {version?.label ?? t('reports.noVersion', 'No version')} · {t('reports.generatedAt', 'Generated {date}', { date: payload.generated_at })}
               </Typography>
             </Box>
             <Autocomplete
@@ -174,39 +177,28 @@ export default function InstallationsReportPage() {
               getOptionLabel={(option) => option.label}
               isOptionEqualToValue={(option, value) => option.ID === value.ID}
               sx={{ width: { xs: '100%', sm: 320 } }}
-              renderInput={(params) => <TextField {...params} label="Version" />}
+              renderInput={(params) => <TextField {...params} label={t('reports.version', 'Version')} />}
             />
           </Box>
 
           <Typography sx={{ mb: 1.5, maxWidth: 820 }}>
-            See feedback on{' '}
-            <Box
-              component="button"
-              type="button"
-              onClick={() => navigate(tableBrowsePath('games'))}
-              sx={crumbSx}
-            >
-              Game
-            </Box>{' '}
-            performance and technical performance for{' '}
-            <Box
-              component="button"
-              type="button"
-              onClick={() => navigate(tableBrowsePath('installations'))}
-              sx={crumbSx}
-            >
-              Installations
-            </Box>{' '}
-            of any{' '}
-            <Box
-              component="button"
-              type="button"
-              onClick={() => navigate(tableBrowsePath('versions'))}
-              sx={crumbSx}
-            >
-              Version
-            </Box>
-            .
+            {renderTokens(t('reports.seeFeedback', 'See feedback on {game} performance and technical performance for {installations} of any {version}.'), {
+              game: (
+                <Box component="button" type="button" onClick={() => navigate(tableBrowsePath('games'))} sx={crumbSx}>
+                  {t('reports.linkGame', 'Game')}
+                </Box>
+              ),
+              installations: (
+                <Box component="button" type="button" onClick={() => navigate(tableBrowsePath('installations'))} sx={crumbSx}>
+                  {t('reports.linkInstallations', 'Installations')}
+                </Box>
+              ),
+              version: (
+                <Box component="button" type="button" onClick={() => navigate(tableBrowsePath('versions'))} sx={crumbSx}>
+                  {t('reports.linkVersion', 'Version')}
+                </Box>
+              ),
+            })}
           </Typography>
 
           {payload.featured.length > 0 ? (
@@ -239,11 +231,11 @@ export default function InstallationsReportPage() {
           >
             <ToggleButton value="installations" sx={pillSx}>
               <PlaceOutlinedIcon sx={{ mr: 0.75, fontSize: 18 }} />
-              Installations
+              {t('pages.installations', 'Installations')}
             </ToggleButton>
             <ToggleButton value="availability" sx={pillSx}>
               <CheckCircleOutlinedIcon sx={{ mr: 0.75, fontSize: 18 }} />
-              Availability
+              {t('reports.availability', 'Availability')}
             </ToggleButton>
           </ToggleButtonGroup>
 
@@ -257,9 +249,9 @@ export default function InstallationsReportPage() {
                   mb: 2,
                 }}
               >
-                <StatCard label="Live installations" value={payload.totals.live} hint="Currently operating" />
-                <StatCard label="Test installations" value={payload.totals.test} hint="Validation environments" />
-                <StatCard label="Planned installations" value={payload.totals.planned} hint="Scheduled rollout" />
+                <StatCard label={t('reports.liveInstallations', 'Live installations')} value={payload.totals.live} hint={t('reports.currentlyOperating', 'Currently operating')} />
+                <StatCard label={t('reports.testInstallations', 'Test installations')} value={payload.totals.test} hint={t('reports.validationEnvironments', 'Validation environments')} />
+                <StatCard label={t('reports.plannedInstallations', 'Planned installations')} value={payload.totals.planned} hint={t('reports.scheduledRollout', 'Scheduled rollout')} />
               </Box>
 
               <Box
@@ -275,10 +267,10 @@ export default function InstallationsReportPage() {
                   p: 2,
                 }}
               >
-                <Glance label="Total installation footprint" value={formatNumber(payload.totals.footprint)} />
-                <Glance label="Performance feedback" value={`${payload.totals.rated} of ${payload.totals.records} records`} />
-                <Glance label="Feedback coverage" value={`${coverage}%`} />
-                <Glance label="Without a rating" value={`${payload.totals.unrated} records`} />
+                <Glance label={t('reports.footprint', 'Total installation footprint')} value={formatNumber(payload.totals.footprint)} />
+                <Glance label={t('reports.performanceFeedback', 'Performance feedback')} value={t('reports.ratedOf', '{rated} of {records} records', { rated: payload.totals.rated, records: payload.totals.records })} />
+                <Glance label={t('reports.feedbackCoverage', 'Feedback coverage')} value={`${coverage}%`} />
+                <Glance label={t('reports.withoutRating', 'Without a rating')} value={t('reports.recordCount', '{count} records', { count: payload.totals.unrated })} />
               </Box>
 
               <Box sx={{ mb: 2 }}>
@@ -289,11 +281,11 @@ export default function InstallationsReportPage() {
 
               {payload.last_install ? (
                 <Typography color="text.secondary" sx={{ mt: 2, textAlign: 'right', fontSize: 13 }}>
-                  L, T, P = Live, Test, Planned
+                  {t('reports.legend', 'L, T, P = Live, Test, Planned')}
                   {payload.last_install.when
-                    ? ` — Installations last modified on ${payload.last_install.when}`
+                    ? ` — ${t('reports.installationsModified', 'Installations last modified on {when}', { when: payload.last_install.when })}`
                     : ''}
-                  {payload.last_install.who ? ` by ${payload.last_install.who}` : ''}
+                  {payload.last_install.who ? ` ${t('reports.byPerson', 'by {name}', { name: payload.last_install.who })}` : ''}
                   {payload.last_install.where ? `: ${payload.last_install.where}` : ''}.
                 </Typography>
               ) : null}
@@ -307,7 +299,7 @@ export default function InstallationsReportPage() {
               />
               {payload.can_edit ? (
                 <Box sx={{ mt: 3 }}>
-                  <Typography sx={{ mb: 1 }}>If your jurisdiction is not listed yet, add it here:</Typography>
+                  <Typography sx={{ mb: 1 }}>{t('reports.missingJurisdiction', 'If your jurisdiction is not listed yet, add it here:')}</Typography>
                   <AppButton
                     size="medium"
                     variant="outlined"
@@ -318,15 +310,15 @@ export default function InstallationsReportPage() {
                       )
                     }
                   >
-                    New availability
+                    {t('reports.newAvailability', 'New availability')}
                   </AppButton>
                 </Box>
               ) : null}
               {payload.last_availability ? (
                 <Typography color="text.secondary" sx={{ mt: 2, textAlign: 'right', fontSize: 13 }}>
-                  Availabilities last modified
-                  {payload.last_availability.when ? ` on ${payload.last_availability.when}` : ''}
-                  {payload.last_availability.who ? ` by ${payload.last_availability.who}` : ''}
+                  {t('reports.availabilitiesModified', 'Availabilities last modified')}
+                  {payload.last_availability.when ? ` ${t('reports.onDate', 'on {date}', { date: payload.last_availability.when })}` : ''}
+                  {payload.last_availability.who ? ` ${t('reports.byPerson', 'by {name}', { name: payload.last_availability.who })}` : ''}
                   {payload.last_availability.where ? `: ${payload.last_availability.where}` : ''}.
                 </Typography>
               ) : null}
@@ -376,4 +368,14 @@ function Glance({ label, value }: { label: string; value: string }) {
 
 function formatNumber(value: number): string {
   return value.toLocaleString()
+}
+
+function renderTokens(template: string, tokens: Record<string, ReactNode>) {
+  return template.split(/(\{[a-zA-Z]+\})/).map((part, index) => {
+    const match = /^\{([a-zA-Z]+)\}$/.exec(part)
+    if (!match) {
+      return <span key={index}>{part}</span>
+    }
+    return <span key={index}>{tokens[match[1]] ?? part}</span>
+  })
 }

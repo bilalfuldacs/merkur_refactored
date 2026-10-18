@@ -9,9 +9,10 @@ import { ApiError } from '@/api'
 import type { IceBootstrap, IceCompetitor, IceGame, IceQuestionnaireHistory, IceScoutProduct } from '@/api/ice2027'
 import { IceEventPicker, IceHero, IceOfflineBar, IceTabs, iceCrumbSx } from '@/components/ice2027'
 import { IceQuestionnaireForm, emptyProducts } from '@/components/ice2027/IceQuestionnaireForm'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
-import { loadIceHub, loadIceOpenQuestionnaire, loadIceQuestionnaire, persistIceOpenQuestionnaire, persistIceQuestionnaire, getIcePendingQuestionnaire, discardIcePendingQuestionnaire, syncIcePending } from '@/offline/iceOffline'
+import { loadIceHub, loadIceOpenQuestionnaire, loadIceQuestionnaire, persistIceOpenQuestionnaire, persistIceQuestionnaire, syncIcePending } from '@/offline/iceOffline'
 import { APP_PATHS, eventSlugFromSearch, ice2027EvaluationPath, ice2027HubPath, ice2027OpenQuestionnairePath, ice2027QuestionnairePath, useAppPath } from '@/routing'
 
 function competitorIdFromSearch(search: string): number | null {
@@ -33,6 +34,7 @@ function statusChip(kind: 'done' | 'started' | 'todo', label: string) {
 }
 
 export default function Ice2027Page() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const competitorId = useMemo(() => competitorIdFromSearch(search), [search])
   const extraOpen = useMemo(() => openFromSearch(search), [search])
@@ -51,8 +53,6 @@ export default function Ice2027Page() {
   const [forceNewProduct, setForceNewProduct] = useState(false)
   const [allCompetitors, setAllCompetitors] = useState<IceCompetitor[]>([])
   const [themeWorlds, setThemeWorlds] = useState<string[]>([])
-  const [pendingFail, setPendingFail] = useState('')
-  const [pendingBusy, setPendingBusy] = useState(false)
 
   const loadHub = useCallback(async () => {
     if (!eventSlug) {
@@ -71,11 +71,13 @@ export default function Ice2027Page() {
   const eventName = bootstrap?.event?.name ?? 'Exhibition'
 
   useEffect(() => {
-    document.title = competitorId || extraOpen ? `${eventName} Questionnaire | MERKURflow` : `${eventName} | MERKURflow`
+    document.title = competitorId || extraOpen
+      ? `${eventName} ${t('pages.questionnaire', 'Questionnaire')} | MERKURflow`
+      : `${eventName} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [competitorId, extraOpen, eventName])
+  }, [competitorId, extraOpen, eventName, t])
 
   useEffect(() => {
     void loadHub()
@@ -119,13 +121,33 @@ export default function Ice2027Page() {
         setAllCompetitors(result.data.all_competitors ?? bootstrap?.all_competitors ?? [])
         setThemeWorlds(result.data.theme_worlds ?? bootstrap?.theme_worlds ?? [])
         setFailed('')
-        const pending = await getIcePendingQuestionnaire(pendingId)
-        if (!cancelled) {
-          setPendingFail(
-            pending || result.pending
-              ? 'This device has a questionnaire that was not saved to the server. Tap Save now to send it, or discard the local copy.'
-              : '',
+        if (result.pending && navigator.onLine) {
+          const sync = await syncIcePending()
+          if (cancelled || sync.uploaded < 1) {
+            return
+          }
+          const refreshed =
+            pendingId > 0 ? await loadIceQuestionnaire(pendingId, { preferServer: true }) : await loadIceOpenQuestionnaire({ preferServer: true })
+          if (cancelled) {
+            return
+          }
+          setCompetitor(refreshed.data.competitor)
+          setProducts(emptyProducts(refreshed.data.products))
+          setGames(refreshed.data.games ?? refreshed.data.all_games ?? [])
+          setTeamMembers(refreshed.data.team_members ?? [])
+          setUpdatedBy(refreshed.data.updated_by ?? null)
+          setUpdatedAt(refreshed.data.updated_at ?? null)
+          setHistory(refreshed.data.history ?? [])
+          setOpenMode(Boolean(refreshed.data.open || extraOpen || !competitorId))
+          setForceNewProduct(Boolean(refreshed.data.force_new_product))
+          setAllCompetitors(refreshed.data.all_competitors ?? bootstrap?.all_competitors ?? [])
+          setThemeWorlds(refreshed.data.theme_worlds ?? bootstrap?.theme_worlds ?? [])
+          setFlash(
+            sync.uploaded === 1
+              ? 'Uploaded 1 saved form to the server.'
+              : `Uploaded ${sync.uploaded} saved forms to the server.`,
           )
+          await loadHub()
         }
       })
       .catch((error: unknown) => {
@@ -136,7 +158,7 @@ export default function Ice2027Page() {
     return () => {
       cancelled = true
     }
-  }, [competitorId, eventSlug, extraOpen, search, bootstrap])
+  }, [competitorId, eventSlug, extraOpen, search, bootstrap, loadHub])
 
   if (!eventSlug) {
     return <IceEventPicker buildPath={(slug) => ice2027HubPath(slug)} />
@@ -164,76 +186,13 @@ export default function Ice2027Page() {
       setForceNewProduct(Boolean(loaded.data.force_new_product))
       setAllCompetitors(loaded.data.all_competitors ?? [])
       setThemeWorlds(loaded.data.theme_worlds ?? [])
-      if (!result.synced) {
-        setPendingFail(
-          'Could not save to the server. This questionnaire is stored on this device. Check your connection and tap Save now.',
-        )
-        if (!silent) {
-          setFlash('')
-        }
-      } else {
-        setPendingFail('')
-        if (!silent) {
-          setFlash(result.message)
-        }
+      if (!silent) {
+        setFlash(result.message)
       }
       await loadHub()
     } catch (error) {
       setFailed(error instanceof ApiError ? error.message : 'Questionnaire could not be saved.')
       throw error
-    }
-  }
-
-  async function retryPendingSave() {
-    setPendingBusy(true)
-    setFailed('')
-    try {
-      const sync = await syncIcePending()
-      if (sync.uploaded > 0) {
-        setPendingFail('')
-        setFlash(sync.uploaded === 1 ? 'Uploaded 1 saved form to the server.' : `Uploaded ${sync.uploaded} saved forms to the server.`)
-        await save(products, true)
-        return
-      }
-      await save(products, true)
-      const pendingId = competitorId && !extraOpen ? competitorId : 0
-      const stillPending = await getIcePendingQuestionnaire(pendingId)
-      if (!stillPending) {
-        setPendingFail('')
-        setFlash('Saved to server.')
-      }
-    } catch (error) {
-      setPendingFail(
-        error instanceof ApiError
-          ? error.message
-          : 'Could not save to the server. This questionnaire is stored on this device. Check your connection and tap Save now.',
-      )
-    } finally {
-      setPendingBusy(false)
-    }
-  }
-
-  async function discardPendingLocal() {
-    setPendingBusy(true)
-    try {
-      const pendingId = competitorId && !extraOpen ? competitorId : 0
-      await discardIcePendingQuestionnaire(pendingId)
-      const loaded =
-        pendingId > 0
-          ? await loadIceQuestionnaire(pendingId, { preferServer: true })
-          : await loadIceOpenQuestionnaire({ preferServer: true })
-      setCompetitor(loaded.data.competitor)
-      setProducts(emptyProducts(loaded.data.products))
-      setGames(loaded.data.games ?? loaded.data.all_games ?? [])
-      setTeamMembers(loaded.data.team_members ?? [])
-      setUpdatedBy(loaded.data.updated_by ?? null)
-      setUpdatedAt(loaded.data.updated_at ?? null)
-      setHistory(loaded.data.history ?? [])
-      setPendingFail('')
-      setFlash('')
-      await loadHub()
-    } finally {
-      setPendingBusy(false)
     }
   }
 
@@ -245,16 +204,16 @@ export default function Ice2027Page() {
     : evalProgress?.started
       ? evalProgress.label
       : 'Not started'
-  const evalButton = evalProgress?.complete ? 'Edit' : evalProgress?.started ? 'Continue' : 'Start'
+  const evalButton = evalProgress?.complete ? t('common.edit', 'Edit') : evalProgress?.started ? t('ice.continue', 'Continue') : t('ice.begin', 'Start')
 
   return (
     <PageBackground>
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: { xs: 2, md: 3 }, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: { xs: 2, md: 3 }, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             {competitor ? (
@@ -273,13 +232,13 @@ export default function Ice2027Page() {
               <>
                 <Box component="span">{eventName}</Box>
                 <Box component="span" color="text.secondary">/</Box>
-                <Box component="span">Questionnaire</Box>
+                <Box component="span">{t('pages.questionnaire', 'Questionnaire')}</Box>
               </>
             )}
           </Box>
 
           <IceHero
-            kicker={competitor ? 'Scouting questionnaire' : `My ${eventName} tasks`}
+            kicker={competitor ? t('pages.scouting', 'Scouting questionnaire') : t('pages.myTasksFor', 'My {name} tasks', { name: eventName })}
             title={competitor ? competitor.name : eventName}
           >
             {competitor
@@ -308,24 +267,6 @@ export default function Ice2027Page() {
           {flash ? (
             <Alert severity="success" sx={{ mb: 2 }} onClose={() => setFlash('')}>
               {flash}
-            </Alert>
-          ) : null}
-          {pendingFail ? (
-            <Alert
-              severity="error"
-              sx={{ mb: 2, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}
-              action={
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                  <AppButton size="small" color="error" variant="contained" disabled={pendingBusy} onClick={() => void retryPendingSave()}>
-                    Save now
-                  </AppButton>
-                  <AppButton size="small" variant="outlined" color="secondary" disabled={pendingBusy} onClick={() => void discardPendingLocal()}>
-                    Discard local copy
-                  </AppButton>
-                </Box>
-              }
-            >
-              {pendingFail}
             </Alert>
           ) : null}
 
@@ -364,8 +305,8 @@ export default function Ice2027Page() {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr', lg: '1fr 1fr 1fr' }, gap: 2 }}>
                   {bootstrap.competitors.map((item) => {
                     const qKind = item.questionnaire_done ? 'done' : item.questionnaire_started ? 'started' : 'todo'
-                    const qLabel = item.questionnaire_done ? 'Done' : item.questionnaire_started ? 'Started' : 'Not started'
-                    const qButton = item.questionnaire_done ? 'Edit' : item.questionnaire_started ? 'Continue' : 'Start'
+                    const qLabel = item.questionnaire_done ? t('ice.done', 'Done') : item.questionnaire_started ? t('ice.started', 'Started') : t('ice.notStarted', 'Not started')
+                    const qButton = item.questionnaire_done ? t('common.edit', 'Edit') : item.questionnaire_started ? t('ice.continue', 'Continue') : t('ice.begin', 'Start')
                     return (
                       <Paper
                         key={item.ID}
@@ -445,7 +386,7 @@ export default function Ice2027Page() {
                   </Typography>
                   {statusChip(
                     me.extra_questionnaire?.complete ? 'done' : me.extra_questionnaire?.started ? 'started' : 'todo',
-                    me.extra_questionnaire?.complete ? 'Done' : me.extra_questionnaire?.started ? 'Started' : 'Optional',
+                    me.extra_questionnaire?.complete ? t('ice.done', 'Done') : me.extra_questionnaire?.started ? t('ice.started', 'Started') : t('ice.optional', 'Optional'),
                   )}
                 </Box>
                 <AppButton
@@ -453,7 +394,7 @@ export default function Ice2027Page() {
                   variant={me.extra_questionnaire?.complete ? 'outlined' : 'contained'}
                   onClick={() => navigate(ice2027OpenQuestionnairePath(eventSlug))}
                 >
-                  {me.extra_questionnaire?.complete ? 'Edit' : me.extra_questionnaire?.started ? 'Continue' : 'Start'}
+                  {me.extra_questionnaire?.complete ? t('common.edit', 'Edit') : me.extra_questionnaire?.started ? t('ice.continue', 'Continue') : t('ice.begin', 'Start')}
                 </AppButton>
               </Box>
             </Paper>

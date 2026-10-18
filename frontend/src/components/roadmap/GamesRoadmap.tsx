@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import type { RoadmapGame, RoadmapGameStatusKey } from '@/api'
+import { useI18n } from '@/i18n'
 import { GameRoadmapCard } from './GameRoadmapCard'
 import { groupRoadmapGames } from './format'
 import type { RoadmapFilterState } from './format'
@@ -18,22 +19,29 @@ export function GamesRoadmap({
   decolorize: boolean
   onOpen: (game: RoadmapGame) => void
 }) {
+  const { locale, t } = useI18n()
   if (games.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 4 }}>
-        No games match these filters in this period.
+        {t('roadmap.noGames', 'No games match these filters in this period.')}
       </Typography>
     )
   }
 
-  const groups = groupRoadmapGames(games, filters)
+  const groups = groupRoadmapGames(games, filters, locale)
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {groups.map((group) => (
         <Box key={group.key}>
           {filters.sortBy !== 'nam' ? (
-            <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'merkur.pink', mb: 1 }}>{group.label}</Typography>
+            <Typography sx={{ fontWeight: 800, fontSize: 16, color: 'merkur.pink', mb: 1 }}>
+              {group.key === 'name'
+                ? t('roadmap.byName', 'By name')
+                : group.key === 'unknown'
+                  ? t('roadmap.unknownDate', 'Unknown date')
+                  : group.label}
+            </Typography>
           ) : null}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
             {group.games.map((game) => (

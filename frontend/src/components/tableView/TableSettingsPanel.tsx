@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import HistoryIcon from '@mui/icons-material/History'
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined'
@@ -10,6 +11,7 @@ import InputLabel from '@mui/material/InputLabel'
 import MenuItem from '@mui/material/MenuItem'
 import Select from '@mui/material/Select'
 import Typography from '@mui/material/Typography'
+import { catalogTitle, translateCatalogHtml, useI18n } from '@/i18n'
 import type { TableViewSchema, TableViewState } from '@/tableView'
 import { TableFilterCard } from './TableFilterCard'
 
@@ -36,6 +38,9 @@ export function TableSettingsPanel({
   onApply: () => void
   onResetToDefault: () => void
 }) {
+  const { t, phrase } = useI18n()
+  const title = catalogTitle(t, schema.table, schema.title)
+  const infobox = useMemo(() => translateCatalogHtml(schema.infobox, phrase), [phrase, schema.infobox])
   const viewValue = isDefaultDraft ? 'default' : 'custom'
 
   return (
@@ -47,13 +52,13 @@ export function TableSettingsPanel({
           sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: 16, mb: 1.25 }}
         >
           <SettingsIcon sx={{ color: 'info.main', fontSize: 20 }} />
-          “{schema.title}” Settings
+          {t('common.settingsFor', '“{title}” Settings', { title })}
         </Typography>
         <FormControl size="small" fullWidth sx={{ mb: 1.5 }}>
-          <InputLabel id={`${schema.table}-view-label`}>View</InputLabel>
+          <InputLabel id={`${schema.table}-view-label`}>{t('common.view', 'View')}</InputLabel>
           <Select
             labelId={`${schema.table}-view-label`}
-            label="View"
+            label={t('common.view', 'View')}
             value={viewValue}
             onChange={(event) => {
               if (event.target.value === 'default') {
@@ -62,8 +67,8 @@ export function TableSettingsPanel({
             }}
             sx={{ bgcolor: 'rgba(0, 159, 227, 0.08)' }}
           >
-            {viewValue === 'custom' ? <MenuItem value="custom">Custom</MenuItem> : null}
-            <MenuItem value="default">Default ({schema.defaultViewName})</MenuItem>
+            {viewValue === 'custom' ? <MenuItem value="custom">{t('common.custom', 'Custom')}</MenuItem> : null}
+            <MenuItem value="default">{t('common.defaultView', 'Default ({name})', { name: schema.defaultViewName })}</MenuItem>
           </Select>
         </FormControl>
         <Typography sx={{ mb: 0.75, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
@@ -73,24 +78,15 @@ export function TableSettingsPanel({
             <LockIcon sx={{ fontSize: 18, color: 'error.main', mt: '2px' }} />
           )}
           <span>
-            {canEdit ? (
-              <>
-                You may <Box component="strong">view and edit</Box> this table.
-              </>
-            ) : (
-              <>
-                You may <Box component="strong">view</Box> this table, but you{' '}
-                <Box component="strong">cannot edit</Box>.
-              </>
-            )}
+            {canEdit
+              ? t('common.mayViewEdit', 'You may view and edit this table.')
+              : t('common.mayViewOnly', 'You may view this table, but you cannot edit.')}
           </span>
         </Typography>
         {schema.hasHistory ? (
           <Typography sx={{ mb: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1 }}>
             <HistoryIcon sx={{ fontSize: 18, color: 'success.main', mt: '2px' }} />
-            <span>
-              This table preserves <Box component="strong">edit history</Box>.
-            </span>
+            <span>{t('common.preservesHistory', 'This table preserves edit history.')}</span>
           </Typography>
         ) : null}
 
@@ -111,7 +107,7 @@ export function TableSettingsPanel({
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: 16, mb: 1.25 }}
           >
             <InfoOutlinedIcon sx={{ color: 'info.main', fontSize: 20 }} />
-            About “{schema.title}”
+            {t('common.aboutTitle', 'About “{title}”', { title })}
           </Typography>
           <Box
             sx={{
@@ -122,7 +118,7 @@ export function TableSettingsPanel({
               borderColor: 'rgba(0, 159, 227, 0.25)',
               '& a': { color: 'info.main', fontWeight: 800 },
             }}
-            dangerouslySetInnerHTML={{ __html: schema.infobox }}
+            dangerouslySetInnerHTML={{ __html: infobox }}
           />
         </Box>
       ) : null}

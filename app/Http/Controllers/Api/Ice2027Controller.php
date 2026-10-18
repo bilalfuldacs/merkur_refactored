@@ -104,6 +104,7 @@ class Ice2027Controller extends Controller
         abort_unless($ice->isAttendant($user), 403, 'This scouting event is only available to attendants.');
 
         $focusId = (int) $request->query('c', 0);
+        $ice->syncCatalogFromQuestionnaires((int) $user->ID);
         $payload = $ice->evaluationPayload((int) $user->ID);
         $assigned = $ice->competitorsForUser((int) $user->ID);
         $top5 = $ice->normalizedTop5($payload, $focusId);
@@ -226,11 +227,12 @@ class Ice2027Controller extends Controller
 
         $competitorId = (int) $request->query('c', 0);
         $fileId = (string) $request->query('f', '');
-        $owner = $ice->mediaOwnerForPhotoAccess($request->user(), $competitorId, $request->query('o'));
-        abort_unless($owner !== null && $fileId !== '', 404, 'Picture not found.');
+        $preferred = $request->query('o');
+        $located = $ice->locateProductPhoto($competitorId, $fileId, is_string($preferred) ? $preferred : null);
+        abort_unless($located !== null && is_file($located['path']) && filesize($located['path']) > 0, 404, 'Picture not found.');
+        abort_unless($ice->canAccessLocatedPhoto($request->user(), $competitorId, $located['owner']), 403, 'This scouting event is only available to attendants and administrators.');
 
-        $path = $ice->productPhotoPath($owner, $competitorId, $fileId);
-        abort_unless($path !== null && is_file($path) && filesize($path) > 0, 404, 'Picture not found.');
+        $path = $located['path'];
 
         $downloadName = $fileId;
         $marker = strrpos($fileId, '~~');

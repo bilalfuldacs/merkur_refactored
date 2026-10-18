@@ -7,7 +7,8 @@ import Typography from '@mui/material/Typography'
 import { getRoadmap } from '@/api'
 import type { RoadmapGame, RoadmapPayload, RoadmapRow, RoadmapView } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import {
   AnalystStudio,
   GamesRoadmap,
@@ -22,7 +23,7 @@ import {
   monthsForGrid,
   monthsFromGames,
   monthsFromRows,
-  rangeLabel,
+  rangeParts,
   sliderMonthSpan,
 } from '@/components/roadmap'
 import type { RoadmapFilterState } from '@/components/roadmap'
@@ -76,6 +77,7 @@ function withLoadedFilters(view: RoadmapView, payload: RoadmapPayload): RoadmapF
 }
 
 export default function RoadmapPage() {
+  const { locale, t } = useI18n()
   const { path, navigate } = useAppPath()
   const { user } = useAuth()
   const view: RoadmapView = path === APP_PATHS.roadmapGames ? 'games' : 'versions'
@@ -87,11 +89,11 @@ export default function RoadmapPage() {
   const canShowDevelopment = payload?.can_show_development === true || user?.role?.['may_use_tlp-red'] === true
 
   useEffect(() => {
-    document.title = view === 'games' ? 'Roadmap by Games | MERKURflow' : 'Roadmap by Versions | MERKURflow'
+    document.title = view === 'games' ? `${t('pages.roadmapGames', 'Roadmap by Games')} | MERKURflow` : `${t('pages.roadmapVersions', 'Roadmap by Versions')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [view])
+  }, [view, t])
 
   useEffect(() => {
     let cancelled = false
@@ -117,10 +119,10 @@ export default function RoadmapPage() {
   }, [view])
 
   const dataMonths = useMemo(
-    () => (view === 'games' ? monthsFromGames(payload?.games ?? []) : monthsFromRows(payload?.rows ?? [])),
-    [payload, view],
+    () => (view === 'games' ? monthsFromGames(payload?.games ?? [], locale) : monthsFromRows(payload?.rows ?? [], locale)),
+    [payload, view, locale],
   )
-  const monthSpan = useMemo(() => sliderMonthSpan(dataMonths), [dataMonths])
+  const monthSpan = useMemo(() => sliderMonthSpan(dataMonths, locale), [dataMonths, locale])
   const defaultRange = useMemo(() => clampRangeToSpan(defaultTimeRange(view), monthSpan), [view, monthSpan])
   const dataLastKey = dataMonths[dataMonths.length - 1]?.key
   const visibleRows = useMemo(
@@ -141,8 +143,20 @@ export default function RoadmapPage() {
   }, [visibleGames, currentPage, pageSize])
   const months = useMemo(() => monthsForGrid(monthSpan, filters, dataLastKey), [monthSpan, filters, dataLastKey])
   const milestoneCount = visibleRows.reduce((sum, row) => sum + row.milestones.length, 0)
-  const itemLabel = view === 'games' ? 'game' : 'version'
-  const headingMonths = view === 'games' ? monthsFromGames(visibleGames) : months
+  const headingMonths = view === 'games' ? monthsFromGames(visibleGames, locale) : months
+  const headingRange = rangeParts(headingMonths, locale)
+  const rangeText =
+    headingRange.kind === 'month'
+      ? t('roadmap.dynamicMonth', 'Dynamic roadmap {month}', { month: headingRange.from })
+      : headingRange.kind === 'sameYear'
+        ? t('roadmap.dynamicSameYear', 'Dynamic roadmap {from}–{to} {year}', {
+            from: headingRange.from,
+            to: headingRange.to,
+            year: headingRange.year,
+          })
+        : headingRange.kind === 'years'
+          ? t('roadmap.dynamicYears', 'Dynamic roadmap {from} – {to}', { from: headingRange.from, to: headingRange.to })
+          : t('roadmap.dynamic', 'Dynamic roadmap')
   const listRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -167,14 +181,14 @@ export default function RoadmapPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">{view === 'games' ? 'Roadmap by Games' : 'Roadmap by Versions'}</Box>
+            <Box component="span">{view === 'games' ? t('pages.roadmapGames', 'Roadmap by Games') : t('pages.roadmapVersions', 'Roadmap by Versions')}</Box>
           </Box>
 
           <Typography
@@ -182,7 +196,7 @@ export default function RoadmapPage() {
             sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15, mb: 2 }}
           >
             <MapOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-            {view === 'games' ? 'Roadmap by Games' : 'Roadmap by Versions'}
+            {view === 'games' ? t('pages.roadmapGames', 'Roadmap by Games') : t('pages.roadmapVersions', 'Roadmap by Versions')}
             {view === 'games' && payload ? (
               <Box component="span" sx={{ color: 'info.main', fontWeight: 800, fontSize: 22 }}>
                 Σ {visibleGames.length}
@@ -201,21 +215,21 @@ export default function RoadmapPage() {
                   navigate(APP_PATHS.roadmap)
                 }
               }}
-              aria-label="Roadmap view"
+              aria-label={t('roadmap.viewAria', 'Roadmap view')}
               sx={pillGroupSx}
             >
               <ToggleButton value="versions" sx={pillSx}>
-                Versions
+                {t('roadmap.versions', 'Versions')}
               </ToggleButton>
               <ToggleButton value="games" sx={pillSx}>
-                Games
+                {t('roadmap.games', 'Games')}
               </ToggleButton>
             </ToggleButtonGroup>
-            <Typography sx={{ color: 'text.secondary', fontWeight: 600 }}>{rangeLabel(headingMonths)}</Typography>
+            <Typography sx={{ color: 'text.secondary', fontWeight: 600 }}>{rangeText}</Typography>
           </Box>
 
           {failed ? (
-            <Typography color="text.secondary">The roadmap could not be loaded.</Typography>
+            <Typography color="text.secondary">{t('roadmap.loadFailed', 'The roadmap could not be loaded.')}</Typography>
           ) : payload === null ? null : (
             <>
               <RoadmapFilters
@@ -229,7 +243,6 @@ export default function RoadmapPage() {
                 statusLabels={payload.game_status_labels}
                 rowCount={view === 'games' ? visibleGames.length : visibleRows.length}
                 milestoneCount={milestoneCount}
-                itemLabel={itemLabel}
                 onChange={setFilters}
               />
               {view === 'games' ? <AnalystStudio games={visibleGames} /> : null}
@@ -237,7 +250,7 @@ export default function RoadmapPage() {
                 page={currentPage}
                 pageSize={pageSize}
                 total={total}
-                itemLabel={itemLabel}
+                kind={view === 'games' ? 'game' : 'version'}
                 onPageChange={goToPage}
                 onPageSizeChange={setPageSize}
               />
@@ -252,7 +265,6 @@ export default function RoadmapPage() {
                   />
                 ) : (
                   <RoadmapGrid
-                    itemLabel={itemLabel}
                     rows={pagedRows}
                     months={months}
                     showSubtitles={filters.showSubtitles}
@@ -265,7 +277,7 @@ export default function RoadmapPage() {
                   page={currentPage}
                   pageSize={pageSize}
                   total={total}
-                  itemLabel={itemLabel}
+                  kind={view === 'games' ? 'game' : 'version'}
                   onPageChange={goToPage}
                   onPageSizeChange={setPageSize}
                 />

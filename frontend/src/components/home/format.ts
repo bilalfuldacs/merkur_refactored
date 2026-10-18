@@ -1,4 +1,7 @@
-export function formatAgo(iso: string | null | undefined): string {
+export function formatAgo(
+  iso: string | null | undefined,
+  options?: { locale?: string; yesterday?: string },
+): string {
   if (!iso) {
     return ''
   }
@@ -8,6 +11,8 @@ export function formatAgo(iso: string | null | undefined): string {
     return ''
   }
 
+  const locale = options?.locale ?? 'en'
+  const yesterday = options?.yesterday ?? 'yesterday'
   const sec = Math.max(0, Math.round((Date.now() - then) / 1000))
   if (sec < 60) {
     return `${sec}s`
@@ -19,13 +24,13 @@ export function formatAgo(iso: string | null | undefined): string {
     return `${Math.floor(sec / 3600)}h`
   }
   if (sec < 172800) {
-    return 'yesterday'
+    return yesterday
   }
   if (sec < 604800) {
-    return new Date(iso).toLocaleDateString([], { weekday: 'long' })
+    return new Date(iso).toLocaleDateString(locale, { weekday: 'long' })
   }
 
-  return new Date(iso).toLocaleDateString('en-CA')
+  return new Date(iso).toLocaleDateString(locale)
 }
 
 export function excerptNote(note: string | null | undefined): string {
@@ -42,10 +47,13 @@ export function excerptNote(note: string | null | undefined): string {
     .trim()
 }
 
-export function displayName(editor: { firstname?: string | null; lastname?: string | null } | null): string {
+export function displayName(
+  editor: { firstname?: string | null; lastname?: string | null } | null,
+  unknownLabel = 'Unknown',
+): string {
   if (!editor) {
-    return 'Unknown'
+    return unknownLabel
   }
 
-  return [editor.firstname, editor.lastname].filter(Boolean).join(' ') || 'Unknown'
+  return [editor.firstname, editor.lastname].filter(Boolean).join(' ') || unknownLabel
 }

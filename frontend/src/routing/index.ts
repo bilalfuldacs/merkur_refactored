@@ -1,4 +1,4 @@
-export { AppPathProvider, APP_PATHS, useAppPath } from './AppPathProvider'
+export { APP_PATHS } from './paths'
 export {
   marketReportPath,
   productGamesListPath,
@@ -15,3 +15,6 @@ export {
   ice2027DashboardGamePath,
   eventSlugFromSearch,
 } from './paths'
+export { useAppPath } from './useAppPath'
+export type { NavigateOptions } from './useAppPath'
+export { router } from './router'

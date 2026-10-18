@@ -4,6 +4,7 @@ export type TableColumnKind =
   | 'id'
   | 'relation'
   | 'text'
+  | 'number'
   | 'boolean'
   | 'json'
   | 'matrix'

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+ import { useEffect, useMemo, useState } from 'react'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Checkbox from '@mui/material/Checkbox'
@@ -13,7 +13,8 @@ import Typography from '@mui/material/Typography'
 import { ApiError, getIceProgress } from '@/api'
 import type { IceProgressGameRow, IceProgressPayload, IceProgressPerson, IceProgressTeam } from '@/api/ice2027'
 import { IceEventPicker, IceHero, IcePhotosButton, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, eventSlugFromSearch, ice2027HubPath, ice2027ProgressPath, useAppPath } from '@/routing'
 
 function evalLabel(person: IceProgressPerson): string {
@@ -244,6 +245,7 @@ function GameMatrixTable({ rows }: { rows: IceProgressGameRow[] }) {
 }
 
 export default function Ice2027ProgressPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const eventSlug = useMemo(() => eventSlugFromSearch(search), [search])
   const [payload, setPayload] = useState<IceProgressPayload | null>(null)
@@ -251,11 +253,11 @@ export default function Ice2027ProgressPage() {
   const eventName = payload?.event?.name ?? 'Exhibition'
 
   useEffect(() => {
-    document.title = `${eventName} Managers | MERKURflow`
+    document.title = `${eventName} ${t('pages.managers', 'Managers')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [eventName])
+  }, [eventName, t])
 
   useEffect(() => {
     if (!eventSlug) {
@@ -290,19 +292,19 @@ export default function Ice2027ProgressPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1400, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
             <Box component="button" type="button" onClick={() => navigate(ice2027HubPath(eventSlug))} sx={iceCrumbSx}>
               {eventName}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">Managers</Box>
+            <Box component="span">{t('pages.managers', 'Managers')}</Box>
           </Box>
 
-          <IceHero kicker="Controlling" title={`${eventName} research status`}>
+          <IceHero kicker={t('ice.controlling', 'Controlling')} title={t('ice.researchStatus', '{name} research status', { name: eventName })}>
             Questionnaire and Evaluated ticks are per assigned team: a game is evaluated only when a member of that competitor’s team rated it, not when another team did.
           </IceHero>
 

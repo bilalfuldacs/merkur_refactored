@@ -12,7 +12,8 @@ import Typography from '@mui/material/Typography'
 import { ApiError, createScoutEvent, getScoutAdminEvents, updateScoutEvent } from '@/api'
 import type { ScoutEventRecord } from '@/api'
 import { IceHero, IceSectionHead, IceTabs, iceCrumbSx } from '@/components/ice2027'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton, AppTextField } from '@/components/ui'
 import { APP_PATHS, ice2027AdminPath, ice2027DashboardPath, ice2027ProgressPath, useAppPath } from '@/routing'
 
@@ -25,6 +26,7 @@ const ICONS = [
 ] as const
 
 export default function ScoutEventsPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const [events, setEvents] = useState<ScoutEventRecord[]>([])
   const [failed, setFailed] = useState('')
@@ -34,11 +36,11 @@ export default function ScoutEventsPage() {
   const [edits, setEdits] = useState<Record<number, { name: string; year: string; icon: string; active: boolean }>>({})
 
   useEffect(() => {
-    document.title = 'Scouting events | MERKURflow'
+    document.title = `${t('pages.scoutingEvents', 'Scouting events')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -123,17 +125,16 @@ export default function ScoutEventsPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">Scouting events</Box>
+            <Box component="span">{t('pages.scoutingEvents', 'Scouting events')}</Box>
           </Box>
 
-          <IceHero kicker="Scouting" title="Events">
-            G2E, ICE, and later shows all use the same scouting tools. Create an event, then mark attendants and add
-            competitors for that show only.
+          <IceHero kicker={t('ice.scoutingKicker', 'Scouting')} title={t('ice.events', 'Events')}>
+            {t('ice.eventsIntro', 'G2E, ICE, and later shows all use the same scouting tools. Create an event, then mark attendants and add competitors for that show only.')}
           </IceHero>
 
           <IceTabs current="events" attendant admin />
@@ -167,7 +168,7 @@ export default function ScoutEventsPage() {
               </AppButton>
             </Box>
             <Typography sx={{ color: 'text.secondary', px: 2.5, pb: 2, fontSize: 13 }}>
-              The slug is used in URLs: <code>?e=ice2028</code>. Teams are created automatically.
+              The slug is used in the address, for example ice2028. A new show starts empty: add teams, competitors, and games in Admin.
             </Typography>
           </Paper>
 

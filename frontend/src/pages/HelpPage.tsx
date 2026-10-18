@@ -14,7 +14,8 @@ import {
   topicForFaq,
 } from '@/components/help'
 import type { HelpTopicId } from '@/components/help'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 
 const crumbSx = {
@@ -33,6 +34,7 @@ function faqIdFromSearch(): number | null {
 }
 
 export default function HelpPage() {
+  const { t, faqCopy } = useI18n()
   const { navigate } = useAppPath()
   const [faqs, setFaqs] = useState<FaqArticle[] | null>(null)
   const [failed, setFailed] = useState(false)
@@ -41,11 +43,11 @@ export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<FaqArticle | null>(null)
 
   useEffect(() => {
-    document.title = 'Help & FAQ | MERKURflow'
+    document.title = `${t('pages.help', 'Help & FAQ')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -70,7 +72,10 @@ export default function HelpPage() {
     }
   }, [])
 
-  const searched = useMemo(() => searchFaqs(faqs ?? [], query), [faqs, query])
+  const searched = useMemo(
+    () => searchFaqs(faqs ?? [], query, (faq) => faqCopy(faq.title)),
+    [faqCopy, faqs, query],
+  )
   const visible = useMemo(
     () => (topicId ? searched.filter((faq) => topicForFaq(faq).id === topicId) : searched),
     [searched, topicId],
@@ -99,41 +104,41 @@ export default function HelpPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Help & FAQ</Box>
+            <Box component="span">{t('pages.help', 'Help & FAQ')}</Box>
           </Box>
 
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Typography sx={{ color: 'info.main', fontWeight: 800, fontSize: 13, letterSpacing: 0.6, mb: 1 }}>
-              MERKURflow Help
+              {t('pages.helpBrand', 'MERKURflow Help')}
             </Typography>
             <Typography
               component="h1"
               sx={{ fontWeight: 800, fontSize: { xs: 28, md: 40 }, color: 'secondary.main', lineHeight: 1.15, mb: 1 }}
             >
-              What do you need help with?
+              {t('pages.helpTitle', 'What do you need help with?')}
             </Typography>
             <Typography sx={{ color: 'text.secondary', fontSize: 16 }}>
-              Search for an answer or browse one of the main help topics.
+              {t('pages.helpSubtitle', 'Search for an answer or browse one of the main help topics.')}
             </Typography>
           </Box>
 
           {failed ? (
             <Typography color="text.secondary" sx={{ textAlign: 'center' }}>
-              Help articles could not be loaded.
+              {t('help.failed', 'Help articles could not be loaded.')}
             </Typography>
           ) : faqs === null ? null : (
             <>
               <HelpSearch value={query} resultCount={visible.length} onChange={setQuery} />
 
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 1.5 }}>
-                <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>Browse by topic</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>{t('help.browse', 'Browse by topic')}</Typography>
                 {topicId ? (
                   <Box
                     component="button"
@@ -151,16 +156,16 @@ export default function HelpPage() {
                       '&:hover': { textDecoration: 'underline' },
                     }}
                   >
-                    Show all
+                    {t('help.showAll', 'Show all')}
                   </Box>
                 ) : null}
               </Box>
               <TopicGrid topics={HELP_TOPICS} counts={counts} selected={topicId} onSelect={setTopicId} />
 
               <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 2, mt: 5, mb: 1 }}>
-                <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>Popular questions</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: 22, color: 'secondary.main' }}>{t('help.popular', 'Popular questions')}</Typography>
                 <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
-                  {selectedTopic?.label ?? 'All topics'}
+                  {selectedTopic ? t(selectedTopic.labelKey, selectedTopic.label) : t('help.allTopics', 'All topics')}
                 </Typography>
               </Box>
               <QuestionList faqs={visible} selectedId={openFaq?.ID ?? null} onSelect={openArticle} />

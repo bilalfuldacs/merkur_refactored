@@ -25,7 +25,9 @@ import { APP_PATHS, useAppPath } from '@/routing'
 import { useSearch } from '@/search'
 import type { NavChild, NavItem, NavLabelBreakpoint, NavLinkItem } from '@/config/navigation'
 import { getMainNavigation, NAV_BREAKPOINTS } from '@/config/navigation'
+import { useI18n } from '@/i18n'
 import { UserAvatar } from '@/components/user'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 type AppNavProps = {
   user: AuthUser | null
@@ -80,11 +82,12 @@ function menuIdFor(prefix: string, itemId: string) {
 export function AppNav({ user, onLogout }: AppNavProps) {
   const { path, navigate } = useAppPath()
   const { openFind } = useSearch()
+  const { t } = useI18n()
   const isDesktop = useMediaQuery(`(min-width:${NAV_BREAKPOINTS.desktop}px)`, {
     noSsr: true,
   })
   const [scoutEvents, setScoutEvents] = useState<ScoutMenuEvent[]>([])
-  const items = useMemo(() => getMainNavigation(user, scoutEvents), [user, scoutEvents])
+  const items = useMemo(() => getMainNavigation(user, scoutEvents, t), [user, scoutEvents, t])
   const idPrefix = useId()
   const drawerId = `${idPrefix}-drawer`
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -156,7 +159,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
 
   const searchButton = (
     <IconButton
-      aria-label="Search"
+      aria-label={t('nav.search', 'Search')}
       color="inherit"
       size="small"
       onClick={() => openFind()}
@@ -180,7 +183,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', ml: 'auto' }}>
         <IconButton
-          aria-label="Open menu"
+          aria-label={t('nav.openMenu', 'Open menu')}
           aria-controls={mobileOpen ? drawerId : undefined}
           aria-expanded={mobileOpen}
           aria-haspopup="dialog"
@@ -189,6 +192,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
         >
           <MenuIcon />
         </IconButton>
+        <LanguageSwitcher tone="brand" />
         {searchButton}
         {avatar}
         <Drawer
@@ -198,7 +202,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
           slotProps={{
             paper: {
               id: drawerId,
-              'aria-label': 'Main menu',
+              'aria-label': t('nav.mainMenu', 'Main menu'),
               sx: {
                 pt: 'env(safe-area-inset-top, 0px)',
                 pb: 'env(safe-area-inset-bottom, 0px)',
@@ -241,7 +245,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
       >
         <Box
           component="nav"
-          aria-label="Main"
+          aria-label={t('nav.main', 'Main')}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -299,6 +303,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
           })}
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0, pl: 1 }}>
+          <LanguageSwitcher tone="brand" />
           {searchButton}
           {avatar}
         </Box>

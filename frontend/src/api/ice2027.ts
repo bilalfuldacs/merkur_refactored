@@ -30,6 +30,7 @@ export type IcePerson = {
   name?: string | null
   iceattendent2027?: boolean
   may_manage?: boolean
+  team_name?: string | null
 }
 
 export type IceTeamMember = {
@@ -140,7 +141,7 @@ export type IceStandardProduct = {
   no_of_pots?: string | number
   win_lines?: string
   denomination?: string
-  bets?: string | number
+  bets?: string | number | string[]
   theme?: string
   cabinet?: string
   target_market?: string
@@ -213,6 +214,7 @@ export const ICE_MECHANICS_OPTIONS = {
   cash_collect: 'Cash Collect',
   true_persistence: 'True Persistence',
   combination_persist_hold: 'Second Screen Bonus',
+  freegames: 'Freegames',
 } as const
 
 export const ICE_EVAL_CATEGORIES = {

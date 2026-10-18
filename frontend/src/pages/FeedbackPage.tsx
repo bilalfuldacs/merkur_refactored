@@ -16,7 +16,8 @@ import {
   FeedbackSuccess,
   SubmitFeedbackDialog,
 } from '@/components/feedback'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -67,6 +68,7 @@ function wantsNew(): boolean {
 }
 
 export default function FeedbackPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
@@ -90,11 +92,11 @@ export default function FeedbackPage() {
   }, [])
 
   useEffect(() => {
-    document.title = 'Feedback | MERKURflow'
+    document.title = `${t('pages.feedback', 'Feedback')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -171,14 +173,14 @@ export default function FeedbackPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 960, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Feedback</Box>
+            <Box component="span">{t('pages.feedback', 'Feedback')}</Box>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 1 }}>
@@ -188,20 +190,20 @@ export default function FeedbackPage() {
                 sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15 }}
               >
                 <LightbulbOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-                Feedback
+                {t('pages.feedback', 'Feedback')}
               </Typography>
               <Typography sx={{ color: 'text.secondary', mt: 0.75 }}>
-                Share an idea, report a problem, and follow what happens next.
+                {t('feedback.pageIntro', 'Share an idea, report a problem, and follow what happens next.')}
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
               {isSuperuser ? (
                 <AppButton size="small" variant="outlined" color="inherit" onClick={() => navigate(APP_PATHS.feedbackAdmin)}>
-                  Admin review
+                  {t('feedback.adminReview', 'Admin review')}
                 </AppButton>
               ) : null}
               <AppButton size="small" color="secondary" onClick={openSubmit}>
-                + New feedback
+                {t('feedback.newFeedback', '+ New feedback')}
               </AppButton>
             </Box>
           </Box>
@@ -239,7 +241,7 @@ export default function FeedbackPage() {
           ) : null}
 
           {failed ? (
-            <Typography color="text.secondary">Your feedback could not be loaded.</Typography>
+            <Typography color="text.secondary">{t('feedback.loadFailed', 'Your feedback could not be loaded.')}</Typography>
           ) : items === null ? null : empty && !submitted ? (
             <FeedbackEmptyState onSubmit={openSubmit} />
           ) : (

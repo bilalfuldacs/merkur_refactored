@@ -5,7 +5,8 @@ import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import { ApiError, getScoutMenu } from '@/api'
 import type { ScoutMenuEvent } from '@/api/scout'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 import { IceHero, iceCrumbSx } from './IceChrome'
 
@@ -16,16 +17,17 @@ export function IceEventPicker({
   buildPath: (slug: string) => string
   kicker?: string
 }) {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const [events, setEvents] = useState<ScoutMenuEvent[] | null>(null)
   const [failed, setFailed] = useState('')
 
   useEffect(() => {
-    document.title = 'Scouting events | MERKURflow'
+    document.title = `${t('pages.scoutingEvents', 'Scouting events')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -52,18 +54,18 @@ export function IceEventPicker({
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 3, lg: 4 }, py: { xs: 1.5, md: 2 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={iceCrumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Scouting</Box>
+            <Box component="span">{t('ice.scoutingKicker', 'Scouting')}</Box>
           </Box>
 
-          <IceHero kicker={kicker} title="Scouting events">
-            Choose an exhibition to open questionnaires, evaluation, and the rest of the scouting tools.
+          <IceHero kicker={t('ice.exhibition', kicker)} title={t('pages.scoutingEvents', 'Scouting events')}>
+            {t('ice.chooseEvent', 'Choose an exhibition to open questionnaires, evaluation, and the rest of the scouting tools.')}
           </IceHero>
 
           {failed ? (

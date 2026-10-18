@@ -3,11 +3,13 @@ import type { FormEvent } from 'react'
 import SearchIcon from '@mui/icons-material/Search'
 import Box from '@mui/material/Box'
 import { AppButton, AppTextField } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { findPath, useAppPath } from '@/routing'
 import { matchQuickLink } from '@/search'
 
 export function HomeSearch() {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   const [query, setQuery] = useState('')
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,8 +39,8 @@ export function HomeSearch() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           autoComplete="off"
-          placeholder="Game, Feature, Version, Market, #t, …"
-          aria-label="Search"
+          placeholder={t('search.homePlaceholder', 'Game, Feature, Version, Market, #t, …')}
+          aria-label={t('nav.search', 'Search')}
           startIcon={<SearchIcon fontSize="small" />}
           sx={{
             flex: 1,
@@ -61,7 +63,7 @@ export function HomeSearch() {
         <AppButton
           type="submit"
           color="info"
-          aria-label="Find"
+          aria-label={t('search.aria', 'Find')}
           startIcon={<SearchIcon />}
           sx={{
             height: 44,
@@ -77,7 +79,7 @@ export function HomeSearch() {
           }}
         >
           <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
-            Find
+            {t('search.find', 'Find')}
           </Box>
         </AppButton>
       </Box>

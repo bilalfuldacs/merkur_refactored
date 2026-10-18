@@ -11,8 +11,9 @@ import {
 } from '@/api'
 import type { StaticDoc, StaticDocInput } from '@/api'
 import { DocCard, DocFormDialog } from '@/components/docs'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
 import { AppButton } from '@/components/ui'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 
 const crumbSx = {
@@ -47,6 +48,7 @@ function groupDocs(docs: StaticDoc[]): { name: string; docs: StaticDoc[] }[] {
 
 export default function DocsPage() {
   const { navigate } = useAppPath()
+  const { t } = useI18n()
   const [docs, setDocs] = useState<StaticDoc[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -54,11 +56,11 @@ export default function DocsPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    document.title = 'Docs | MERKURflow'
+    document.title = `${t('pages.docs', 'Docs')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     let cancelled = false
@@ -110,7 +112,7 @@ export default function DocsPage() {
   }
 
   async function handleDelete(doc: StaticDoc) {
-    if (!window.confirm(`Delete “${doc.title}”? This cannot be undone.`)) {
+    if (!window.confirm(t('docs.deleteConfirm', 'Delete “{title}”? This cannot be undone.', { title: doc.title }))) {
       return
     }
     await deleteStaticDoc(doc.id)
@@ -124,12 +126,12 @@ export default function DocsPage() {
         <Box sx={{ maxWidth: 1280, mx: 'auto', width: '100%' }}>
           <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 1, fontSize: 13 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Docs</Box>
+            <Box component="span">{t('pages.docs', 'Docs')}</Box>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 1 }}>
@@ -138,19 +140,18 @@ export default function DocsPage() {
               sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 24, md: 30 }, lineHeight: 1.15 }}
             >
               <MenuBookOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 28 }} />
-              Docs
+              {t('pages.docs', 'Docs')}
             </Typography>
             <AppButton size="small" startIcon={<UploadFileOutlinedIcon />} onClick={openCreate}>
-              Upload
+              {t('common.upload', 'Upload')}
             </AppButton>
           </Box>
           <Typography sx={{ color: 'text.secondary', mb: 3, maxWidth: 720 }}>
-            This document library contains information about MERKUR and, specifically, MERKURflow. Upload a PDF to share it
-            with the team — you can edit or delete documents you created.
+            {t('docs.intro', 'This document library contains information about MERKUR and, specifically, MERKURflow. Upload a PDF to share it with the team — you can edit or delete documents you created.')}
           </Typography>
 
           {failed ? (
-            <Typography color="text.secondary">The document library could not be loaded.</Typography>
+            <Typography color="text.secondary">{t('docs.failed', 'The document library could not be loaded.')}</Typography>
           ) : docs === null ? (
             null
           ) : (
@@ -165,7 +166,7 @@ export default function DocsPage() {
             >
               <Box>
                 {groups.length === 0 ? (
-                  <Typography color="text.secondary">No documents yet. Upload the first one.</Typography>
+                  <Typography color="text.secondary">{t('docs.empty', 'No documents yet. Upload the first one.')}</Typography>
                 ) : (
                   groups.map((group, index) => (
                     <Box key={group.name} id={`s${index + 1}`} sx={{ mb: 4 }}>
@@ -194,7 +195,7 @@ export default function DocsPage() {
               </Box>
 
               <Box sx={{ position: { md: 'sticky' }, top: 80 }}>
-                <Typography sx={{ fontWeight: 800, fontSize: 18, color: 'secondary.main', mb: 1.5 }}>On this page</Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: 18, color: 'secondary.main', mb: 1.5 }}>{t('common.onThisPage', 'On this page')}</Typography>
                 <Box component="ol" sx={{ m: 0, pl: 0, listStyle: 'none', border: '1px solid', borderColor: 'divider', borderRadius: 2, overflow: 'hidden', bgcolor: 'common.white' }}>
                   {groups.map((group, index) => (
                     <Box

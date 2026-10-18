@@ -36,6 +36,7 @@ import type {
   IceStandardProduct,
 } from '@/api/ice2027'
 import { deleteIcePhoto, ICE_GAME_TYPES, ICE_MECHANICS_OPTIONS, uploadIcePhoto } from '@/api/ice2027'
+import { compressPhoto } from './compressPhoto'
 import { useAuthFileUrl } from '@/components/docs/format'
 import { AppButton, AppTextField } from '@/components/ui'
 import Autocomplete from '@mui/material/Autocomplete'
@@ -59,6 +60,17 @@ const mobileFieldSx = {
 
 const MECHANICS = Object.entries(ICE_MECHANICS_OPTIONS).map(([value, label]) => ({ value, label }))
 
+const BET_LEVELS = ['20', '40', '80', '160', '240', '400', '800', '1600', '2400', '4000', '8000'] as const
+
+function selectedBets(value: IceStandardProduct['bets']): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item)).filter(Boolean)
+  }
+  return String(value ?? '')
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+}
+
 const CATEGORIES = [
   { value: 'mlp', label: 'MLP' },
   { value: 'sap', label: 'SAP (stand-alone)' },
@@ -78,7 +90,7 @@ const emptyDraft = (): IceScoutProduct => ({
   integrated_jp: 'no',
   functionality: [],
   mechanics_description: '',
-  bets: '',
+  bets: [],
   number_of_monitors: '',
   monitor_size: '',
   uhd: 'no',
@@ -280,19 +292,21 @@ function StandardFields({
 
       <FieldLabel required>Mechanics</FieldLabel>
       <FormGroup sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5, mb: 2 }}>
-        {MECHANICS.map((option) => (
-          <FormControlLabel
-            key={option.value}
-            control={
-              <Checkbox
-                size="small"
-                checked={functions.includes(option.value)}
-                onChange={(event) => toggleFn(option.value, event.target.checked)}
-              />
-            }
-            label={option.label}
-          />
-        ))}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 1 }}>
+          {MECHANICS.map((option) => (
+            <FormControlLabel
+              key={option.value}
+              control={
+                <Checkbox
+                  size="small"
+                  checked={functions.includes(option.value)}
+                  onChange={(event) => toggleFn(option.value, event.target.checked)}
+                />
+              }
+              label={option.label}
+            />
+          ))}
+        </Box>
         <Box sx={{ my: 1 }}>
           <Typography sx={{ mb: 0.5, fontSize: 14 }}>No. of Pots</Typography>
           <AppTextField
@@ -328,14 +342,32 @@ function StandardFields({
       </Box>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ mb: 0.75 }}>Bets</Typography>
-        <AppTextField
-          type="number"
-          size="small"
-          fullWidth
-          sx={mobileFieldSx}
-          value={product.bets ?? ''}
-          onChange={(event) => onChange({ ...product, bets: event.target.value })}
-        />
+        <FormGroup sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, minmax(0, 1fr))' }, columnGap: 1 }}>
+            {BET_LEVELS.map((level) => {
+              const selected = selectedBets(product.bets)
+              return (
+                <FormControlLabel
+                  key={level}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={selected.includes(level)}
+                      onChange={(event) => {
+                        const next = event.target.checked
+                          ? [...selected.filter((item) => item !== level), level]
+                          : selected.filter((item) => item !== level)
+                        const ordered = BET_LEVELS.filter((item) => next.includes(item))
+                        onChange({ ...product, bets: [...ordered] })
+                      }}
+                    />
+                  }
+                  label={level}
+                />
+              )
+            })}
+          </Box>
+        </FormGroup>
       </Box>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ mb: 0.75 }}>Theme</Typography>
@@ -417,23 +449,44 @@ function MultigameFields({
   )
 }
 
+type PendingPhoto = { id: string; file: File; url: string; kind: 'image' | 'video' }
+
+function releasePending(items: PendingPhoto[]) {
+  items.forEach((item) => URL.revokeObjectURL(item.url))
+}
+
 function DraftPhotoThumb({ photo, onRemove }: { photo: IceProgressPhoto; onRemove: () => void }) {
   const src = useAuthFileUrl(photo.url)
   const isVideo = photo.kind === 'video' || /\.(mp4|mov|m4v|webm)($|\?)/i.test(`${photo.name}${photo.id}`)
   return (
-    <Box sx={{ position: 'relative', width: 72, height: 72 }}>
+    <Box sx={{ position: 'relative', width: 140, height: 105 }}>
       {isVideo ? (
         <Box
           component="video"
           src={src || undefined}
-          sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black' }}
+          sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black' }}
         />
       ) : src ? (
-        <Box component="img" src={src} alt={photo.name} sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
+        <Box component="img" src={src} alt={photo.name} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
       ) : (
-        <Box sx={{ width: 72, height: 72, bgcolor: 'action.hover', borderRadius: 1 }} />
+        <Box sx={{ width: 140, height: 105, bgcolor: 'action.hover', borderRadius: 1 }} />
       )}
       <IconButton size="small" onClick={onRemove} aria-label={`Remove ${photo.name}`} sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper', boxShadow: 1 }}>
+        <CloseOutlinedIcon sx={{ fontSize: 16 }} />
+      </IconButton>
+    </Box>
+  )
+}
+
+function LocalPhotoThumb({ item, onRemove }: { item: PendingPhoto; onRemove: () => void }) {
+  return (
+    <Box sx={{ position: 'relative', width: 140, height: 105 }}>
+      {item.kind === 'video' ? (
+        <Box component="video" src={item.url} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black' }} />
+      ) : (
+        <Box component="img" src={item.url} alt={item.file.name} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
+      )}
+      <IconButton size="small" onClick={onRemove} aria-label={`Remove ${item.file.name}`} sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper', boxShadow: 1 }}>
         <CloseOutlinedIcon sx={{ fontSize: 16 }} />
       </IconButton>
     </Box>
@@ -570,6 +623,8 @@ export function IceQuestionnaireForm({
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [errors, setErrors] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([])
+  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
   const [productDraft, setProductDraft] = useState<{ item: IceScoutProduct; index: number } | null>(null)
   const [modalDirty, setModalDirty] = useState(false)
   const modalLockedRef = useRef(false)
@@ -607,6 +662,18 @@ export function IceQuestionnaireForm({
     return () => window.clearTimeout(timer)
   }, [draft, open, modalDirty, editingIndex, draftCompetitorKey, openMode])
 
+  useEffect(() => {
+    if (!open || !modalDirty) {
+      return
+    }
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [open, modalDirty])
+
   function patchDraft(next: IceScoutProduct | ((current: IceScoutProduct) => IceScoutProduct)) {
     setModalDirty(true)
     setDraft(next)
@@ -617,6 +684,7 @@ export function IceQuestionnaireForm({
       const pack = { item: draft, index: editingIndex ?? -1 }
       void saveIceProductDraft(draftCompetitorKey, pack).then(() => setProductDraft(pack))
     }
+    clearPendingPhotos()
     setOpen(false)
     setModalDirty(false)
   }
@@ -666,7 +734,16 @@ export function IceQuestionnaireForm({
     return used
   }
 
+  function clearPendingPhotos() {
+    setPendingPhotos((current) => {
+      releasePending(current)
+      return []
+    })
+    setRemovedPhotoIds([])
+  }
+
   function openAdd() {
+    clearPendingPhotos()
     setDraft({ ...emptyDraft(), is_new_product: forceNewProduct })
     setEditingIndex(null)
     setErrors([])
@@ -675,6 +752,7 @@ export function IceQuestionnaireForm({
   }
 
   function openEdit(index: number) {
+    clearPendingPhotos()
     const item = products[index]
     setDraft({ ...emptyDraft(), ...item, photos: item.photos ?? [], game_ids: item.game_ids ?? [] })
     setEditingIndex(index)
@@ -704,23 +782,47 @@ export function IceQuestionnaireForm({
       setErrors(found)
       return
     }
-    const next = [...products]
-    if (editingIndex === null) {
-      next.push(draft)
-    } else {
-      next[editingIndex] = draft
-    }
+    setUploading(true)
     try {
+      const uploaded: IceProgressPhoto[] = []
+      for (const item of pendingPhotos) {
+        const ready = item.kind === 'video' ? item.file : await compressPhoto(item.file)
+        const result = await uploadIcePhoto(competitorId, ready)
+        uploaded.push(result.photo)
+      }
+      const product: IceScoutProduct = { ...draft, photos: [...(draft.photos ?? []), ...uploaded] }
+      setDraft(product)
+      releasePending(pendingPhotos)
+      setPendingPhotos([])
+      const next = [...products]
+      if (editingIndex === null) {
+        next.push(product)
+      } else {
+        next[editingIndex] = product
+      }
       await persist(next)
+      for (const id of removedPhotoIds) {
+        try {
+          await deleteIcePhoto(competitorId, id)
+        } catch {
+          // The picture is already gone from the saved questionnaire.
+        }
+      }
       await clearStoredProductDraft()
+      clearPendingPhotos()
       setOpen(false)
       setModalDirty(false)
     } catch (error) {
       setErrors([error instanceof ApiError ? error.message : 'Could not save the questionnaire.'])
+    } finally {
+      setUploading(false)
     }
   }
 
   async function removeProduct(index: number) {
+    if (!window.confirm('Remove this product from the questionnaire?')) {
+      return
+    }
     const next = products.filter((_, i) => i !== index)
     try {
       await persist(next)
@@ -729,37 +831,34 @@ export function IceQuestionnaireForm({
     }
   }
 
-  async function uploadFiles(files: FileList | null) {
+  function queuePhotos(files: FileList | null) {
     if (!files || files.length === 0) {
       return
     }
-    setUploading(true)
-    setErrors([])
-    try {
-      const uploaded: IceProgressPhoto[] = []
-      for (const file of Array.from(files)) {
-        const result = await uploadIcePhoto(competitorId, file)
-        uploaded.push(result.photo)
-      }
-      setModalDirty(true)
-      setDraft((current) => ({ ...current, photos: [...(current.photos ?? []), ...uploaded] }))
-    } catch (error) {
-      setErrors([error instanceof ApiError ? error.message : 'Could not upload the picture.'])
-    } finally {
-      setUploading(false)
-    }
+    const queued: PendingPhoto[] = Array.from(files).map((file) => ({
+      id: `${Date.now()}-${file.name}-${Math.random()}`,
+      file,
+      url: URL.createObjectURL(file),
+      kind: file.type.startsWith('video/') ? 'video' : 'image',
+    }))
+    setModalDirty(true)
+    setPendingPhotos((current) => [...current, ...queued])
   }
 
-  async function removePhoto(index: number) {
+  function dropPendingPhoto(id: string) {
+    setPendingPhotos((current) => {
+      const item = current.find((entry) => entry.id === id)
+      if (item) URL.revokeObjectURL(item.url)
+      return current.filter((entry) => entry.id !== id)
+    })
+  }
+
+  function removePhoto(index: number) {
     const photo = draft.photos?.[index]
     if (!photo) {
       return
     }
-    try {
-      await deleteIcePhoto(competitorId, photo.id)
-    } catch {
-      // Live also removes from the draft even if the file is already gone.
-    }
+    setRemovedPhotoIds((current) => (current.includes(photo.id) ? current : [...current, photo.id]))
     setModalDirty(true)
     setDraft((current) => ({ ...current, photos: (current.photos ?? []).filter((_, i) => i !== index) }))
   }
@@ -1105,7 +1204,7 @@ export function IceQuestionnaireForm({
               capture="environment"
               hidden
               onChange={(event) => {
-                void uploadFiles(event.target.files)
+                queuePhotos(event.target.files)
                 event.target.value = ''
               }}
             />
@@ -1116,7 +1215,7 @@ export function IceQuestionnaireForm({
               multiple
               hidden
               onChange={(event) => {
-                void uploadFiles(event.target.files)
+                queuePhotos(event.target.files)
                 event.target.value = ''
               }}
             />
@@ -1126,14 +1225,20 @@ export function IceQuestionnaireForm({
               accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm"
               hidden
               onChange={(event) => {
-                void uploadFiles(event.target.files)
+                queuePhotos(event.target.files)
                 event.target.value = ''
               }}
             />
-            {(draft.photos ?? []).length > 0 ? (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1 }}>
+              Pictures stay in this dialog until you save the product. Remove any you do not want.
+            </Typography>
+            {(draft.photos ?? []).length > 0 || pendingPhotos.length > 0 ? (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
                 {(draft.photos ?? []).map((photo, index) => (
-                  <DraftPhotoThumb key={photo.id} photo={photo} onRemove={() => void removePhoto(index)} />
+                  <DraftPhotoThumb key={photo.id} photo={photo} onRemove={() => removePhoto(index)} />
+                ))}
+                {pendingPhotos.map((item) => (
+                  <LocalPhotoThumb key={item.id} item={item} onRemove={() => dropPendingPhoto(item.id)} />
                 ))}
               </Box>
             ) : null}
@@ -1158,8 +1263,8 @@ export function IceQuestionnaireForm({
           <AppButton size="medium" variant="outlined" color="secondary" onClick={() => closeDialog(true)}>
             Cancel
           </AppButton>
-          <AppButton size="medium" color="secondary" onClick={() => void saveDraft()}>
-            {editingIndex === null ? 'Add to questionnaire' : 'Save product'}
+          <AppButton size="medium" color="secondary" disabled={uploading} onClick={() => void saveDraft()}>
+            {uploading ? 'Saving…' : editingIndex === null ? 'Add to questionnaire' : 'Save product'}
           </AppButton>
         </DialogActions>
       </Dialog>
@@ -1185,6 +1290,9 @@ export function IceQuestionnaireForm({
                   size="small"
                   variant="outlined"
                   onClick={() => {
+                    if (!window.confirm('Restore this version? It will be saved for the whole team.')) {
+                      return
+                    }
                     void persist(emptyProducts(entry.products))
                     setHistoryOpen(false)
                   }}

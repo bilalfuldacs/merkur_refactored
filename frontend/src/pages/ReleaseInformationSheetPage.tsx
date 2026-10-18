@@ -13,7 +13,8 @@ import Typography from '@mui/material/Typography'
 import { getReleaseInformationSheet } from '@/api/products'
 import type { ReleaseInformationSheetPayload } from '@/api/products'
 import { MerkurLogo } from '@/components/brand'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { tableBrowsePath } from '@/config/tablePages'
 import { APP_PATHS, useAppPath } from '@/routing'
@@ -38,17 +39,18 @@ function multiline(text: string | null | undefined): string {
 }
 
 export default function ReleaseInformationSheetPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const releaseId = releaseIdFromSearch()
   const [payload, setPayload] = useState<ReleaseInformationSheetPayload | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    document.title = 'Release Information | MERKURflow'
+    document.title = `${t('pages.releaseInfo', 'Release Information')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!releaseId) {
@@ -61,7 +63,7 @@ export default function ReleaseInformationSheetPage() {
       .then((result) => {
         if (!cancelled) {
           setPayload(result)
-          document.title = `Release Information ${result.build.name ?? ''} | MERKURflow`
+          document.title = `${t('pages.releaseInfo', 'Release Information')} ${result.build.name ?? ''} | MERKURflow`
         }
       })
       .catch(() => {
@@ -111,22 +113,22 @@ export default function ReleaseInformationSheetPage() {
         >
           <Box
             component="nav"
-            aria-label="Breadcrumb"
+            aria-label={t('common.breadcrumb', 'Breadcrumb')}
             sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap', '@media print': { display: 'none' } }}
           >
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.products)} sx={crumbSx}>
-              Products
+              {t('pages.products', 'Products')}
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Release Information</Box>
+            <Box component="span">{t('pages.releaseInfo', 'Release Information')}</Box>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2 }}>
@@ -170,7 +172,7 @@ export default function ReleaseInformationSheetPage() {
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
             <Typography component="h1" sx={{ fontWeight: 800, fontSize: { xs: 26, md: 34 }, display: 'flex', alignItems: 'center', gap: 1 }}>
               <CelebrationOutlinedIcon sx={{ color: '#FFCC00' }} />
-              Release Information {payload?.build.name ?? ''}
+              {t('pages.releaseInfo', 'Release Information')} {payload?.build.name ?? ''}
             </Typography>
             <AppButton
               type="button"

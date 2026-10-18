@@ -9,7 +9,8 @@ import ListItemText from '@mui/material/ListItemText'
 import Typography from '@mui/material/Typography'
 import { getGlobalSearch } from '@/api/search'
 import type { FindPayload } from '@/api/search'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton, AppCard, AppTextField } from '@/components/ui'
 import { tableBrowsePath } from '@/config/tablePages'
 import { APP_PATHS, findPath, useAppPath } from '@/routing'
@@ -30,6 +31,7 @@ function queryFromSearch(): string {
 }
 
 export default function FindPage() {
+  const { t } = useI18n()
   const { navigate, search } = useAppPath()
   const urlQuery = useMemo(() => queryFromSearch(), [search])
   const [draft, setDraft] = useState(urlQuery)
@@ -37,11 +39,11 @@ export default function FindPage() {
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    document.title = 'Find | MERKURflow'
+    document.title = `${t('pages.find', 'Find')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     setDraft(urlQuery)
@@ -92,18 +94,18 @@ export default function FindPage() {
       <AppHeader variant="brand" />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4, lg: 6 }, py: { xs: 2, md: 3 } }}>
         <Box sx={{ maxWidth: 1100, mx: 'auto', width: '100%' }}>
-          <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
+          <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 1.5, fontSize: 14 }}>
             <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-              Start
+              <CrumbHome />
             </Box>
             <Box component="span" color="text.secondary">
               /
             </Box>
-            <Box component="span">Find</Box>
+            <Box component="span">{t('pages.find', 'Find')}</Box>
           </Box>
           <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 40 }, mb: 2 }}>
             <SearchIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
-            Find
+            {t('pages.find', 'Find')}
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3 }}>
             <Box>
@@ -112,7 +114,7 @@ export default function FindPage() {
                   autoFocus
                   value={draft}
                   onChange={(event) => setDraft(event.target.value)}
-                  placeholder="Game, Feature, Version, Build, Release, …"
+                  placeholder={t('search.findPage', 'Game, Feature, Version, Build, Release, …')}
                   sx={{ flex: 1, '& .MuiOutlinedInput-root': { borderTopRightRadius: 0, borderBottomRightRadius: 0 } }}
                 />
                 <AppButton type="submit" color="info" startIcon={<SearchIcon />} sx={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}>

@@ -48,6 +48,7 @@ class Ice2027Service
         'cash_collect' => 'Cash Collect',
         'true_persistence' => 'True Persistence',
         'combination_persist_hold' => 'Second Screen Bonus',
+        'freegames' => 'Freegames',
     ];
 
     public const THEME_WORLDS = [
@@ -63,6 +64,8 @@ class Ice2027Service
     ];
 
     private ?int $eventId = null;
+
+    private bool $catalogSynced = false;
 
     public const GAME_TYPES = [
         'new_product' => 'New product',
@@ -94,6 +97,7 @@ class Ice2027Service
     {
         $clone = clone $this;
         $clone->eventId = $eventId;
+        $clone->catalogSynced = false;
 
         return $clone;
     }
@@ -122,12 +126,12 @@ class Ice2027Service
         }
 
         foreach (['Team A', 'Team B', 'Team C', 'Team D', 'Team E'] as $name) {
-            Ice2027Team::query()->create([
+            Ice2027Team::query()->create($this->withLegacyEvent('ice2027_teams', [
                 'event_ID' => $this->eventId(),
                 'name' => $name,
                 'created_by' => $createdBy,
                 'created_at' => now(),
-            ]);
+            ]));
         }
     }
 
@@ -136,7 +140,7 @@ class Ice2027Service
      */
     public function bootstrap(User $user): array
     {
-        $this->seedTeamsIfEmpty($user->ID);
+        $this->syncCatalogFromQuestionnaires((int) $user->ID);
 
         $team = $this->teamForUser($user->ID);
         $assigned = $this->competitorsForUser($user->ID);
@@ -263,10 +267,7 @@ class Ice2027Service
                 ->delete();
         }
 
-        if ($this->event()->slug === 'ice2027') {
-            $user->iceattendent2027 = $enabled;
-            $user->save();
-        }
+        $this->syncLegacyIceFlag([$userId], $enabled);
 
         return $enabled ? $label.' access enabled.' : $label.' access removed.';
     }
@@ -290,7 +291,8 @@ class Ice2027Service
         $keepIds = array_values(array_unique(array_merge($attendantIds, $manageIds)));
         $manageLookup = array_fill_keys($manageIds, true);
         $eventId = $this->eventId();
-        $syncLegacy = $this->event()->slug === 'ice2027';
+        $syncLegacy = $this->event()->slug === 'ice2027'
+            && Schema::hasColumn('dynamic__users', 'iceattendent2027');
 
         DB::transaction(function () use ($keepIds, $manageLookup, $eventId, $syncLegacy) {
             $removeQuery = ScoutAttendant::query()->where('event_ID', $eventId);
@@ -397,9 +399,17 @@ class Ice2027Service
      */
     public function adminOverview(): array
     {
-        $this->seedTeamsIfEmpty();
+        $teamByUser = [];
+        foreach ($this->teams() as $team) {
+            foreach ($team['members'] as $member) {
+                $teamByUser[(int) $member['user_ID']] = (string) $team['name'];
+            }
+        }
+        $users = array_map(function (array $person) use ($teamByUser) {
+            $person['team_name'] = $teamByUser[(int) $person['ID']] ?? null;
 
-        $users = $this->activeUsers();
+            return $person;
+        }, $this->activeUsers());
         $attendants = array_values(array_filter($users, fn (array $person) => $person['iceattendent2027']));
         $teams = $this->teams();
         $competitors = $this->competitors();
@@ -453,12 +463,12 @@ class Ice2027Service
         }
         $this->assertTeamMemberCandidates($userIds);
 
-        $team = Ice2027Team::query()->create([
+        $team = Ice2027Team::query()->create($this->withLegacyEvent('ice2027_teams', [
             'event_ID' => $this->eventId(),
             'name' => $name,
             'created_by' => $createdBy,
             'created_at' => now(),
-        ]);
+        ]));
 
         $teamId = (int) $team->ID;
         if ($teamId < 1) {
@@ -516,11 +526,11 @@ class Ice2027Service
             }
             Ice2027TeamMember::query()->where('team_ID', $teamId)->delete();
             foreach ($userIds as $userId) {
-                Ice2027TeamMember::query()->create([
+                Ice2027TeamMember::query()->create($this->withLegacyEvent('ice2027_team_members', [
                     'event_ID' => $this->eventId(),
                     'team_ID' => $teamId,
                     'user_ID' => $userId,
-                ]);
+                ]));
             }
         });
 
@@ -579,7 +589,7 @@ class Ice2027Service
         if ($this->hasHiddenColumn()) {
             $attrs['hidden'] = false;
         }
-        Ice2027Competitor::query()->create($attrs);
+        Ice2027Competitor::query()->create($this->withLegacyEvent('ice2027_competitors', $attrs));
 
         return 'Competitor added.';
     }
@@ -653,6 +663,108 @@ class Ice2027Service
         ]);
 
         return 'Competitor game added.';
+    }
+
+    /**
+     * Find a visible competitor by name, or create an unassigned catalog row.
+     */
+    public function findOrCreateCompetitorId(string $name, int $userId): int
+    {
+        $name = $this->catalogLabel($name);
+        if ($name === '' || $this->isStorageCompetitorName($name)) {
+            throw new InvalidArgumentException('Enter a real competitor name.');
+        }
+
+        $existing = $this->catalogCompetitorsQuery()
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->orderBy('ID')
+            ->first(['ID']);
+        if ($existing !== null) {
+            return (int) $existing->ID;
+        }
+
+        $attrs = [
+            'event_ID' => $this->eventId(),
+            'name' => $name,
+            'team_ID' => null,
+            'created_by' => $userId > 0 ? $userId : null,
+            'created_at' => now(),
+        ];
+        if ($this->hasHiddenColumn()) {
+            $attrs['hidden'] = false;
+        }
+
+        return (int) Ice2027Competitor::query()->create($this->withLegacyEvent('ice2027_competitors', $attrs))->ID;
+    }
+
+    /**
+     * Find a catalog game for a competitor by name, or create one.
+     */
+    public function findOrCreateGameId(int $competitorId, string $name, string $gameType, int $userId): int
+    {
+        $name = $this->catalogLabel($name);
+        if ($name === '' || $competitorId < 1) {
+            return 0;
+        }
+
+        $existing = Ice2027Game::query()
+            ->where('competitor_ID', $competitorId)
+            ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower($name)])
+            ->orderBy('ID')
+            ->first(['ID']);
+        if ($existing !== null) {
+            return (int) $existing->ID;
+        }
+
+        $type = trim($gameType);
+        if ($type === '' || $type === 'new_product' || ! isset(self::GAME_TYPES[$type])) {
+            $type = null;
+        }
+
+        return (int) Ice2027Game::query()->create([
+            'competitor_ID' => $competitorId,
+            'name' => $name,
+            'game_type' => $type,
+            'created_by' => $userId > 0 ? $userId : null,
+            'created_at' => now(),
+        ])->ID;
+    }
+
+    /**
+     * Copy typed competitors and new games from saved questionnaires into the shared catalog.
+     */
+    public function syncCatalogFromQuestionnaires(int $userId = 0): void
+    {
+        if ($this->catalogSynced) {
+            return;
+        }
+        $this->catalogSynced = true;
+
+        if (Schema::hasTable('scout_questionnaires')) {
+            $shared = ScoutQuestionnaire::query()
+                ->where('event_ID', $this->eventId())
+                ->get(['competitor_ID', 'payload']);
+            foreach ($shared as $row) {
+                $fallback = $this->visibleCompetitorId((int) $row->competitor_ID);
+                $this->promoteQuestionnaireDiscoveries(
+                    $userId,
+                    is_array($row->payload) ? $row->payload : [],
+                    $fallback > 0 ? $fallback : null,
+                );
+            }
+        }
+
+        $personal = Ice2027Questionnaire::query()
+            ->whereHas('competitor', fn ($query) => $query->where('event_ID', $this->eventId()))
+            ->get(['competitor_ID', 'payload']);
+        foreach ($personal as $row) {
+            $fallback = $this->visibleCompetitorId((int) $row->competitor_ID);
+            $this->promoteQuestionnaireDiscoveries(
+                $userId,
+                is_array($row->payload) ? $row->payload : [],
+                $fallback > 0 ? $fallback : null,
+            );
+        }
     }
 
     public function updateGame(int $id, int $competitorId, string $name, string $gameType): string
@@ -789,7 +901,7 @@ class Ice2027Service
         if ($this->hasHiddenColumn()) {
             $attrs['hidden'] = true;
         }
-        $created = Ice2027Competitor::query()->create($attrs);
+        $created = Ice2027Competitor::query()->create($this->withLegacyEvent('ice2027_competitors', $attrs));
 
         return $this->competitorArray($created->fresh(['team'])->loadCount('games'));
     }
@@ -840,35 +952,56 @@ class Ice2027Service
      */
     public function themeWorlds(): array
     {
-        $out = self::THEME_WORLDS;
-        $seen = [];
-        foreach ($out as $theme) {
-            $seen[strtolower($theme)] = true;
+        $this->seedDefaultThemes();
+        if (! Schema::hasTable('scout_themes')) {
+            return self::THEME_WORLDS;
         }
-        foreach (['game_concepts', 'games'] as $table) {
-            if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'theme')) {
+
+        $out = [];
+        $seen = [];
+        $rows = DB::table('scout_themes')
+            ->where('event_ID', $this->eventId())
+            ->orderBy('theme')
+            ->pluck('theme');
+        foreach ($rows as $value) {
+            $theme = trim((string) $value);
+            $key = strtolower($theme);
+            if ($theme === '' || isset($seen[$key])) {
                 continue;
             }
-            $rows = DB::table($table)
-                ->select('theme')
-                ->whereNotNull('theme')
-                ->whereRaw("TRIM(theme) <> ''")
-                ->distinct()
-                ->orderBy('theme')
-                ->pluck('theme');
-            foreach ($rows as $value) {
-                $theme = trim((string) $value);
-                $key = strtolower($theme);
-                if ($theme === '' || isset($seen[$key])) {
-                    continue;
-                }
-                $out[] = $theme;
-                $seen[$key] = true;
-            }
+            $out[] = $theme;
+            $seen[$key] = true;
         }
-        natcasesort($out);
 
-        return array_values($out);
+        return $out !== [] ? $out : self::THEME_WORLDS;
+    }
+
+    public function rememberTheme(string $theme, int $userId): void
+    {
+        $theme = $this->catalogLabel($theme);
+        if ($theme === '' || $theme === '__other__' || ! Schema::hasTable('scout_themes')) {
+            return;
+        }
+
+        DB::table('scout_themes')->insertOrIgnore([
+            'event_ID' => $this->eventId(),
+            'theme' => $theme,
+            'created_by' => $userId > 0 ? $userId : null,
+            'created_at' => now(),
+        ]);
+    }
+
+    private function seedDefaultThemes(): void
+    {
+        if (! Schema::hasTable('scout_themes')) {
+            return;
+        }
+        if (DB::table('scout_themes')->where('event_ID', $this->eventId())->exists()) {
+            return;
+        }
+        foreach (self::THEME_WORLDS as $theme) {
+            $this->rememberTheme($theme, 0);
+        }
     }
 
     /**
@@ -894,6 +1027,7 @@ class Ice2027Service
 
         if ($isStorage) {
             $this->assertOpenQuestionnairePayload($store);
+            $this->promoteQuestionnaireDiscoveries($userId, $store, null);
             Ice2027Questionnaire::query()->updateOrCreate(
                 ['user_ID' => $userId, 'competitor_ID' => $competitorId],
                 ['payload' => $store, 'submitted_at' => now()],
@@ -913,6 +1047,7 @@ class Ice2027Service
         }
         $this->assertCabinetProductPayload($store);
         $this->assertUniqueCatalogGames($store);
+        $this->promoteQuestionnaireDiscoveries($userId, $store, $competitorId);
 
         $row = ScoutQuestionnaire::query()->firstOrNew([
             'event_ID' => $this->eventId(),
@@ -990,6 +1125,7 @@ class Ice2027Service
      */
     public function questionnaireView(User $user, int $competitorId, bool $open = false): array
     {
+        $this->syncCatalogFromQuestionnaires((int) $user->ID);
         if ($open || $this->isOpenQuestionnaireUser((int) $user->ID)) {
             $assigned = $this->ensureOpenQuestionnaireBucket((int) $user->ID);
             $competitorId = (int) $assigned['ID'];
@@ -1154,7 +1290,10 @@ class Ice2027Service
 
         Ice2027Evaluation::query()->updateOrCreate(
             ['user_ID' => $userId, 'event_ID' => $this->eventId()],
-            ['payload' => $payload, 'submitted_at' => now()],
+            $this->withLegacyEvent('ice2027_evaluations', [
+                'payload' => $payload,
+                'submitted_at' => now(),
+            ]),
         );
 
         return 'Evaluation saved.';
@@ -1974,14 +2113,7 @@ class Ice2027Service
         $kind = strtolower(trim($kind));
         $slug = preg_replace('/[^a-z0-9]+/i', '-', $this->event()->slug) ?: 'event';
 
-        $qHeader = [
-            'Source', 'Team', 'Filled by', 'Saved at', 'Competitor', 'Game', 'New product', 'Category',
-            'Progressive JP', 'Progressives', 'Static', 'No. of pots', 'Mechanics', 'Mechanics description',
-            'Win-lines', 'Denomination', 'Bets', 'Theme', 'Cabinet', 'Target market', 'USP',
-            'Integrated JP', 'Integrated JP number', 'Number of categories', 'Number of games',
-            'Number of monitors', 'Monitor size', 'UHD', 'Video Button Panel', 'VBP functions', 'Pictures',
-        ];
-        $qRows = array_merge([$qHeader], $this->questionnaireExcelProductRows());
+        $qRows = $this->questionnaireExcelSheetRows();
 
         if ($kind === 'questionnaire' || $kind === 'questionnaires') {
             return [
@@ -2000,10 +2132,15 @@ class Ice2027Service
         $header[] = 'Avg';
         $header[] = 'Would play';
         $header[] = 'Voted %';
+        $header[] = 'Times evaluated (scouting teams)';
+        $header[] = 'Times evaluated (attendants)';
+        $header[] = 'Times evaluated (total)';
+        $counts = $this->excelGameSourceCounts($dash['ratings']);
         $rows = [$header];
         foreach ($dash['ratings'] as $rating) {
             $fromTeam = ($rating['source'] ?? '') !== 'attendants';
             $type = (string) ($rating['game_type'] ?? '');
+            $stats = $counts[(string) ($rating['key'] ?? '')] ?? ['teams' => 0, 'attendants' => 0, 'total' => 0];
             $row = [
                 (string) $rating['rater'],
                 $fromTeam ? 'Scouting team' : 'Attendant',
@@ -2031,7 +2168,28 @@ class Ice2027Service
             } else {
                 $row[] = '—';
             }
+            $row[] = (int) $stats['teams'];
+            $row[] = (int) $stats['attendants'];
+            $row[] = (int) $stats['total'];
             $rows[] = $row;
+        }
+        $rows[] = [];
+        $rows[] = ['Game evaluation counts'];
+        $rows[] = [
+            'Competitor',
+            'Game',
+            'Times evaluated (scouting teams)',
+            'Times evaluated (attendants)',
+            'Times evaluated (total)',
+        ];
+        foreach ($this->excelSortedGameCounts($counts) as $stats) {
+            $rows[] = [
+                $stats['competitor'],
+                $stats['game'],
+                (int) $stats['teams'],
+                (int) $stats['attendants'],
+                (int) $stats['total'],
+            ];
         }
 
         if ($kind === 'evaluation' || $kind === 'ratings') {
@@ -2050,6 +2208,119 @@ class Ice2027Service
                 ['name' => 'Questionnaires', 'rows' => $qRows],
             ]),
         ];
+    }
+
+    /**
+     * @return list<list<mixed>>
+     */
+    private function questionnaireExcelSheetRows(): array
+    {
+        $header = [
+            'Source', 'Team', 'Filled by', 'Saved at', 'Competitor', 'Game', 'New product', 'Category',
+            'Progressive JP', 'Progressives', 'Static', 'No. of pots', 'Mechanics', 'Mechanics description',
+            'Win-lines', 'Denomination', 'Bets', 'Theme', 'Cabinet', 'Target market', 'USP',
+            'Integrated JP', 'Integrated JP number', 'Number of categories', 'Number of games',
+            'Number of monitors', 'Monitor size', 'UHD', 'Video Button Panel', 'VBP functions', 'Pictures',
+            'Times questioned',
+        ];
+        $entries = [];
+        foreach ($this->questionnaireExcelProductRows() as $cells) {
+            $competitor = (string) ($cells[4] ?? '');
+            $game = (string) ($cells[5] ?? '');
+            $entries[] = [
+                'key' => strtolower($competitor)."\0".strtolower($game),
+                'source' => (string) ($cells[0] ?? ''),
+                'competitor' => $competitor,
+                'game' => $game,
+                'cells' => $cells,
+            ];
+        }
+        $counts = $this->excelGameSourceCounts($entries);
+        $rows = [$header];
+        foreach ($entries as $entry) {
+            $rows[] = array_merge($entry['cells'], [(int) ($counts[$entry['key']]['total'] ?? 0)]);
+        }
+        $rows[] = [];
+        $rows[] = ['Game questionnaire counts'];
+        $rows[] = [
+            'Competitor',
+            'Game',
+            'Times questioned (scouting teams)',
+            'Times questioned (attendants)',
+            'Times questioned (total)',
+        ];
+        foreach ($this->excelSortedGameCounts($counts) as $stats) {
+            $rows[] = [
+                $stats['competitor'],
+                $stats['game'],
+                (int) $stats['teams'],
+                (int) $stats['attendants'],
+                (int) $stats['total'],
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @return array<string, array{competitor:string,game:string,teams:int,attendants:int,total:int}>
+     */
+    private function excelGameSourceCounts(array $items): array
+    {
+        $counts = [];
+        foreach ($items as $item) {
+            $key = (string) ($item['key'] ?? '');
+            $competitor = trim((string) ($item['competitor'] ?? ''));
+            $game = trim((string) ($item['game'] ?? ''));
+            if ($key === '') {
+                $key = strtolower($competitor)."\0".strtolower($game);
+            }
+            if (! isset($counts[$key])) {
+                $counts[$key] = [
+                    'competitor' => $competitor,
+                    'game' => $game,
+                    'teams' => 0,
+                    'attendants' => 0,
+                    'total' => 0,
+                ];
+            }
+            $source = (string) ($item['source'] ?? '');
+            if ($source === 'attendants' || $source === 'Attendant') {
+                $counts[$key]['attendants']++;
+            } else {
+                $counts[$key]['teams']++;
+            }
+            $counts[$key]['total']++;
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param  array<string, array{competitor:string,game:string,teams?:int,attendants?:int,total:int}>  $counts
+     * @return list<array{competitor:string,game:string,teams:int,attendants:int,total:int}>
+     */
+    private function excelSortedGameCounts(array $counts): array
+    {
+        $list = array_values($counts);
+        usort($list, static function (array $a, array $b): int {
+            $total = ((int) ($b['total'] ?? 0)) <=> ((int) ($a['total'] ?? 0));
+            if ($total !== 0) {
+                return $total;
+            }
+
+            return [strtolower((string) $a['competitor']), strtolower((string) $a['game'])]
+                <=> [strtolower((string) $b['competitor']), strtolower((string) $b['game'])];
+        });
+        foreach ($list as &$row) {
+            $row['teams'] = (int) ($row['teams'] ?? 0);
+            $row['attendants'] = (int) ($row['attendants'] ?? 0);
+            $row['total'] = (int) ($row['total'] ?? 0);
+        }
+        unset($row);
+
+        return $list;
     }
 
     /**
@@ -2991,6 +3262,38 @@ HTML;
     /**
      * @return \Illuminate\Database\Eloquent\Builder<Ice2027Team>
      */
+    /**
+     * The original tables keep a 16-character event slug next to event_ID.
+     * That column is NOT NULL and defaults to "g2e", so an insert that only
+     * sets event_ID would file an ICE row as G2E.
+     *
+     * @param  array<string, mixed>  $attrs
+     * @return array<string, mixed>
+     */
+    private function withLegacyEvent(string $table, array $attrs): array
+    {
+        if (! Schema::hasColumn($table, 'event')) {
+            return $attrs;
+        }
+
+        $slug = mb_substr(trim((string) $this->event()->slug), 0, 16);
+        $attrs['event'] = $slug !== '' ? $slug : 'g2e';
+
+        return $attrs;
+    }
+
+    /**
+     * @param  list<int>  $userIds
+     */
+    private function syncLegacyIceFlag(array $userIds, bool $enabled): void
+    {
+        if ($this->event()->slug !== 'ice2027' || $userIds === [] || ! Schema::hasColumn('dynamic__users', 'iceattendent2027')) {
+            return;
+        }
+
+        User::query()->whereIn('ID', $userIds)->update(['iceattendent2027' => $enabled]);
+    }
+
     private function teamsQuery()
     {
         return Ice2027Team::query()->where('event_ID', $this->eventId());
@@ -3046,6 +3349,83 @@ HTML;
         }
 
         return $has;
+    }
+
+    private function catalogLabel(string $value): string
+    {
+        return mb_substr(trim($value), 0, 150);
+    }
+
+    private function visibleCompetitorId(int $id): int
+    {
+        if ($id < 1) {
+            return 0;
+        }
+        $row = $this->catalogCompetitorsQuery()->where('ID', $id)->first(['ID']);
+
+        return $row === null ? 0 : (int) $row->ID;
+    }
+
+    /**
+     * When scouts type a new competitor or a new game, add them to the shared
+     * catalog so they appear in the game dropdown next time.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function promoteQuestionnaireDiscoveries(int $userId, array $payload, ?int $fallbackCompetitorId): void
+    {
+        $fallbackCompetitorId = $fallbackCompetitorId !== null && $fallbackCompetitorId > 0
+            ? $fallbackCompetitorId
+            : null;
+        $fallbackName = '';
+        if ($fallbackCompetitorId !== null) {
+            $fallback = $this->catalogCompetitorsQuery()->where('ID', $fallbackCompetitorId)->first(['ID', 'name']);
+            if ($fallback === null) {
+                $fallbackCompetitorId = null;
+            } else {
+                $fallbackName = trim((string) $fallback->name);
+            }
+        }
+
+        foreach ($this->questionnaireProducts($payload) as $product) {
+            $this->rememberTheme((string) ($product['theme'] ?? ''), $userId);
+            $compName = trim((string) ($product['competitor_name'] ?? $product['competitor'] ?? ''));
+            $compId = (int) ($product['competitor_ID'] ?? 0);
+            if ($compId > 0) {
+                $compId = $this->visibleCompetitorId($compId);
+            }
+            if ($compId < 1 && $compName !== '') {
+                if (
+                    $fallbackCompetitorId !== null
+                    && $fallbackName !== ''
+                    && strcasecmp($compName, $fallbackName) === 0
+                ) {
+                    $compId = $fallbackCompetitorId;
+                } else {
+                    try {
+                        $compId = $this->findOrCreateCompetitorId($compName, $userId);
+                    } catch (InvalidArgumentException) {
+                        $compId = 0;
+                    }
+                }
+            }
+            if ($compId < 1 && $fallbackCompetitorId !== null) {
+                $compId = $fallbackCompetitorId;
+            }
+            if ($compId < 1 || empty($product['is_new_product'])) {
+                continue;
+            }
+            $gameName = trim((string) ($product['game_name'] ?? ''));
+            if ($gameName === '') {
+                continue;
+            }
+            $this->findOrCreateGameId(
+                $compId,
+                $gameName,
+                (string) ($product['category'] ?? $product['game_type'] ?? ''),
+                $userId,
+            );
+        }
     }
 
     private function isStorageCompetitorName(string $name): bool
@@ -3438,9 +3818,95 @@ HTML;
         return $owner;
     }
 
+    public function isPendingMediaId(string $fileId): bool
+    {
+        return str_starts_with(strtolower(ltrim($fileId)), 'pending-');
+    }
+
+    /**
+     * Find a saved file when the questionnaire stored a different owner folder
+     * (team id versus u{userId}) or a different competitor folder.
+     *
+     * @return array{path:string,owner:string}|null
+     */
+    public function locateProductPhoto(int $competitorId, string $fileId, ?string $preferredOwner = null): ?array
+    {
+        if ($competitorId < 1 || $this->isPendingMediaId($fileId) || ! $this->photoFileAllowed($fileId)) {
+            return null;
+        }
+        $owners = [];
+        $preferred = $preferredOwner !== null ? $this->normalizeMediaOwner($preferredOwner) : null;
+        if ($preferred !== null) {
+            $owners[] = $preferred;
+        }
+        $root = rtrim((string) config('merkur.assets_path'), '/').'/scout/'.$this->eventId().'/';
+        if (is_dir($root)) {
+            foreach (scandir($root) ?: [] as $entry) {
+                $owner = $this->normalizeMediaOwner($entry);
+                if ($owner !== null) {
+                    $owners[] = $owner;
+                }
+            }
+        }
+        foreach (array_unique($owners) as $owner) {
+            $path = $this->productPhotoPath($owner, $competitorId, $fileId);
+            if ($path !== null) {
+                return ['path' => $path, 'owner' => $owner];
+            }
+        }
+        if (! is_dir($root)) {
+            return null;
+        }
+        foreach (array_unique($owners) as $owner) {
+            $ownerDir = $root.$owner.'/';
+            if (! is_dir($ownerDir)) {
+                continue;
+            }
+            foreach (scandir($ownerDir) ?: [] as $folder) {
+                if (preg_match('/^[1-9][0-9]*$/', $folder) !== 1) {
+                    continue;
+                }
+                $path = $ownerDir.$folder.'/'.$fileId;
+                if (is_file($path)) {
+                    return ['path' => $path, 'owner' => $owner];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    public function canAccessLocatedPhoto(User $user, int $competitorId, string $owner): bool
+    {
+        $owner = $this->normalizeMediaOwner($owner);
+        if ($owner === null || $competitorId < 1) {
+            return false;
+        }
+        $competitor = Ice2027Competitor::query()->where('event_ID', $this->eventId())->find($competitorId);
+        if ($competitor === null) {
+            return false;
+        }
+        if ($this->canManage($user)) {
+            return true;
+        }
+        if (! $this->isAttendant($user) || $this->competitorAccessibleToUser((int) $user->ID, $competitorId) === null) {
+            return false;
+        }
+
+        return $owner === $this->mediaOwnerForUser((int) $user->ID);
+    }
+
+    private function photoFileAllowed(string $fileId): bool
+    {
+        return $fileId !== ''
+            && ! str_contains($fileId, '/')
+            && ! str_contains($fileId, '\\')
+            && ! str_contains($fileId, '..');
+    }
+
     public function productPhotoPath(int|string $owner, int $competitorId, string $fileId): ?string
     {
-        if ($fileId === '' || str_contains($fileId, '/') || str_contains($fileId, '\\') || str_contains($fileId, '..')) {
+        if ($this->isPendingMediaId($fileId) || ! $this->photoFileAllowed($fileId)) {
             return null;
         }
         $owner = $this->normalizeMediaOwner((string) $owner);
@@ -3473,6 +3939,10 @@ HTML;
         $isVideo = in_array($mime, ['video/mp4', 'video/quicktime', 'video/webm'], true) || in_array($ext, ['mp4', 'mov', 'm4v', 'webm'], true);
         $isImage = in_array($mime, ['image/jpeg', 'image/png'], true) || in_array($ext, ['jpg', 'jpeg', 'png'], true);
         if (! $isVideo && ! $isImage) {
+            $originalName = (string) $file->getClientOriginalName();
+            if (preg_match('/\.(heic|heif)$/i', $originalName) === 1) {
+                throw new InvalidArgumentException('HEIC photos are not supported. Please upload JPG or PNG.');
+            }
             throw new InvalidArgumentException('Only JPG, PNG, and MP4 files are allowed.');
         }
         $maxBytes = $isVideo ? self::VIDEO_MAX_BYTES : self::PHOTO_MAX_BYTES;
@@ -3550,15 +4020,42 @@ HTML;
      * @param  array<string, mixed>  $product
      * @return list<array{id:string,name:string,url:string,kind:string}>
      */
+    /**
+     * @param  array<string, mixed>  $photo
+     */
+    private function photoOwner(array $photo, int|string $fallback): string
+    {
+        foreach (['owner', 'o'] as $key) {
+            if (! empty($photo[$key])) {
+                $owner = $this->normalizeMediaOwner((string) $photo[$key]);
+                if ($owner !== null) {
+                    return $owner;
+                }
+            }
+        }
+        $url = (string) ($photo['url'] ?? '');
+        if ($url !== '' && preg_match('/[?&]o=([^&]+)/', $url, $matches) === 1) {
+            $owner = $this->normalizeMediaOwner(rawurldecode(str_replace('+', ' ', $matches[1])));
+            if ($owner !== null) {
+                return $owner;
+            }
+        }
+
+        return $this->normalizeMediaOwner((string) $fallback) ?? (string) $fallback;
+    }
+
     private function photosFromProduct(array $product, int $competitorId, int|string $owner): array
     {
         $out = [];
-        $ownerKey = $this->normalizeMediaOwner((string) $owner) ?? (string) $owner;
         foreach ($product['photos'] ?? [] as $photo) {
             if (! is_array($photo) || empty($photo['id'])) {
                 continue;
             }
             $fileId = (string) $photo['id'];
+            if ($this->isPendingMediaId($fileId)) {
+                continue;
+            }
+            $ownerKey = $this->photoOwner($photo, $owner);
             $name = (string) ($photo['name'] ?? $fileId);
             $kind = (string) ($photo['kind'] ?? '');
             if ($kind !== 'video' && $kind !== 'image') {
@@ -3610,16 +4107,36 @@ HTML;
 
         $byKey = [];
         $meta = [];
-        $rows = ScoutQuestionnaire::query()
-            ->where('event_ID', $this->eventId())
-            ->get(['team_ID', 'competitor_ID', 'payload']);
+        $sources = [];
+        foreach (
+            ScoutQuestionnaire::query()
+                ->where('event_ID', $this->eventId())
+                ->get(['team_ID', 'competitor_ID', 'payload']) as $row
+        ) {
+            $sources[] = [
+                'owner' => (string) (int) $row->team_ID,
+                'competitor_ID' => (int) $row->competitor_ID,
+                'payload' => $row->payload,
+            ];
+        }
+        foreach (
+            Ice2027Questionnaire::query()
+                ->whereHas('competitor', fn ($query) => $query->where('event_ID', $this->eventId()))
+                ->get(['user_ID', 'competitor_ID', 'payload']) as $row
+        ) {
+            $sources[] = [
+                'owner' => 'u'.(int) $row->user_ID,
+                'competitor_ID' => (int) $row->competitor_ID,
+                'payload' => $row->payload,
+            ];
+        }
 
-        foreach ($rows as $row) {
-            $teamId = (int) $row->team_ID;
-            $cid = (int) $row->competitor_ID;
-            $decoded = is_array($row->payload) ? $row->payload : [];
+        foreach ($sources as $row) {
+            $cid = (int) $row['competitor_ID'];
+            $decoded = is_array($row['payload']) ? $row['payload'] : [];
+            $owner = (string) $row['owner'];
             foreach ($this->questionnaireProducts($decoded) as $product) {
-                $photos = $this->photosFromProduct($product, $cid, $teamId);
+                $photos = $this->photosFromProduct($product, $cid, $owner);
                 if ($photos === []) {
                     continue;
                 }
@@ -3826,7 +4343,7 @@ HTML;
             (string) ($product['mechanics_description'] ?? ''),
             (string) ($product['win_lines'] ?? ''),
             (string) ($product['denomination'] ?? ''),
-            (string) ($product['bets'] ?? ''),
+            $this->excelBets($product['bets'] ?? ''),
             (string) ($product['theme'] ?? ''),
             (string) ($product['cabinet'] ?? ''),
             (string) ($product['target_market'] ?? ''),
@@ -3842,6 +4359,23 @@ HTML;
             (string) ($product['vbp_functions'] ?? ''),
             $photoCount,
         ];
+    }
+
+    private function excelBets(mixed $value): string
+    {
+        if (is_array($value)) {
+            $levels = [];
+            foreach ($value as $level) {
+                $level = trim((string) $level);
+                if ($level !== '') {
+                    $levels[] = $level;
+                }
+            }
+
+            return implode(', ', $levels);
+        }
+
+        return trim((string) $value);
     }
 
     private function excelYesNo(mixed $value): string

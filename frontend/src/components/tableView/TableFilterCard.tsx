@@ -17,6 +17,7 @@ import Radio from '@mui/material/Radio'
 import RadioGroup from '@mui/material/RadioGroup'
 import Select from '@mui/material/Select'
 import { AppButton } from '@/components/ui'
+import { fieldLabel, useI18n } from '@/i18n'
 import type { SortDirection, TableColumn, TableViewSchema, TableViewState, WidthMode } from '@/tableView'
 import { toggleVisibleColumn } from '@/tableView'
 
@@ -35,6 +36,7 @@ export function TableFilterCard({
   onDraftChange: (patch: Partial<TableViewState>) => void
   onApply: () => void
 }) {
+  const { t } = useI18n()
   const primaryColumns = schema.columns.slice(0, schema.primaryColumnCount)
   const extraColumns = schema.columns.slice(schema.primaryColumnCount)
   const allKeys = schema.columns.map((column) => column.key)
@@ -70,7 +72,7 @@ export function TableFilterCard({
     >
       <SortRow
         id={`${schema.table}-sort-by`}
-        label="Sort by"
+        label={t('common.sortBy', 'Sort by')}
         value={draft.sortBy}
         direction={draft.sortDir}
         columns={schema.columns}
@@ -80,7 +82,7 @@ export function TableFilterCard({
       />
       <SortRow
         id={`${schema.table}-sort-by-2`}
-        label="… and then by"
+        label={t('common.sortThen', '… and then by')}
         value={draft.sortBy2}
         direction={draft.sortDir2}
         columns={schema.columns}
@@ -90,10 +92,10 @@ export function TableFilterCard({
       />
       <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 0.5, mb: 1.5 }}>
         <FormControl size="small" sx={{ flex: 1, bgcolor: 'background.paper' }}>
-          <InputLabel id={`${schema.table}-page-size-label`}>Items per page</InputLabel>
+          <InputLabel id={`${schema.table}-page-size-label`}>{t('common.perPage', 'Items per page')}</InputLabel>
           <Select
             labelId={`${schema.table}-page-size-label`}
-            label="Items per page"
+            label={t('common.perPage', 'Items per page')}
             value={draft.perPage}
             onChange={(event) => onDraftChange({ perPage: Number(event.target.value) })}
           >
@@ -112,7 +114,7 @@ export function TableFilterCard({
 
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
         <Box component="button" type="button" onClick={selectAll} disabled={allSelected} sx={linkButtonSx}>
-          Select all
+          {t('common.selectAll', 'Select all')}
         </Box>
         <Box
           component="button"
@@ -121,7 +123,7 @@ export function TableFilterCard({
           disabled={draft.visibleColumns.length === 0}
           sx={linkButtonSx}
         >
-          Clear
+          {t('common.clear', 'Clear')}
         </Box>
       </Box>
 
@@ -155,7 +157,7 @@ export function TableFilterCard({
             onClick={() => onShowMoreChange(!showMore)}
             sx={{ mb: 1.25 }}
           >
-            More Attributes
+            {showMore ? t('common.lessAttributes', 'Less Attributes') : t('common.moreAttributes', 'More Attributes')}
           </AppButton>
         </>
       ) : null}
@@ -166,7 +168,7 @@ export function TableFilterCard({
         startIcon={<CheckCircleOutlineOutlinedIcon />}
         sx={{ bgcolor: 'grey.700', color: 'common.white', '&:hover': { bgcolor: 'grey.800' } }}
       >
-        Apply
+        {t('common.apply', 'Apply')}
       </AppButton>
     </Box>
   )
@@ -204,6 +206,7 @@ function SortRow({
   onValueChange: (value: string) => void
   onDirectionChange: (value: SortDirection) => void
 }) {
+  const { t } = useI18n()
   return (
     <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 0.5, mb: 1 }}>
       <FormControl size="small" sx={{ flex: 1, bgcolor: 'background.paper' }}>
@@ -217,7 +220,7 @@ function SortRow({
           {includeBlank ? <MenuItem value="">—</MenuItem> : null}
           {columns.map((column) => (
             <MenuItem key={column.key} value={column.key}>
-              {column.label}
+              {fieldLabel(t, column.key, column.label)}
             </MenuItem>
           ))}
         </Select>
@@ -288,6 +291,7 @@ function ColumnList({
   visible: string[]
   onToggle: (key: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <Box
       sx={{
@@ -316,11 +320,11 @@ function ColumnList({
                 component="span"
                 sx={{ fontWeight: 800, color: 'text.secondary', display: 'inline-flex', alignItems: 'center', gap: 0.5 }}
               >
-                {column.label}
+                {fieldLabel(t, column.key, column.label)}
                 {column.link ? <OpenInNewIcon sx={{ fontSize: 14 }} /> : <VpnKeyOutlinedIcon sx={{ fontSize: 14 }} />}
               </Box>
             ) : (
-              column.label
+              fieldLabel(t, column.key, column.label)
             )
           }
         />

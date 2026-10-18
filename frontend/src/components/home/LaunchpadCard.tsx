@@ -2,6 +2,7 @@ import Box from '@mui/material/Box'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 import type { LaunchpadCardItem } from '@/config/homeLaunchpad'
+import { useI18n } from '@/i18n'
 import { useAppPath } from '@/routing'
 
 function Sparkle() {
@@ -38,6 +39,9 @@ export function LaunchpadCard({ item }: { item: LaunchpadCardItem }) {
   const Icon = item.icon
   const featured = item.variant === 'featured'
   const { navigate } = useAppPath()
+  const { t } = useI18n()
+  const label = item.labelKey ? t(item.labelKey, item.label) : item.label
+  const shortLabel = item.shortLabelKey ? t(item.shortLabelKey, item.shortLabel ?? item.label) : item.shortLabel
   const clickable = Boolean(item.path)
 
   return (
@@ -98,17 +102,17 @@ export function LaunchpadCard({ item }: { item: LaunchpadCardItem }) {
           lineHeight: 1.25,
         }}
       >
-        {item.shortLabel ? (
+        {shortLabel ? (
           <>
             <Box component="span" sx={{ display: { xs: 'none', md: 'inline' } }}>
-              {item.label}
+              {label}
             </Box>
             <Box component="span" sx={{ display: { xs: 'inline', md: 'none' } }}>
-              {item.shortLabel}
+              {shortLabel}
             </Box>
           </>
         ) : (
-          item.label
+          label
         )}
       </Typography>
     </Paper>

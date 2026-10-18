@@ -2,9 +2,11 @@ import AppBar from '@mui/material/AppBar'
 import Box from '@mui/material/Box'
 import Toolbar from '@mui/material/Toolbar'
 import { useAuth } from '@/auth'
+import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
 import { MerkurLogo } from '@/components/brand'
 import { AppNav } from './AppNav'
+import { LanguageSwitcher } from './LanguageSwitcher'
 
 export type AppHeaderProps = {
   variant?: 'light' | 'brand'
@@ -18,6 +20,7 @@ export function AppHeader({ variant = 'light' }: AppHeaderProps) {
   const isBrand = variant === 'brand'
   const { user, signOut } = useAuth()
   const { navigate } = useAppPath()
+  const { t } = useI18n()
 
   if (!isBrand) {
     return (
@@ -37,6 +40,9 @@ export function AppHeader({ variant = 'light' }: AppHeaderProps) {
         }}
       >
         <MerkurLogo variant="positive" size="sm" alt="MERKURflow" />
+        <Box sx={{ ml: 'auto' }}>
+          <LanguageSwitcher tone="light" />
+        </Box>
       </Box>
     )
   }
@@ -63,7 +69,7 @@ export function AppHeader({ variant = 'light' }: AppHeaderProps) {
         <Box
           component="a"
           href={APP_PATHS.home}
-          aria-label="MERKURflow home"
+          aria-label={t('nav.home', 'MERKURflow home')}
           onClick={(event) => {
             event.preventDefault()
             navigate(APP_PATHS.home)

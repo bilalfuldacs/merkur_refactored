@@ -1,4 +1,5 @@
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined'
+import { useI18n } from '@/i18n'
 import Box from '@mui/material/Box'
 import InputBase from '@mui/material/InputBase'
 import Typography from '@mui/material/Typography'
@@ -12,6 +13,7 @@ export function HelpSearch({
   resultCount: number
   onChange: (value: string) => void
 }) {
+  const { t } = useI18n()
   return (
     <Box sx={{ maxWidth: 720, mx: 'auto', mb: 5 }}>
       <Box
@@ -33,15 +35,15 @@ export function HelpSearch({
           fullWidth
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          placeholder="Try “version status”, “roles” or “NULL”"
-          inputProps={{ 'aria-label': 'Search help' }}
+          placeholder={t('help.placeholder', 'Try “version status”, “roles” or “NULL”')}
+          inputProps={{ 'aria-label': t('help.search', 'Search help') }}
           sx={{ fontSize: 16 }}
         />
       </Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mt: 1, px: 1 }}>
-        <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>Showing the most useful answers first</Typography>
+        <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>{t('help.showing', 'Showing the most useful answers first')}</Typography>
         <Typography sx={{ color: 'info.main', fontSize: 13, fontWeight: 700 }}>
-          {resultCount} answer{resultCount === 1 ? '' : 's'}
+          {resultCount === 1 ? t('help.oneAnswer', '1 answer') : t('help.manyAnswers', '{count} answers', { count: resultCount })}
         </Typography>
       </Box>
     </Box>

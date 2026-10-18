@@ -17,6 +17,7 @@ import Menu from '@mui/material/Menu'
 import MenuItem from '@mui/material/MenuItem'
 import Typography from '@mui/material/Typography'
 import type { CommunityComment, CommunityPerson, CommunityPost, MentionablePerson } from '@/api'
+import { catalogTitle, useI18n } from '@/i18n'
 import { createCommunityComment, getCommunityComments, getCommunityLikes } from '@/api'
 import { AppButton } from '@/components/ui'
 import { UserAvatar } from '@/components/user'
@@ -42,6 +43,7 @@ export function PostCard({
   onEdit: (note: string) => Promise<void>
   onDelete: () => Promise<void>
 }) {
+  const { t } = useI18n()
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(stripPostHtml(post.note))
@@ -114,7 +116,7 @@ export function PostCard({
 
   async function confirmDelete() {
     setMenuAnchor(null)
-    if (!window.confirm('Delete this post? This cannot be undone.')) {
+    if (!window.confirm(t('community.deletePost', 'Delete this post? This cannot be undone.'))) {
       return
     }
     await onDelete()
@@ -156,11 +158,11 @@ export function PostCard({
             </Typography>
           </Box>
           {kind === 'idea' || kind === 'question' ? (
-            <Chip size="small" label={kindLabel(kind)} sx={{ fontWeight: 700 }} />
+            <Chip size="small" label={t(`community.${kind}`, kindLabel(kind))} sx={{ fontWeight: 700 }} />
           ) : null}
           {post.can_edit ? (
             <>
-              <IconButton size="small" aria-label="Post actions" onClick={(event) => setMenuAnchor(event.currentTarget)}>
+              <IconButton size="small" aria-label={t('community.postActions', 'Post actions')} onClick={(event) => setMenuAnchor(event.currentTarget)}>
                 <MoreHorizOutlinedIcon />
               </IconButton>
               <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
@@ -172,11 +174,11 @@ export function PostCard({
                   }}
                 >
                   <EditOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-                  Edit
+                  {t('common.edit', 'Edit')}
                 </MenuItem>
                 <MenuItem onClick={() => void confirmDelete()} sx={{ color: 'error.main' }}>
                   <DeleteOutlinedIcon fontSize="small" sx={{ mr: 1 }} />
-                  Delete
+                  {t('common.delete', 'Delete')}
                 </MenuItem>
               </Menu>
             </>
@@ -195,10 +197,10 @@ export function PostCard({
             />
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
               <AppButton variant="text" color="secondary" size="small" onClick={() => setEditing(false)}>
-                Cancel
+                {t('common.cancel', 'Cancel')}
               </AppButton>
               <AppButton size="small" disabled={!draft.trim() || saving} onClick={() => void saveEdit()}>
-                {saving ? 'Saving…' : 'Save'}
+                {saving ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
               </AppButton>
             </Box>
           </Box>
@@ -217,7 +219,7 @@ export function PostCard({
 
         {post.table ? (
           <Typography sx={{ mt: 1, fontSize: 12, color: 'info.main', fontWeight: 700 }}>
-            Linked to {post.table}
+            {t('community.linkedTo', 'Linked to {table}', { table: catalogTitle(t, post.table, post.table) })}
             {post.item_ID ? ` #${post.item_ID}` : ''}
           </Typography>
         ) : null}
@@ -233,7 +235,7 @@ export function PostCard({
       ) : null}
 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, px: 1, py: 0.75, borderTop: '1px solid', borderColor: 'divider' }}>
-        <IconButton size="small" aria-label="Like" disabled={busy} onClick={onLike} color={post.my_like ? 'error' : 'default'}>
+        <IconButton size="small" aria-label={t('community.like', 'Like')} disabled={busy} onClick={onLike} color={post.my_like ? 'error' : 'default'}>
           {post.my_like ? <FavoriteOutlinedIcon fontSize="small" /> : <FavoriteBorderOutlinedIcon fontSize="small" />}
         </IconButton>
         {post.num_likes ? (
@@ -241,7 +243,7 @@ export function PostCard({
             component="button"
             type="button"
             onClick={() => void openLikes()}
-            aria-label={`Show ${post.num_likes} likes`}
+            aria-label={t('community.showLikes', 'Show {count} likes', { count: post.num_likes })}
             sx={{
               border: 0,
               bgcolor: 'transparent',
@@ -259,13 +261,13 @@ export function PostCard({
         ) : (
           <Typography sx={{ fontSize: 13, minWidth: 16 }} />
         )}
-        <IconButton size="small" aria-label="Replies" onClick={() => setOpenReplies((current) => !current)}>
+        <IconButton size="small" aria-label={t('community.replies', 'Replies')} onClick={() => setOpenReplies((current) => !current)}>
           <ChatBubbleOutlineOutlinedIcon fontSize="small" color="info" />
         </IconButton>
         <Typography sx={{ fontSize: 13, minWidth: 16 }}>{post.num_comments || post.num_replies || ''}</Typography>
         <IconButton
           size="small"
-          aria-label="Save"
+          aria-label={t('common.save', 'Save')}
           disabled={busy}
           onClick={onBookmark}
           sx={{ ml: 'auto' }}
@@ -278,7 +280,7 @@ export function PostCard({
       {openReplies ? (
         <Box sx={{ px: 2, pb: 2, bgcolor: 'grey.50' }}>
           {comments === null ? null : comments.length === 0 ? (
-            <Typography sx={{ py: 1.5, color: 'text.secondary', fontSize: 13 }}>No replies yet.</Typography>
+            <Typography sx={{ py: 1.5, color: 'text.secondary', fontSize: 13 }}>{t('community.noReplies', 'No replies yet.')}</Typography>
           ) : (
             comments.map((comment) => (
               <Box key={comment.ID} sx={{ display: 'flex', gap: 1, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
@@ -305,7 +307,7 @@ export function PostCard({
               onChange={setReply}
               maxLength={1000}
               size="small"
-              placeholder="Write a reply… use @ to mention"
+              placeholder={t('community.replyPlaceholder', 'Write a reply… use @ to mention')}
               onSubmit={() => void sendReply()}
             />
             <Box
@@ -324,19 +326,19 @@ export function PostCard({
                 opacity: !reply.trim() || sending ? 0.5 : 1,
               }}
             >
-              Reply
+              {t('community.reply', 'Reply')}
             </Box>
           </Box>
         </Box>
       ) : null}
 
       <Dialog open={likesOpen} onClose={() => setLikesOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle sx={{ fontWeight: 800 }}>Liked by</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 800 }}>{t('community.likedBy', 'Liked by')}</DialogTitle>
         <DialogContent dividers sx={{ px: 0, py: 0 }}>
           {likersLoading ? (
-            <Typography sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>Loading…</Typography>
+            <Typography sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>{t('community.loading', 'Loading…')}</Typography>
           ) : !likers || likers.length === 0 ? (
-            <Typography sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>No likes yet.</Typography>
+            <Typography sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>{t('community.noLikes', 'No likes yet.')}</Typography>
           ) : (
             likers.map((person) => (
               <Box

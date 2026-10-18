@@ -16,6 +16,7 @@ export type HelpTopicId =
 export type HelpTopic = {
   id: HelpTopicId
   label: string
+  labelKey: string
   icon: SvgIconComponent
   match: (haystack: string) => boolean
 }
@@ -24,6 +25,7 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'getting-started',
     label: 'Getting started',
+    labelKey: 'help.gettingStarted',
     icon: RocketLaunchOutlinedIcon,
     match: (haystack) =>
       /what does merkurflow|evolve|home screen|overview|started|nutshell/.test(haystack),
@@ -31,24 +33,28 @@ export const HELP_TOPICS: HelpTopic[] = [
   {
     id: 'products-roadmap',
     label: 'Products & roadmap',
+    labelKey: 'help.productsRoadmap',
     icon: MapOutlinedIcon,
     match: (haystack) => /version|build|roadmap|product|status/.test(haystack),
   },
   {
     id: 'data-tables',
     label: 'Data & tables',
+    labelKey: 'help.dataTables',
     icon: TableChartOutlinedIcon,
     match: (haystack) => /table|null|empty|catalog/.test(haystack),
   },
   {
     id: 'access-roles',
     label: 'Access & roles',
+    labelKey: 'help.accessRoles',
     icon: ShieldOutlinedIcon,
     match: (haystack) => /tlp|role|entitlement|permission/.test(haystack),
   },
   {
     id: 'troubleshooting',
     label: 'Troubleshooting',
+    labelKey: 'help.troubleshooting',
     icon: ConstructionOutlinedIcon,
     match: (haystack) => /tip|trick|phone|error|problem|fix/.test(haystack),
   },
@@ -74,15 +80,20 @@ export function readingMinutes(article: string): number {
   return Math.max(1, Math.ceil(words / 180))
 }
 
-export function searchFaqs(faqs: FaqArticle[], query: string): FaqArticle[] {
+export function searchFaqs(
+  faqs: FaqArticle[],
+  query: string,
+  translated?: (faq: FaqArticle) => { title?: string; article?: string } | null,
+): FaqArticle[] {
   const needle = query.trim().toLowerCase()
   if (!needle) {
     return faqs
   }
   return faqs
     .map((faq) => {
-      const title = displayFaqTitle(faq.title).toLowerCase()
-      const article = faq.article.toLowerCase()
+      const copy = translated?.(faq)
+      const title = `${displayFaqTitle(faq.title)} ${copy?.title ?? ''}`.toLowerCase()
+      const article = `${faq.article} ${copy?.article ?? ''}`.toLowerCase()
       let score = 0
       if (title.includes(needle)) {
         score += title.startsWith(needle) ? 4 : 3

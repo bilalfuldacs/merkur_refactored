@@ -11,6 +11,8 @@ import Typography from '@mui/material/Typography'
 import CloseOutlinedIcon from '@mui/icons-material/CloseOutlined'
 import { ApiError, changeMyPassword } from '@/api'
 import { AppButton, AppTextField } from '@/components/ui'
+import { useI18n } from '@/i18n'
+import type { Translate } from '@/i18n'
 
 export const PASSWORD_PATTERN = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])\S{10,}$/
 
@@ -50,6 +52,7 @@ export function ChangePasswordDialog({
   onClose: () => void
   onChanged: () => void
 }) {
+  const { t } = useI18n()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -67,7 +70,7 @@ export function ChangePasswordDialog({
     setError(null)
   }, [open])
 
-  const hint = useMemo(() => hintFor(current, next, confirm), [current, next, confirm])
+  const hint = useMemo(() => hintFor(t, current, next, confirm), [current, next, confirm, t])
   const ready = hint.kind === 'ready'
 
   async function handleSubmit(event: FormEvent) {
@@ -89,7 +92,7 @@ export function ChangePasswordDialog({
       setError(
         caught instanceof ApiError
           ? caught.message
-          : 'The password could not be changed.',
+          : t('profile.changeFailed', 'The password could not be changed.'),
       )
     } finally {
       setSaving(false)
@@ -99,15 +102,15 @@ export function ChangePasswordDialog({
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pr: 1 }}>
-        Change Password
-        <IconButton aria-label="Close" onClick={onClose} disabled={saving}>
+        {t('profile.dialogTitle', 'Change Password')}
+        <IconButton aria-label={t('common.close', 'Close')} onClick={onClose} disabled={saving}>
           <CloseOutlinedIcon />
         </IconButton>
       </DialogTitle>
       <Box component="form" onSubmit={handleSubmit}>
         <DialogContent sx={{ pt: 0 }}>
           <AppTextField
-            label="Current Password"
+            label={t('profile.current', 'Current Password')}
             type="password"
             name="current_password"
             autoComplete="current-password"
@@ -117,18 +120,18 @@ export function ChangePasswordDialog({
           />
           <Typography sx={{ fontWeight: 700, mb: 0.5 }}>
             <Box component="span" sx={{ color: 'info.main' }}>
-              Rules:
+              {t('profile.rulesLabel', 'Rules:')}
             </Box>{' '}
-            Your new password needs to have…
+            {t('profile.rulesIntro', 'Your new password needs to have…')}
           </Typography>
           <Box component="ul" sx={{ mt: 0, mb: 2, pl: 3 }}>
-            <li>At least 10 characters</li>
-            <li>At least 1 lowercase letter</li>
-            <li>At least 1 UPPERCASE letter</li>
-            <li>At least 1 digit (0…9)</li>
+            <li>{t('profile.ruleLength', 'At least 10 characters')}</li>
+            <li>{t('profile.ruleLower', 'At least 1 lowercase letter')}</li>
+            <li>{t('profile.ruleUpper', 'At least 1 UPPERCASE letter')}</li>
+            <li>{t('profile.ruleDigit', 'At least 1 digit (0…9)')}</li>
           </Box>
           <AppTextField
-            label="New Password"
+            label={t('profile.newPassword', 'New Password')}
             type="password"
             name="password"
             autoComplete="new-password"
@@ -137,13 +140,13 @@ export function ChangePasswordDialog({
             sx={{ mb: 2 }}
           />
           <AppTextField
-            label="Validation"
+            label={t('profile.validation', 'Validation')}
             type="password"
             name="password_confirmation"
             autoComplete="new-password"
             value={confirm}
             onChange={(event) => setConfirm(event.target.value)}
-            placeholder="Enter your New Password again"
+            placeholder={t('profile.repeatPlaceholder', 'Enter your New Password again')}
           />
           {error ? (
             <Alert severity="error" sx={{ mt: 2 }}>
@@ -163,7 +166,7 @@ export function ChangePasswordDialog({
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <AppButton type="submit" disabled={!ready || saving} size="small">
-            {saving ? 'Changing…' : 'Change Password'}
+            {saving ? t('profile.changing', 'Changing…') : t('profile.change', 'Change Password')}
           </AppButton>
         </DialogActions>
       </Box>

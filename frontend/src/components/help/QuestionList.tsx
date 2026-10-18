@@ -1,6 +1,7 @@
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import type { FaqArticle } from '@/api'
+import { useI18n } from '@/i18n'
 import { displayFaqTitle, readingMinutes, topicForFaq } from './topics'
 
 export function QuestionList({
@@ -12,10 +13,11 @@ export function QuestionList({
   selectedId: number | null
   onSelect: (faq: FaqArticle) => void
 }) {
+  const { t } = useI18n()
   if (faqs.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ py: 4 }}>
-        No answers match that search.
+        {t('help.noMatch', 'No answers match that search.')}
       </Typography>
     )
   }
@@ -59,7 +61,7 @@ export function QuestionList({
             }}
           >
             <Typography sx={{ fontWeight: 800, fontSize: 15, color: 'secondary.main', lineHeight: 1.4 }}>
-              {displayFaqTitle(faq.title)}
+              <FaqQuestionTitle title={faq.title} />
             </Typography>
             <Typography
               sx={{
@@ -70,11 +72,17 @@ export function QuestionList({
                 flexShrink: 0,
               }}
             >
-              {topic.label} · {readingMinutes(faq.article)} min read
+              {t('help.minRead', '{topic} · {count} min read', { topic: t(topic.labelKey, topic.label), count: readingMinutes(faq.article) })}
             </Typography>
           </Box>
         )
       })}
     </Box>
   )
+}
+
+function FaqQuestionTitle({ title }: { title: string }) {
+  const { faqCopy } = useI18n()
+  const stored = faqCopy(title)
+  return <>{stored?.title || displayFaqTitle(title)}</>
 }

@@ -8,6 +8,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
 import { useAuth } from '@/auth'
 import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { apiRequest } from '@/api/client'
 import { APP_PATHS, useAppPath } from '@/routing'
@@ -24,6 +25,7 @@ const TILE_COLOR: Record<Exclude<Tile, ''>, string> = {
 }
 
 export default function MerkuriosityPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const canManageWords = Boolean(user?.role?.['may_create-update_items'])
@@ -38,11 +40,11 @@ export default function MerkuriosityPage() {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    document.title = 'MERKURiosity Daily Quiz | MERKURflow'
+    document.title = `${t('pages.merkuriosityDaily', 'MERKURiosity Daily Quiz')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     void apiRequest<{ length: number }>('/merkuriosity/daily-word')
@@ -167,7 +169,7 @@ export default function MerkuriosityPage() {
       <Box component="main" sx={{ flex: 1, px: 2, py: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 28, md: 36 }, mb: 1 }}>
           <EmojiEventsOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 34 }} />
-          MERKURiosity
+          {t('pages.merkuriosity', 'MERKURiosity')}
         </Typography>
         {canManageWords ? (
           <AppButton

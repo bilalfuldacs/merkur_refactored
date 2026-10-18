@@ -7,7 +7,8 @@ import Typography from '@mui/material/Typography'
 import { ApiError, getAdminUserActivity } from '@/api'
 import type { AdminUserActivityRow } from '@/api'
 import { useAuth } from '@/auth'
-import { AppFooter, AppHeader, PageBackground } from '@/components/layout'
+import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
+import { useI18n } from '@/i18n'
 import { AppButton } from '@/components/ui'
 import { APP_PATHS, useAppPath } from '@/routing'
 
@@ -22,6 +23,7 @@ const crumbSx = {
 } as const
 
 export default function AdminUserActivityPage() {
+  const { t } = useI18n()
   const { navigate } = useAppPath()
   const { user } = useAuth()
   const isSuperuser = Boolean(user?.role?.['may_create-update-delete_system-items'])
@@ -35,11 +37,11 @@ export default function AdminUserActivityPage() {
   }, [sort])
 
   useEffect(() => {
-    document.title = 'User activity | MERKURflow'
+    document.title = `${t('pages.userActivity', 'User activity')} | MERKURflow`
     return () => {
       document.title = 'MERKURflow'
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (!isSuperuser) {
@@ -56,27 +58,27 @@ export default function AdminUserActivityPage() {
     <PageBackground>
       <AppHeader />
       <Box component="main" sx={{ flex: 1, px: { xs: 2, md: 4 }, py: 3, maxWidth: 900, mx: 'auto', width: '100%' }}>
-        <Box component="nav" aria-label="Breadcrumb" sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
+        <Box component="nav" aria-label={t('common.breadcrumb', 'Breadcrumb')} sx={{ display: 'flex', gap: 1, mb: 2, fontSize: 14, flexWrap: 'wrap' }}>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.home)} sx={crumbSx}>
-            Start
+            <CrumbHome />
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
           <Box component="button" type="button" onClick={() => navigate(APP_PATHS.admin)} sx={crumbSx}>
-            Admin
+            {t('pages.adminCrumb', 'Admin')}
           </Box>
           <Box component="span" color="text.secondary">
             /
           </Box>
-          <Box component="span">User activity</Box>
+          <Box component="span">{t('pages.userActivity', 'User activity')}</Box>
         </Box>
 
         <Typography component="h1" sx={{ fontWeight: 800, fontSize: 28, mb: 1, color: 'secondary.main' }}>
-          User activity
+          {t('pages.userActivity', 'User activity')}
         </Typography>
         <Typography sx={{ color: 'text.secondary', mb: 3 }}>
-          Login counts and last login from <code>dynamic__logins</code>.
+          {t('copy.activityIntro', 'Login counts and last login from dynamic__logins.')}
         </Typography>
 
         {!isSuperuser ? (
