@@ -1,0 +1,1 @@
+import{oa as e,yt as t}from"./index-Dgd-oO50.js";var n=e(),r=t((0,n.jsx)(`path`,{d:`m12 4-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z`}),`ArrowForwardOutlined`);export{r as t};

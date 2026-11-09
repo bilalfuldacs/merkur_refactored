@@ -55,6 +55,19 @@ export function subscribeLoading(listener: (count: number) => void): () => void 
   }
 }
 
+function bearerHeaders(token: string | null): Record<string, string> {
+  if (!token) {
+    return {}
+  }
+
+  const value = `Bearer ${token}`
+
+  return {
+    Authorization: value,
+    'X-Authorization': value,
+  }
+}
+
 function expireIfUnauthorized(response: Response, token: string | null, path?: string): void {
   if (response.status === 401 && token && path !== '/login') {
     expireSession()
@@ -87,7 +100,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
       headers: {
         Accept: 'application/json',
         ...(body !== undefined && !isFormData ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...bearerHeaders(token),
         ...headers,
       },
       body: body === undefined ? undefined : isFormData ? body : JSON.stringify(body),
@@ -119,7 +132,7 @@ export async function apiFile(path: string): Promise<Blob> {
     const response = await fetch(`${apiBaseUrl}${path}`, {
       headers: {
         Accept: '*/*',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...bearerHeaders(token),
       },
     })
 
@@ -151,7 +164,7 @@ async function downloadApiBinary(path: string, fallbackName: string, init: Reque
       ...init,
       headers: {
         Accept: '*/*',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...bearerHeaders(token),
         ...(init.headers ?? {}),
       },
     })
@@ -184,7 +197,7 @@ export async function openApiPdf(path: string, preview?: Window | null): Promise
     const response = await fetch(`${apiBaseUrl}${path}`, {
       headers: {
         Accept: 'application/pdf',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...bearerHeaders(token),
       },
     })
 

@@ -1,0 +1,1 @@
+import{oa as e,yt as t}from"./index-D7nyHfUP.js";var n=e(),r=t((0,n.jsx)(`path`,{d:`m11.99 18.54-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27zm0-11.47L17.74 9 12 13.47 6.26 9z`}),`LayersOutlined`);export{r as t};

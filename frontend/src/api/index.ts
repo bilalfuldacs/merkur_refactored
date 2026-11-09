@@ -123,6 +123,18 @@ export type {
 export { getHelpFaqs } from './faqs'
 export type { FaqArticle, FaqEditor } from './faqs'
 export { getRoadmap } from './roadmap'
+export {
+  addSihRoadmapComment,
+  addSihRoadmapLink,
+  createSihRoadmapMilestone,
+  deleteSihRoadmapAttachment,
+  deleteSihRoadmapComment,
+  deleteSihRoadmapLink,
+  deleteSihRoadmapMilestone,
+  getSihRoadmap,
+  updateSihRoadmapMilestone,
+  uploadSihRoadmapAttachment,
+} from './sihRoadmap'
 export type {
   RoadmapGame,
   RoadmapGameStatus,
@@ -136,6 +148,17 @@ export type {
   RoadmapRow,
   RoadmapView,
 } from './roadmap'
+export type {
+  SihRoadmapAttachment,
+  SihRoadmapAuthor,
+  SihRoadmapBoard,
+  SihRoadmapComment,
+  SihRoadmapLink,
+  SihRoadmapMilestone,
+  SihRoadmapMutation,
+  SihRoadmapQuarter,
+  SihRoadmapStatus,
+} from './sihRoadmap'
 export {
   createCommunityComment,
   createCommunityPost,

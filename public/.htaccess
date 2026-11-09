@@ -3,7 +3,10 @@
         Options -MultiViews -Indexes
     </IfModule>
 
+    DirectoryIndex index.html index.php
+
     RewriteEngine On
+    RewriteBase /merkur_beta/
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -18,8 +21,15 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Send Requests To Front Controller...
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-f
+    # Laravel API and health check
+    RewriteCond %{REQUEST_URI} ^/merkur_beta/(api|up)(/|$)
     RewriteRule ^ index.php [L]
+
+    # Real files (assets, index.html, index.php)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Login and the rest of the website
+    RewriteRule ^ index.html [L]
 </IfModule>

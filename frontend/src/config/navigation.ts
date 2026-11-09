@@ -16,6 +16,7 @@ import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined'
+import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined'
 import MemoryOutlinedIcon from '@mui/icons-material/MemoryOutlined'
 import MenuBookOutlinedIcon from '@mui/icons-material/MenuBookOutlined'
 import MoreVertIcon from '@mui/icons-material/MoreVert'
@@ -125,6 +126,8 @@ export function getMainNavigation(
       labelFrom: 'xl',
       path: APP_PATHS.roadmap,
       children: [
+        { id: 'roadmap-team', label: translate('nav.roadmapTeam', 'Team Roadmap'), icon: TimelineOutlinedIcon, emphasize: true, path: APP_PATHS.teamRoadmap },
+        { type: 'divider' },
         { id: 'roadmap-versions', label: translate('nav.roadmapVersions', '… by Versions'), path: APP_PATHS.roadmap },
         { id: 'roadmap-games', label: translate('nav.roadmapGames', '… by Games'), path: APP_PATHS.roadmapGames },
         { type: 'divider' },

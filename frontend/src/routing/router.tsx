@@ -39,6 +39,7 @@ const IssuesReportPage = lazy(() => import('@/pages/IssuesReportPage'))
 const FieldTrialsPage = lazy(() => import('@/pages/FieldTrialsPage'))
 const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'))
 const RoadmapDocsPage = lazy(() => import('@/pages/RoadmapDocsPage'))
+const TeamRoadmapPage = lazy(() => import('@/pages/TeamRoadmapPage'))
 const TasksPage = lazy(() => import('@/pages/TasksPage'))
 const FindPage = lazy(() => import('@/pages/FindPage'))
 const ScoutEventsPage = lazy(() => import('@/pages/ScoutEventsPage'))
@@ -141,6 +142,7 @@ export const router = createBrowserRouter(
             { path: 'docs', element: <RoadmapDocsPage /> },
           ],
         },
+        { path: 'team-roadmap', element: <TeamRoadmapPage /> },
         { path: 'field-trials', element: <FieldTrialsPage /> },
         { path: 'tasks', element: <TasksPage /> },
         { path: 'find', element: <FindPage /> },

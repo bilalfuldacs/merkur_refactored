@@ -24,7 +24,16 @@ class AuthController extends Controller
             ->where('active', 1)
             ->first();
 
-        if (! $user || ! Hash::check($credentials['password'], $user->getAuthPassword())) {
+        $passwordMatches = false;
+        if ($user) {
+            try {
+                $passwordMatches = Hash::check($credentials['password'], $user->getAuthPassword());
+            } catch (\RuntimeException) {
+                $passwordMatches = false;
+            }
+        }
+
+        if (! $passwordMatches) {
             return response()->json([
                 'message' => 'These credentials do not match our records.',
             ], 401);
@@ -32,10 +41,15 @@ class AuthController extends Controller
 
         $token = $user->createToken('api')->plainTextToken;
 
-        $user->logins()->create([
-            'IP' => $request->ip() ?? '0.0.0.0',
-            'agent' => Str::limit((string) $request->userAgent(), 512, ''),
-        ]);
+        try {
+            $user->logins()->create([
+                'when' => now(),
+                'IP' => $request->ip() ?? '0.0.0.0',
+                'agent' => Str::limit((string) $request->userAgent(), 512, ''),
+            ]);
+        } catch (\Throwable) {
+            // A failed login-history row must not block a valid sign-in.
+        }
 
         return response()->json([
             'token' => $token,

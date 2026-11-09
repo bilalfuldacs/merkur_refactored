@@ -68,6 +68,7 @@ class DatabaseSeeder extends Seeder
             DummyInstallationSeeder::class,
             DummyFocusGroupSeeder::class,
             DummyIce2027Seeder::class,
+            SihRoadmapSeeder::class,
         ]);
     }
 }

@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react'
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  base: '/merkur_beta/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -19,5 +20,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  build: {
+    outDir: path.resolve(rootDir, '../public'),
+    emptyOutDir: false,
   },
 })

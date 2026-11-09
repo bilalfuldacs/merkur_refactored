@@ -1,0 +1,1 @@
+import{oa as e,yt as t}from"./index-D7nyHfUP.js";var n=e(),r=t((0,n.jsx)(`path`,{d:`M10 6 8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z`}),`ChevronRightOutlined`);export{r as t};

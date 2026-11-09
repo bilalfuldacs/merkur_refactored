@@ -25,6 +25,7 @@ export const APP_PATHS = {
   roadmap: '/roadmap',
   roadmapGames: '/roadmap/games',
   roadmapDocs: '/roadmap/docs',
+  teamRoadmap: '/team-roadmap',
   tasks: '/tasks',
   find: '/find',
   forgotPassword: '/forgot-password',

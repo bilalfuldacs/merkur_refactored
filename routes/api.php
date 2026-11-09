@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ProductGamesListController;
 use App\Http\Controllers\Api\ProductPanoramaController;
 use App\Http\Controllers\Api\ReleaseInformationSheetController;
 use App\Http\Controllers\Api\RoadmapController;
+use App\Http\Controllers\Api\SihRoadmapController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ScoutEventController;
 use App\Http\Controllers\Api\ScoutRemindController;
@@ -155,6 +156,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('releases/{release}/information-sheet', [ReleaseInformationSheetController::class, 'show'])
         ->whereNumber('release');
     Route::get('roadmap', [RoadmapController::class, 'index']);
+    Route::get('sih-roadmap', [SihRoadmapController::class, 'index']);
+    Route::post('sih-roadmap/milestones', [SihRoadmapController::class, 'store']);
+    Route::patch('sih-roadmap/milestones/{milestone}', [SihRoadmapController::class, 'update'])->whereNumber('milestone');
+    Route::delete('sih-roadmap/milestones/{milestone}', [SihRoadmapController::class, 'destroy'])->whereNumber('milestone');
+    Route::post('sih-roadmap/milestones/{milestone}/links', [SihRoadmapController::class, 'storeLink'])->whereNumber('milestone');
+    Route::delete('sih-roadmap/milestones/{milestone}/links/{link}', [SihRoadmapController::class, 'destroyLink'])->whereNumber('milestone')->whereNumber('link');
+    Route::post('sih-roadmap/milestones/{milestone}/comments', [SihRoadmapController::class, 'storeComment'])->whereNumber('milestone');
+    Route::delete('sih-roadmap/milestones/{milestone}/comments/{comment}', [SihRoadmapController::class, 'destroyComment'])->whereNumber('milestone')->whereNumber('comment');
+    Route::post('sih-roadmap/milestones/{milestone}/attachments', [SihRoadmapController::class, 'storeAttachment'])->whereNumber('milestone');
+    Route::delete('sih-roadmap/milestones/{milestone}/attachments/{attachment}', [SihRoadmapController::class, 'destroyAttachment'])->whereNumber('milestone')->whereNumber('attachment');
+    Route::get('sih-roadmap/milestones/{milestone}/attachments/{attachment}', [SihRoadmapController::class, 'showAttachment'])->whereNumber('milestone')->whereNumber('attachment');
     Route::get('help/faqs', [StaticFaqController::class, 'help']);
     Route::apiResource('static-faqs', StaticFaqController::class)
         ->parameters(['static-faqs' => 'staticFaq']);
