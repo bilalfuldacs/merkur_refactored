@@ -284,7 +284,7 @@ export function AppNav({ user, onLogout }: AppNavProps) {
                 sx={{
                   color: isActive ? 'secondary.main' : 'merkur.yellow',
                   bgcolor: isActive ? 'rgba(255,255,255,0.92)' : 'transparent',
-                  fontWeight: item.emphasize ? 800 : 600,
+                  fontWeight: 400,
                   px: 1,
                   minWidth: 0,
                   whiteSpace: 'nowrap',
@@ -369,7 +369,7 @@ function DesktopNavChild({
           secondary={item.description}
           slotProps={{
             primary: {
-              sx: { fontWeight: item.emphasize ? 800 : 500 },
+              sx: { fontWeight: 400 },
             },
           }}
         />
@@ -389,7 +389,7 @@ function DesktopNavChild({
           primary={item.label}
           slotProps={{
             primary: {
-              sx: { fontWeight: 800 },
+              sx: { fontWeight: 400 },
             },
           }}
         />
@@ -438,7 +438,7 @@ function MobileNavItem({
         </ListItemIcon>
         <ListItemText
           primary={item.label}
-          slotProps={{ primary: { sx: { fontWeight: item.emphasize ? 800 : 500 } } }}
+          slotProps={{ primary: { sx: { fontWeight: 400 } } }}
         />
       </ListItemButton>
     )
@@ -456,7 +456,7 @@ function MobileNavItem({
         </ListItemIcon>
         <ListItemText
           primary={item.label}
-          slotProps={{ primary: { sx: { fontWeight: item.emphasize ? 800 : 500 } } }}
+          slotProps={{ primary: { sx: { fontWeight: 400 } } }}
         />
         {expanded ? <ExpandLessIcon aria-hidden /> : <ExpandMoreIcon aria-hidden />}
       </ListItemButton>
@@ -501,7 +501,7 @@ function MobileNavChild({
           secondary={item.description}
           slotProps={{
             primary: {
-              sx: { fontWeight: item.emphasize ? 800 : 500 },
+              sx: { fontWeight: 400 },
             },
           }}
         />
@@ -524,7 +524,7 @@ function MobileNavChild({
         ) : null}
         <ListItemText
           primary={item.label}
-          slotProps={{ primary: { sx: { fontWeight: 700 } } }}
+          slotProps={{ primary: { sx: { fontWeight: 400 } } }}
         />
         {expanded ? <ExpandLessIcon aria-hidden /> : <ExpandMoreIcon aria-hidden />}
       </ListItemButton>

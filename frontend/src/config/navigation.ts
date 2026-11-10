@@ -1,15 +1,12 @@
 import type { SvgIconComponent } from '@mui/icons-material'
 import AdminPanelSettingsOutlinedIcon from '@mui/icons-material/AdminPanelSettingsOutlined'
 import ArticleOutlinedIcon from '@mui/icons-material/ArticleOutlined'
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined'
 import CasinoOutlinedIcon from '@mui/icons-material/CasinoOutlined'
 import CelebrationOutlinedIcon from '@mui/icons-material/CelebrationOutlined'
-import ChatOutlinedIcon from '@mui/icons-material/ChatOutlined'
 import ChecklistOutlinedIcon from '@mui/icons-material/ChecklistOutlined'
 import ConstructionOutlinedIcon from '@mui/icons-material/ConstructionOutlined'
 import CropSquareOutlinedIcon from '@mui/icons-material/CropSquareOutlined'
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined'
-import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import GroupsOutlinedIcon from '@mui/icons-material/GroupsOutlined'
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
@@ -100,7 +97,6 @@ export function getMainNavigation(
       id: 'people-markets',
       label: translate('nav.peopleMarkets', 'People & Markets'),
       icon: GroupsOutlinedIcon,
-      emphasize: true,
       labelFrom: 'lg',
       path: APP_PATHS.peopleMarkets,
     },
@@ -108,16 +104,8 @@ export function getMainNavigation(
       id: 'products',
       label: translate('nav.products', 'Products'),
       icon: Inventory2OutlinedIcon,
-      emphasize: true,
       labelFrom: 'lg',
       path: APP_PATHS.products,
-    },
-    {
-      id: 'field-trials',
-      label: translate('nav.fieldTrials', 'Field Trials'),
-      icon: FlagOutlinedIcon,
-      labelFrom: 'xl',
-      path: APP_PATHS.fieldTrials,
     },
     {
       id: 'roadmap',
@@ -126,7 +114,7 @@ export function getMainNavigation(
       labelFrom: 'xl',
       path: APP_PATHS.roadmap,
       children: [
-        { id: 'roadmap-team', label: translate('nav.roadmapTeam', 'Team Roadmap'), icon: TimelineOutlinedIcon, emphasize: true, path: APP_PATHS.teamRoadmap },
+        { id: 'roadmap-team', label: translate('nav.roadmapTeam', 'Team Roadmap'), icon: TimelineOutlinedIcon, path: APP_PATHS.teamRoadmap },
         { type: 'divider' },
         { id: 'roadmap-versions', label: translate('nav.roadmapVersions', '… by Versions'), path: APP_PATHS.roadmap },
         { id: 'roadmap-games', label: translate('nav.roadmapGames', '… by Games'), path: APP_PATHS.roadmapGames },
@@ -140,7 +128,6 @@ export function getMainNavigation(
             id: 'exhibition',
             label: translate('nav.exhibition', 'Exhibition'),
             icon: TravelExploreOutlinedIcon,
-            emphasize: true,
             labelFrom: 'xl' as const,
             path: APP_PATHS.ice2027,
             children: exhibitionChildren,
@@ -148,20 +135,13 @@ export function getMainNavigation(
         ]
       : []),
     {
-      id: 'community',
-      label: translate('nav.community', 'Community'),
-      icon: ChatOutlinedIcon,
-      labelFrom: 'xl',
-      path: APP_PATHS.community,
-    },
-    {
       id: 'reports',
       label: translate('nav.reports', 'Reports'),
       icon: ArticleOutlinedIcon,
       labelFrom: 'xxl',
       path: APP_PATHS.reports,
       children: [
-        { id: 'reports-all', label: translate('nav.allReports', 'All Reports'), emphasize: true, path: APP_PATHS.reports },
+        { id: 'reports-all', label: translate('nav.allReports', 'All Reports'), path: APP_PATHS.reports },
         { type: 'divider' },
         { id: 'reports-installations', label: translate('nav.installations', 'Installations'), icon: RocketLaunchOutlinedIcon, path: APP_PATHS.installationsReport },
         { id: 'reports-focus-groups', label: translate('nav.focusGroups', 'Focus Groups'), icon: GroupsOutlinedIcon, path: APP_PATHS.focusGroupsReport },
@@ -175,7 +155,7 @@ export function getMainNavigation(
       icon: TableChartOutlinedIcon,
       labelFrom: 'xxl',
       children: [
-        { id: 'tables-all', label: translate('nav.allTables', 'All Tables'), emphasize: true, path: '/tables' },
+        { id: 'tables-all', label: translate('nav.allTables', 'All Tables'), path: '/tables' },
         { type: 'divider' },
         { id: 'tables-game-concepts', label: translate('nav.gameConcepts', 'Game Concepts'), icon: LightbulbOutlinedIcon, path: '/tables/game_concepts' },
         { id: 'tables-games', label: translate('nav.games', 'Games'), icon: CasinoOutlinedIcon, path: '/tables/games' },
@@ -200,14 +180,6 @@ export function getMainNavigation(
       icon: MenuBookOutlinedIcon,
       labelFrom: 'xxl',
       path: APP_PATHS.docs,
-    },
-    {
-      id: 'tasks',
-      label: translate('nav.tasks', 'My Tasks'),
-      icon: CalendarMonthOutlinedIcon,
-      emphasize: true,
-      labelFrom: 'xl',
-      path: APP_PATHS.tasks,
     },
     {
       id: 'more',
