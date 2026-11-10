@@ -43,6 +43,28 @@ export type {
 } from './latestChanges'
 export { getReportsCatalog } from './reportsCatalog'
 export type { ReportsCatalog, ReportsCatalogGroup, ReportsCatalogReport } from './reportsCatalog'
+export {
+  createBdMarket,
+  createBdSegment,
+  getBusinessDevelopment,
+  updateBdMarket,
+  updateBdSegment,
+} from './businessDevelopment'
+export type {
+  BdJurisdiction,
+  BdMarket,
+  BdMarketInput,
+  BdMutationResult,
+  BdPayload,
+  BdPresenceCode,
+  BdRegion,
+  BdRegionSegmentRow,
+  BdRegionSegments,
+  BdSegmentInput,
+  BdSegmentOption,
+  BdStatus,
+  BdStatusCode,
+} from './businessDevelopment'
 export { getInstallationReport } from './installationReport'
 export type {
   AvailabilityMarket,

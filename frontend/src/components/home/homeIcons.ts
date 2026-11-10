@@ -10,7 +10,9 @@ import FlagOutlinedIcon from '@mui/icons-material/FlagOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import LightbulbOutlinedIcon from '@mui/icons-material/LightbulbOutlined'
 import MemoryOutlinedIcon from '@mui/icons-material/MemoryOutlined'
+import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
 import RocketLaunchOutlinedIcon from '@mui/icons-material/RocketLaunchOutlined'
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined'
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined'
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
@@ -37,8 +39,12 @@ const byKey: Record<string, SvgIconComponent> = {
   software_releases: CelebrationOutlinedIcon,
   markets_landbased: TrendingUpOutlinedIcon,
   markets_online: TrendingUpOutlinedIcon,
-  'field-trials': FlagOutlinedIcon,
-  field_trials: FlagOutlinedIcon,
+  'field-trials': ScienceOutlinedIcon,
+  field_trials: ScienceOutlinedIcon,
+  'business-development': PublicOutlinedIcon,
+  business_development: PublicOutlinedIcon,
+  'reports_field-trials': ScienceOutlinedIcon,
+  'reports_business-development': PublicOutlinedIcon,
 }
 
 export function iconForHomeKey(key: string | null | undefined): SvgIconComponent {

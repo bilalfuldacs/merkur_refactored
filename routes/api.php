@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\CommunityCommentController;
 use App\Http\Controllers\Api\CommunityPostController;
 use App\Http\Controllers\Api\FeedbackSubmissionController;
+use App\Http\Controllers\Api\BusinessDevelopmentController;
 use App\Http\Controllers\Api\FieldTrialController;
 use App\Http\Controllers\Api\FocusGroupsReportController;
 use App\Http\Controllers\Api\GlobalSearchController;
@@ -47,15 +48,17 @@ use App\Http\Controllers\Api\TranslationController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/translations', [TranslationController::class, 'index']);
-Route::get('/translations/{locale}', [TranslationController::class, 'show'])
-    ->where('locale', '[a-z]{2}');
+Route::middleware('throttle:api')->group(function () {
+    Route::get('/translations', [TranslationController::class, 'index']);
+    Route::get('/translations/{locale}', [TranslationController::class, 'show'])
+        ->where('locale', '[a-z]{2}');
+});
 
-Route::post('/login', [AuthController::class, 'store']);
-Route::post('/password/forgot', [PasswordResetController::class, 'forgot']);
-Route::get('/password/reset', [PasswordResetController::class, 'show']);
-Route::post('/password/reset', [PasswordResetController::class, 'reset']);
-Route::get('/scout/remind', ScoutRemindController::class);
+Route::post('/login', [AuthController::class, 'store'])->middleware('throttle:login');
+Route::post('/password/forgot', [PasswordResetController::class, 'forgot'])->middleware('throttle:password-reset');
+Route::get('/password/reset', [PasswordResetController::class, 'show'])->middleware('throttle:password-reset');
+Route::post('/password/reset', [PasswordResetController::class, 'reset'])->middleware('throttle:password-reset');
+Route::get('/scout/remind', ScoutRemindController::class)->middleware('throttle:30,1');
 
 Route::prefix('mars')->middleware(\App\Http\Middleware\AuthenticateMarsToken::class)->group(function () {
     Route::get('/', [MarsApiController::class, 'index']);
@@ -64,7 +67,7 @@ Route::prefix('mars')->middleware(\App\Http\Middleware\AuthenticateMarsToken::cl
     Route::get('versions', [MarsApiController::class, 'versions']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/me', [AuthController::class, 'show']);
     Route::get('/me/profile', [AuthController::class, 'profile']);
     Route::patch('/me', [AuthController::class, 'update']);
@@ -80,6 +83,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/reports/installations', [InstallationReportController::class, 'show']);
     Route::get('/reports/focus-groups', [FocusGroupsReportController::class, 'show']);
     Route::get('/reports/issues', [IssuesReportController::class, 'show']);
+    Route::get('/business-development', [BusinessDevelopmentController::class, 'show']);
+    Route::post('/business-development/create-market', [BusinessDevelopmentController::class, 'createMarket']);
+    Route::post('/business-development/update-market', [BusinessDevelopmentController::class, 'updateMarket']);
+    Route::post('/business-development/create-segment', [BusinessDevelopmentController::class, 'createSegment']);
+    Route::post('/business-development/update-segment', [BusinessDevelopmentController::class, 'updateSegment']);
     Route::get('/field-trials', [FieldTrialController::class, 'tree']);
     Route::get('/field-trials/market', [FieldTrialController::class, 'market']);
     Route::get('/field-trials/options', [FieldTrialController::class, 'options']);
@@ -227,6 +235,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('ice2027/photo', [Ice2027Controller::class, 'photo']);
     Route::post('ice2027/photo', [Ice2027Controller::class, 'uploadPhoto']);
     Route::post('ice2027/photo/delete', [Ice2027Controller::class, 'deletePhoto']);
+    Route::get('ice2027/media', [Ice2027Controller::class, 'media']);
+    Route::post('ice2027/draft', [Ice2027Controller::class, 'saveDraft']);
     Route::get('ice2027/admin', [Ice2027AdminController::class, 'show']);
     Route::post('ice2027/admin/reminders', [Ice2027AdminController::class, 'sendReminders']);
     Route::put('ice2027/admin/attendants', [Ice2027AdminController::class, 'saveAttendants']);

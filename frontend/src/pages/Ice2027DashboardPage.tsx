@@ -841,6 +841,7 @@ export default function Ice2027DashboardPage() {
                             <TableHead>
                               <TableRow>
                                 <TableCell>Rater</TableCell>
+                                <TableCell>From</TableCell>
                                 <TableCell>Team</TableCell>
                                 <TableCell>Competitor</TableCell>
                                 <TableCell>Game</TableCell>
@@ -856,7 +857,8 @@ export default function Ice2027DashboardPage() {
                               {ratings.map((row, index) => (
                                 <TableRow key={`${row.user_ID}-${row.game}-${index}`}>
                                   <TableCell>{row.rater}</TableCell>
-                                  <TableCell>{row.team}</TableCell>
+                                  <TableCell>{row.source === 'attendants' ? 'Attendant' : 'Scouting team'}</TableCell>
+                                  <TableCell>{row.source === 'attendants' || !row.team ? '—' : row.team}</TableCell>
                                   <TableCell>{row.competitor}</TableCell>
                                   <TableCell>{row.game}</TableCell>
                                   <TableCell>{payload.game_types?.[row.game_type] ?? (row.game_type || '—')}</TableCell>

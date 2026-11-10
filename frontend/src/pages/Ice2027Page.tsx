@@ -44,6 +44,7 @@ export default function Ice2027Page() {
   const [flash, setFlash] = useState('')
   const [competitor, setCompetitor] = useState<IceCompetitor | null>(null)
   const [products, setProducts] = useState<IceScoutProduct[]>([])
+  const [drafts, setDrafts] = useState<IceScoutProduct[]>([])
   const [games, setGames] = useState<IceGame[]>([])
   const [teamMembers, setTeamMembers] = useState<string[]>([])
   const [updatedBy, setUpdatedBy] = useState<string | null>(null)
@@ -53,6 +54,8 @@ export default function Ice2027Page() {
   const [forceNewProduct, setForceNewProduct] = useState(false)
   const [allCompetitors, setAllCompetitors] = useState<IceCompetitor[]>([])
   const [themeWorlds, setThemeWorlds] = useState<string[]>([])
+  const [mechanicsOptions, setMechanicsOptions] = useState<Record<string, string> | undefined>()
+  const [mechanicsHelp, setMechanicsHelp] = useState<Record<string, string> | undefined>()
 
   const loadHub = useCallback(async () => {
     if (!eventSlug) {
@@ -111,6 +114,7 @@ export default function Ice2027Page() {
         }
         setCompetitor(result.data.competitor)
         setProducts(emptyProducts(result.data.products))
+        setDrafts(result.data.drafts ?? [])
         setGames(result.data.games ?? result.data.all_games ?? [])
         setTeamMembers(result.data.team_members ?? [])
         setUpdatedBy(result.data.updated_by ?? null)
@@ -120,6 +124,8 @@ export default function Ice2027Page() {
         setForceNewProduct(Boolean(result.data.force_new_product))
         setAllCompetitors(result.data.all_competitors ?? bootstrap?.all_competitors ?? [])
         setThemeWorlds(result.data.theme_worlds ?? bootstrap?.theme_worlds ?? [])
+        setMechanicsOptions(result.data.mechanics_options ?? bootstrap?.mechanics_options)
+        setMechanicsHelp(result.data.mechanics_help ?? bootstrap?.mechanics_help)
         setFailed('')
         if (result.pending && navigator.onLine) {
           const sync = await syncIcePending()
@@ -133,6 +139,7 @@ export default function Ice2027Page() {
           }
           setCompetitor(refreshed.data.competitor)
           setProducts(emptyProducts(refreshed.data.products))
+          setDrafts(refreshed.data.drafts ?? [])
           setGames(refreshed.data.games ?? refreshed.data.all_games ?? [])
           setTeamMembers(refreshed.data.team_members ?? [])
           setUpdatedBy(refreshed.data.updated_by ?? null)
@@ -142,6 +149,8 @@ export default function Ice2027Page() {
           setForceNewProduct(Boolean(refreshed.data.force_new_product))
           setAllCompetitors(refreshed.data.all_competitors ?? bootstrap?.all_competitors ?? [])
           setThemeWorlds(refreshed.data.theme_worlds ?? bootstrap?.theme_worlds ?? [])
+          setMechanicsOptions(refreshed.data.mechanics_options ?? bootstrap?.mechanics_options)
+          setMechanicsHelp(refreshed.data.mechanics_help ?? bootstrap?.mechanics_help)
           setFlash(
             sync.uploaded === 1
               ? 'Uploaded 1 saved form to the server.'
@@ -177,6 +186,7 @@ export default function Ice2027Page() {
       const loaded = useOpen ? await loadIceOpenQuestionnaire() : await loadIceQuestionnaire(competitorId as number)
       setCompetitor(loaded.data.competitor)
       setProducts(emptyProducts(loaded.data.products))
+      setDrafts(loaded.data.drafts ?? [])
       setGames(loaded.data.games ?? loaded.data.all_games ?? [])
       setTeamMembers(loaded.data.team_members ?? [])
       setUpdatedBy(loaded.data.updated_by ?? null)
@@ -436,6 +446,7 @@ export default function Ice2027Page() {
               </Box>
               <IceQuestionnaireForm
                 products={products}
+                drafts={drafts}
                 games={games}
                 competitorId={competitor.ID}
                 teamMembers={openMode ? [] : teamMembers}
@@ -444,9 +455,12 @@ export default function Ice2027Page() {
                 history={history}
                 allCompetitors={allCompetitors}
                 themeWorlds={themeWorlds}
+                mechanicsOptions={mechanicsOptions}
+                mechanicsHelp={mechanicsHelp}
                 openMode={openMode}
                 forceNewProduct={forceNewProduct}
                 onChange={setProducts}
+                onDraftsChange={setDrafts}
                 onPersist={(next) => save(next, true)}
               />
             </>

@@ -10,6 +10,7 @@ export {
   ice2027AdminPath,
   ice2027DashboardPath,
   ice2027ProgressPath,
+  ice2027MediaPath,
   ice2027HubPath,
   ice2027OpenQuestionnairePath,
   ice2027DashboardGamePath,

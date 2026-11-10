@@ -299,6 +299,52 @@ class Ice2027Controller extends Controller
         return response()->json(['ok' => true]);
     }
 
+    public function media(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        $user = $request->user();
+        abort_unless($ice->isAttendant($user) || $ice->canManage($user), 403, 'This scouting event is only available to attendants and administrators.');
+
+        return response()->json($ice->mediaLibrary());
+    }
+
+    public function saveDraft(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        $user = $request->user();
+        abort_unless($ice->isAttendant($user), 403, 'This scouting event is only available to attendants.');
+
+        $data = $request->validate([
+            'competitor_ID' => ['required', 'integer'],
+            'draft_key' => ['required', 'string', 'max:80'],
+            'product' => ['nullable', 'array'],
+            'action' => ['sometimes', 'string', 'in:save,delete'],
+        ]);
+
+        try {
+            if (($data['action'] ?? 'save') === 'delete') {
+                $ice->deleteQuestionnaireDraft((int) $user->ID, (int) $data['competitor_ID'], $data['draft_key']);
+
+                return response()->json(['ok' => true, 'deleted' => true]);
+            }
+
+            if (! is_array($data['product'] ?? null)) {
+                return response()->json(['message' => 'Could not store that draft.'], 422);
+            }
+
+            $draft = $ice->saveQuestionnaireDraft(
+                (int) $user->ID,
+                (int) $data['competitor_ID'],
+                $data['draft_key'],
+                $data['product'],
+            );
+
+            return response()->json(['ok' => true, 'draft' => $draft]);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
     private function iceFor(Request $request): Ice2027Service
     {
         $slug = (string) $request->query('e', $request->input('e', ''));

@@ -38,11 +38,13 @@ export const APP_PATHS = {
   ice2027Dashboard: '/ice2027/dashboard',
   ice2027DashboardGame: '/ice2027/dashboard/game',
   ice2027Progress: '/ice2027/progress',
+  ice2027Media: '/ice2027/media',
   scoutEvents: '/scout/events',
   productGamesList: '/products/games-list',
   productGamesDocsPackage: '/products/games-list/docs-package',
   releaseInformationSheet: '/products/release-sheet',
   fieldTrials: '/field-trials',
+  businessDevelopment: '/business-development',
   games: '/tables/games',
   gameConcepts: '/tables/game_concepts',
   features: '/tables/features',
@@ -95,6 +97,10 @@ export function ice2027DashboardPath(eventSlug?: string): string {
 
 export function ice2027ProgressPath(eventSlug?: string): string {
   return eventSlug ? `${APP_PATHS.ice2027Progress}?e=${encodeURIComponent(eventSlug)}` : APP_PATHS.ice2027Progress
+}
+
+export function ice2027MediaPath(eventSlug?: string): string {
+  return eventSlug ? `${APP_PATHS.ice2027Media}?e=${encodeURIComponent(eventSlug)}` : APP_PATHS.ice2027Media
 }
 
 export function ice2027HubPath(eventSlug?: string): string {

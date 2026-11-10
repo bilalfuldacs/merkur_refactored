@@ -20,6 +20,7 @@ import Paper from '@mui/material/Paper'
 import Switch from '@mui/material/Switch'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
+import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
@@ -35,7 +36,15 @@ import type {
   IceScoutProduct,
   IceStandardProduct,
 } from '@/api/ice2027'
-import { deleteIcePhoto, ICE_GAME_TYPES, ICE_MECHANICS_OPTIONS, uploadIcePhoto } from '@/api/ice2027'
+import {
+  deleteIceDraft,
+  deleteIcePhoto,
+  ICE_GAME_TYPES,
+  ICE_MECHANICS_HELP,
+  ICE_MECHANICS_OPTIONS,
+  saveIceDraft,
+  uploadIcePhoto,
+} from '@/api/ice2027'
 import { compressPhoto } from './compressPhoto'
 import { useAuthFileUrl } from '@/components/docs/format'
 import { AppButton, AppTextField } from '@/components/ui'
@@ -58,9 +67,20 @@ const mobileFieldSx = {
   '& .MuiSelect-select': { fontSize: { xs: 16 }, display: 'flex', alignItems: 'center' },
 } as const
 
-const MECHANICS = Object.entries(ICE_MECHANICS_OPTIONS).map(([value, label]) => ({ value, label }))
-
 const BET_LEVELS = ['20', '40', '80', '160', '240', '400', '800', '1600', '2400', '4000', '8000'] as const
+
+function mechanicsEntries(
+  options?: Record<string, string>,
+  help?: Record<string, string>,
+): Array<{ value: string; label: string; help: string }> {
+  const source = options && Object.keys(options).length > 0 ? options : ICE_MECHANICS_OPTIONS
+  const tips = help && Object.keys(help).length > 0 ? help : ICE_MECHANICS_HELP
+  return Object.entries(source).map(([value, label]) => ({
+    value,
+    label,
+    help: tips[value] ?? '',
+  }))
+}
 
 function selectedBets(value: IceStandardProduct['bets']): string[] {
   if (Array.isArray(value)) {
@@ -188,16 +208,21 @@ function StandardFields({
   onChange,
   themeWorlds,
   cabinet,
+  mechanicsOptions,
+  mechanicsHelp,
 }: {
   product: IceStandardProduct
   onChange: (next: IceStandardProduct) => void
   themeWorlds: string[]
   cabinet?: boolean
+  mechanicsOptions?: Record<string, string>
+  mechanicsHelp?: Record<string, string>
 }) {
   const functions = Array.isArray(product.functionality) ? product.functionality : []
   const jpYes = product.progressive_jp === 'yes'
   const theme = String(product.theme ?? '')
   const vbpYes = product.video_button_panel === 'yes'
+  const mechanics = mechanicsEntries(mechanicsOptions, mechanicsHelp)
 
   function toggleFn(value: string, checked: boolean) {
     const next = checked ? [...functions.filter((item) => item !== value), value] : functions.filter((item) => item !== value)
@@ -293,7 +318,7 @@ function StandardFields({
       <FieldLabel required>Mechanics</FieldLabel>
       <FormGroup sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5, mb: 2 }}>
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, columnGap: 1 }}>
-          {MECHANICS.map((option) => (
+          {mechanics.map((option) => (
             <FormControlLabel
               key={option.value}
               control={
@@ -303,7 +328,36 @@ function StandardFields({
                   onChange={(event) => toggleFn(option.value, event.target.checked)}
                 />
               }
-              label={option.label}
+              label={
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
+                  <span>{option.label}</span>
+                  {option.help ? (
+                    <Tooltip title={option.help} enterTouchDelay={0}>
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          border: '1px solid',
+                          borderColor: 'text.secondary',
+                          color: 'text.secondary',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                          cursor: 'help',
+                        }}
+                        aria-label={option.help}
+                      >
+                        ?
+                      </Box>
+                    </Tooltip>
+                  ) : null}
+                </Box>
+              }
             />
           ))}
         </Box>
@@ -511,6 +565,37 @@ function ProductThumb({ photo }: { photo: IceProgressPhoto }) {
   return <Box component="img" src={src} alt="" sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
 }
 
+function freshDraftKey(): string {
+  return (`d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`).slice(0, 80)
+}
+
+function gameDraftKey(item: IceScoutProduct | null | undefined): string {
+  if (!item) {
+    return ''
+  }
+  if (item.is_new_product) {
+    const name = String(item.game_name ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+    return name ? (`n:${name}`).slice(0, 80) : ''
+  }
+  const id = item.game_ids?.[0] ?? 0
+  return id ? `g:${id}` : ''
+}
+
+function resolvedDraftKey(item: IceScoutProduct, activeKey: string): string {
+  const gameKey = gameDraftKey(item)
+  if (gameKey) {
+    return gameKey
+  }
+  if (item.draft_key) {
+    return String(item.draft_key).slice(0, 80)
+  }
+  return activeKey || freshDraftKey()
+}
+
 function productTitle(item: IceScoutProduct, games: IceGame[]): string {
   if (item.is_new_product) {
     return item.game_name?.trim() || 'Untitled new product'
@@ -588,8 +673,16 @@ function draftErrors(
   return errors
 }
 
+function ensureDraftKey(product: IceScoutProduct): string {
+  if (product.draft_key && /^[A-Za-z0-9:_-]{1,80}$/.test(product.draft_key)) {
+    return product.draft_key
+  }
+  return `draft_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
 export function IceQuestionnaireForm({
   products,
+  drafts = [],
   games,
   competitorId,
   teamMembers,
@@ -598,12 +691,16 @@ export function IceQuestionnaireForm({
   history,
   allCompetitors = [],
   themeWorlds = [],
+  mechanicsOptions,
+  mechanicsHelp,
   openMode = false,
   forceNewProduct = false,
   onChange,
   onPersist,
+  onDraftsChange,
 }: {
   products: IceScoutProduct[]
+  drafts?: IceScoutProduct[]
   games: IceGame[]
   competitorId: number
   teamMembers?: string[]
@@ -612,10 +709,13 @@ export function IceQuestionnaireForm({
   history?: IceQuestionnaireHistory[]
   allCompetitors?: IceCompetitor[]
   themeWorlds?: string[]
+  mechanicsOptions?: Record<string, string>
+  mechanicsHelp?: Record<string, string>
   openMode?: boolean
   forceNewProduct?: boolean
   onChange: (next: IceQuestionnaireProducts) => void
   onPersist?: (next: IceQuestionnaireProducts) => Promise<void>
+  onDraftsChange?: (next: IceScoutProduct[]) => void
 }) {
   const [open, setOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -654,13 +754,30 @@ export function IceQuestionnaireForm({
     const timer = window.setTimeout(() => {
       if (!iceProductDraftHasContent(draft, openMode)) {
         void clearIceProductDraft(draftCompetitorKey).then(() => setProductDraft(null))
+        if (!openMode && draft.draft_key) {
+          void deleteIceDraft(competitorId, draft.draft_key).catch(() => undefined)
+        }
         return
       }
-      const pack = { item: draft, index: editingIndex ?? -1 }
+      const key = ensureDraftKey(draft)
+      const withKey = draft.draft_key === key ? draft : { ...draft, draft_key: key }
+      if (withKey !== draft) {
+        setDraft(withKey)
+      }
+      const pack = { item: withKey, index: editingIndex ?? -1 }
       void saveIceProductDraft(draftCompetitorKey, pack).then(() => setProductDraft(pack))
+      if (!openMode && competitorId > 0) {
+        void saveIceDraft(competitorId, key, withKey)
+          .then((result) => {
+            onDraftsChange?.(
+              [result.draft, ...drafts.filter((item) => item.draft_key !== result.draft.draft_key)],
+            )
+          })
+          .catch(() => undefined)
+      }
     }, 400)
     return () => window.clearTimeout(timer)
-  }, [draft, open, modalDirty, editingIndex, draftCompetitorKey, openMode])
+  }, [draft, open, modalDirty, editingIndex, draftCompetitorKey, openMode, competitorId, drafts, onDraftsChange])
 
   useEffect(() => {
     if (!open || !modalDirty) {
@@ -954,6 +1071,29 @@ export function IceQuestionnaireForm({
                 ? ' There are no catalog games yet, so add each game as a new product. You can upload pictures and video.'
                 : ' Turn on New product to type a game name; leave it off to pick this competitor’s games. You can also upload pictures and video.'}
           </Typography>
+          {drafts.length > 0 ? (
+            <Box sx={{ mb: 2 }}>
+              <Typography sx={{ fontWeight: 800, mb: 1 }}>Unfinished drafts</Typography>
+              <Box sx={{ display: 'grid', gap: 1 }}>
+                {drafts.map((item) => (
+                  <Paper key={item.draft_key ?? `${item.game_name}-${item.draft_at}`} variant="outlined" sx={{ p: 1.5 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                      <Box>
+                        <Typography sx={{ fontWeight: 700 }}>
+                          {item.game_name || ICE_GAME_TYPES[item.category as keyof typeof ICE_GAME_TYPES] || 'Draft product'}
+                        </Typography>
+                        <Typography sx={{ color: 'text.secondary', fontSize: 12 }}>
+                          Draft{item.draft_by ? ` by ${item.draft_by}` : ''}
+                          {item.draft_at ? ` · ${item.draft_at}` : ''}
+                        </Typography>
+                      </Box>
+                      <Chip size="small" color="warning" label="Draft" sx={{ fontWeight: 700 }} />
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+            </Box>
+          ) : null}
           {products.length === 0 ? (
             <Typography sx={{ color: 'text.secondary' }}>No products yet. Use Add product to start.</Typography>
           ) : (
@@ -1161,6 +1301,8 @@ export function IceQuestionnaireForm({
               product={draft}
               cabinet={isCabinet}
               themeWorlds={themeWorlds}
+              mechanicsOptions={mechanicsOptions}
+              mechanicsHelp={mechanicsHelp}
               onChange={(next) => patchDraft((current) => ({ ...current, ...next }))}
             />
           )}
@@ -1195,7 +1337,7 @@ export function IceQuestionnaireForm({
               </AppButton>
             </Box>
             <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1 }}>
-              On a phone, Take photo opens the camera. Upload from phone opens the gallery. JPG, PNG, or MP4 (videos up to 150 MB).
+              On a phone, Take photo opens the camera. Upload from phone opens the gallery. JPG, PNG, or MP4 (videos up to 400 MB).
             </Typography>
             <input
               ref={cameraRef}

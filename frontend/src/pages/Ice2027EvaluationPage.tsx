@@ -21,7 +21,7 @@ import Typography from '@mui/material/Typography'
 import { useTheme } from '@mui/material/styles'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { ApiError } from '@/api'
-import { ICE_EVAL_CATEGORIES } from '@/api/ice2027'
+import { ICE_EVAL_CATEGORIES, ICE_RATING_SCALE } from '@/api/ice2027'
 import type { IceCompetitor, IceEvalRow, IceEvaluationPayload, IceGame } from '@/api/ice2027'
 import { IceEventPicker, IceHero, IceOfflineBar, IceSectionHead, IceTabs, iceCrumbSx, iceStickyBarSx } from '@/components/ice2027'
 import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
@@ -59,13 +59,10 @@ const FIELD_LABELS: Record<string, string> = {
   would_play: 'Would you play this game',
 }
 
-const SCALE_CHIPS = [
-  '5 = very good',
-  '4 = good',
-  '3 = average',
-  '2 = poor',
-  '1 = very poor',
-] as const
+const SCALE_CHIPS = ([5, 4, 3, 2, 1] as const).map((score) => `${score} = ${ICE_RATING_SCALE[score]}`)
+const SCALE_LEGEND = ([5, 4, 3, 2, 1] as const)
+  .map((score) => `${score} = ${ICE_RATING_SCALE[score]}`)
+  .join(' · ')
 
 const mobileInputSx = {
   '& .MuiInputBase-root': { fontSize: 16, minHeight: 42 },
@@ -365,9 +362,9 @@ function buildRowFields({
         sx={fieldSx}
       >
         <MenuItem value="">–</MenuItem>
-        {[1, 2, 3, 4, 5].map((score) => (
+        {([5, 4, 3, 2, 1] as const).map((score) => (
           <MenuItem key={score} value={String(score)}>
-            {score}
+            {score} — {ICE_RATING_SCALE[score]}
           </MenuItem>
         ))}
       </AppTextField>
@@ -970,7 +967,7 @@ export default function Ice2027EvaluationPage() {
                     5-point scale.
                   </Typography>
                   <Typography component="span" sx={{ display: 'block', fontSize: 12.5, mb: 0.75 }}>
-                    5 is best, 1 is worst.
+                    The same meaning in every team and country. 5 is best, 1 is worst. Score a typical game too. A 3 is typical, not a vote against it.
                   </Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {SCALE_CHIPS.map((chip) => (
@@ -996,7 +993,8 @@ export default function Ice2027EvaluationPage() {
               ) : (
                 <>
                   <Typography sx={{ color: 'text.secondary', mb: 1.5, fontSize: 14 }}>
-                    <strong>5-point scale:</strong> 1 = very poor · 2 = poor · 3 = average · 4 = good · 5 = very good
+                    <strong>5-point scale.</strong> The same meaning in every team and country. 5 is best, 1 is worst. Score a
+                    typical game too. A 3 is typical, not a vote against it. {SCALE_LEGEND}
                   </Typography>
                   <Typography sx={{ color: 'text.secondary', mb: 2, fontSize: 14, display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                     <InfoOutlinedIcon sx={{ fontSize: 18, mt: '2px' }} />

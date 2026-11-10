@@ -15,6 +15,7 @@ export const FIND_QUICK_LINKS: FindQuickLink[] = [
   { key: '#p', label: 'Products', labelKey: 'quickLinks.products', path: APP_PATHS.products, listed: true },
   { key: '#r', label: 'Roadmap', labelKey: 'quickLinks.roadmap', path: APP_PATHS.roadmapGames, listed: true },
   { key: '#ft', label: 'Field Trials', labelKey: 'quickLinks.fieldTrials', path: APP_PATHS.fieldTrials, listed: true },
+  { key: '#bd', label: 'Global Overview', labelKey: 'quickLinks.globalOverview', path: APP_PATHS.businessDevelopment, listed: true },
   { key: '#c', label: 'Community', labelKey: 'quickLinks.community', path: APP_PATHS.community, listed: true },
   { key: '#i', label: 'Installations (Report)', labelKey: 'quickLinks.installations', path: APP_PATHS.installationsReport, listed: true },
   { key: '#t', label: 'My Tasks', labelKey: 'quickLinks.tasks', path: APP_PATHS.tasks, listed: true },

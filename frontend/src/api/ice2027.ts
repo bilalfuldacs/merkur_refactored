@@ -117,7 +117,10 @@ export type IceBootstrap = {
   all_games?: IceGame[]
   game_types: Record<string, string>
   mechanics_options?: Record<string, string>
+  mechanics_help?: Record<string, string>
+  rating_scale?: Record<string, string>
   theme_worlds?: string[]
+  video_max_bytes?: number
   event?: IceEvent
 }
 
@@ -166,6 +169,10 @@ export type IceScoutProduct = IceStandardProduct &
     game_name?: string
     game_ids?: number[]
     photos?: IceProgressPhoto[]
+    draft_key?: string
+    is_draft?: boolean
+    draft_by?: string
+    draft_at?: string
   }
 
 export type IceQuestionnaireSectioned = {
@@ -189,15 +196,18 @@ export type IceQuestionnaireHistory = {
 export type IceQuestionnairePayload = {
   competitor: IceCompetitor
   products: IceQuestionnaireProducts
+  drafts?: IceScoutProduct[]
   games?: IceGame[]
   all_competitors?: IceCompetitor[]
   all_games?: IceGame[]
   game_types?: Record<string, string>
   mechanics_options?: Record<string, string>
+  mechanics_help?: Record<string, string>
   theme_worlds?: string[]
   open?: boolean
   need_competitor_name?: boolean
   force_new_product?: boolean
+  share_drafts?: boolean
   team_members?: string[]
   updated_by?: string | null
   updated_at?: string | null
@@ -205,6 +215,16 @@ export type IceQuestionnairePayload = {
   started?: boolean
   complete?: boolean
   message?: string
+}
+
+export type IceMediaLibrary = {
+  games: Array<{
+    competitor?: string
+    game?: string
+    photos?: IceProgressPhoto[]
+    [key: string]: unknown
+  }>
+  by_competitor: Record<string, Record<string, IceProgressPhoto[]>>
 }
 
 export const ICE_MECHANICS_OPTIONS = {
@@ -215,7 +235,43 @@ export const ICE_MECHANICS_OPTIONS = {
   true_persistence: 'True Persistence',
   combination_persist_hold: 'Second Screen Bonus',
   freegames: 'Freegames',
+  unlocked_reels: 'Unlocked Reels',
+  multiplier: 'Multiplier',
+  cash_on_reels: 'Cash on Reels',
+  respin: 'Respin',
+  expanding_wild: 'Expanding Wild',
+  sticky_wild: 'Sticky Wild',
+  collection: 'Collection / Trail',
+  pick_bonus: 'Pick Bonus',
 } as const
+
+/** Short shared definitions so teams use the same words for each mechanic. */
+export const ICE_MECHANICS_HELP: Record<string, string> = {
+  hold_and_spin: 'Symbols lock in place and the remaining positions spin again until the feature ends.',
+  perceived_persistence: 'The game looks as if progress carries over, but it is not really stored for a later session.',
+  feature_in_feature: 'A feature can start another feature before the first one ends.',
+  cash_collect: 'Cash or credit symbols are gathered and paid as a prize.',
+  true_persistence: 'Progress is actually stored and continues on a later spin or session.',
+  combination_persist_hold: 'The bonus plays on a second screen, separate from the base reels.',
+  freegames: 'A set of spins that play without a new wager, often with an extra rule.',
+  unlocked_reels: 'One or more reels stay free to spin, or spin on their own, while others are held.',
+  multiplier: 'A win is multiplied by a value, which may grow during the feature.',
+  cash_on_reels: 'Symbols show credit amounts on the reels that can be collected.',
+  respin: 'One or more reels spin again after the first result, without a new game start.',
+  expanding_wild: 'A wild grows to cover more positions, often the whole reel.',
+  sticky_wild: 'A wild stays in place for the following spins of the feature.',
+  collection: 'Something is collected across spins, such as a trail, coins, or a meter, until it triggers.',
+  pick_bonus: 'The player chooses hidden prizes instead of spinning.',
+}
+
+/** Shared 1–5 scale. 5 is best, 1 is worst. 3 is a typical game. */
+export const ICE_RATING_SCALE: Record<number, string> = {
+  5: 'We would want this',
+  4: 'Above average for this kind of game',
+  3: 'Typical for this kind of game',
+  2: 'Below average for this kind of game',
+  1: 'Well below what we would put on the floor',
+}
 
 export const ICE_EVAL_CATEGORIES = {
   mlp: 'MLP',
@@ -331,6 +387,39 @@ export function uploadIcePhoto(competitorId: number, file: File): Promise<{ ok: 
     method: 'POST',
     body,
   })
+}
+
+export function saveIceDraft(
+  competitorId: number,
+  draftKey: string,
+  product: IceScoutProduct,
+): Promise<{ ok: boolean; draft: IceScoutProduct }> {
+  return apiRequest<{ ok: boolean; draft: IceScoutProduct }>(withEvent('/ice2027/draft'), {
+    method: 'POST',
+    body: {
+      competitor_ID: competitorId,
+      draft_key: draftKey,
+      product,
+      action: 'save',
+    },
+    silent: true,
+  })
+}
+
+export function deleteIceDraft(competitorId: number, draftKey: string): Promise<{ ok: boolean; deleted: boolean }> {
+  return apiRequest<{ ok: boolean; deleted: boolean }>(withEvent('/ice2027/draft'), {
+    method: 'POST',
+    body: {
+      competitor_ID: competitorId,
+      draft_key: draftKey,
+      action: 'delete',
+    },
+    silent: true,
+  })
+}
+
+export function getIceMedia(): Promise<IceMediaLibrary> {
+  return apiRequest<IceMediaLibrary>(withEvent('/ice2027/media'))
 }
 
 export function deleteIcePhoto(competitorId: number, fileId: string): Promise<{ ok: boolean }> {

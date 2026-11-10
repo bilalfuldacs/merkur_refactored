@@ -37,6 +37,7 @@ const InstallationsReportPage = lazy(() => import('@/pages/InstallationsReportPa
 const FocusGroupsReportPage = lazy(() => import('@/pages/FocusGroupsReportPage'))
 const IssuesReportPage = lazy(() => import('@/pages/IssuesReportPage'))
 const FieldTrialsPage = lazy(() => import('@/pages/FieldTrialsPage'))
+const BusinessDevelopmentPage = lazy(() => import('@/pages/BusinessDevelopmentPage'))
 const RoadmapPage = lazy(() => import('@/pages/RoadmapPage'))
 const RoadmapDocsPage = lazy(() => import('@/pages/RoadmapDocsPage'))
 const TeamRoadmapPage = lazy(() => import('@/pages/TeamRoadmapPage'))
@@ -49,6 +50,7 @@ const Ice2027AdminPage = lazy(() => import('@/pages/Ice2027AdminPage'))
 const Ice2027DashboardPage = lazy(() => import('@/pages/Ice2027DashboardPage'))
 const Ice2027DashboardGamePage = lazy(() => import('@/pages/Ice2027DashboardGamePage'))
 const Ice2027ProgressPage = lazy(() => import('@/pages/Ice2027ProgressPage'))
+const Ice2027MediaPage = lazy(() => import('@/pages/Ice2027MediaPage'))
 const MerkuriosityPage = lazy(() => import('@/pages/MerkuriosityPage'))
 const MerkuriosityWordsAdminPage = lazy(() => import('@/pages/MerkuriosityWordsAdminPage'))
 
@@ -144,6 +146,7 @@ export const router = createBrowserRouter(
         },
         { path: 'team-roadmap', element: <TeamRoadmapPage /> },
         { path: 'field-trials', element: <FieldTrialsPage /> },
+        { path: 'business-development', element: <BusinessDevelopmentPage /> },
         { path: 'tasks', element: <TasksPage /> },
         { path: 'find', element: <FindPage /> },
         { path: 'scout/events', element: <ScoutEventsPage /> },
@@ -156,6 +159,7 @@ export const router = createBrowserRouter(
             { path: 'dashboard', element: <Ice2027DashboardPage /> },
             { path: 'dashboard/game', element: <Ice2027DashboardGamePage /> },
             { path: 'progress', element: <Ice2027ProgressPage /> },
+            { path: 'media', element: <Ice2027MediaPage /> },
           ],
         },
         {

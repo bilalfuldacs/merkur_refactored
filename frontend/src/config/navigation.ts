@@ -24,6 +24,8 @@ import SyncOutlinedIcon from '@mui/icons-material/SyncOutlined'
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined'
 import TravelExploreOutlinedIcon from '@mui/icons-material/TravelExploreOutlined'
 import TrendingUpOutlinedIcon from '@mui/icons-material/TrendingUpOutlined'
+import PublicOutlinedIcon from '@mui/icons-material/PublicOutlined'
+import ScienceOutlinedIcon from '@mui/icons-material/ScienceOutlined'
 import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
 import type { AuthUser } from '@/api'
 import type { ScoutMenuEvent } from '@/api/scout'
@@ -116,10 +118,12 @@ export function getMainNavigation(
       children: [
         { id: 'roadmap-team', label: translate('nav.roadmapTeam', 'Team Roadmap'), icon: TimelineOutlinedIcon, path: APP_PATHS.teamRoadmap },
         { type: 'divider' },
-        { id: 'roadmap-versions', label: translate('nav.roadmapVersions', '… by Versions'), path: APP_PATHS.roadmap },
         { id: 'roadmap-games', label: translate('nav.roadmapGames', '… by Games'), path: APP_PATHS.roadmapGames },
+        { id: 'roadmap-versions', label: translate('nav.roadmapVersions', '… by Versions'), path: APP_PATHS.roadmap },
         { type: 'divider' },
         { id: 'roadmap-docs', label: translate('nav.roadmapDocs', 'Roadmap Docs'), path: APP_PATHS.roadmapDocs },
+        { type: 'divider' },
+        { id: 'roadmap-analyst', label: translate('nav.roadmapAnalyst', 'Roadmap Analyst (BETA)'), path: APP_PATHS.roadmapGames },
       ],
     },
     ...(exhibitionChildren.length > 0
@@ -144,8 +148,11 @@ export function getMainNavigation(
         { id: 'reports-all', label: translate('nav.allReports', 'All Reports'), path: APP_PATHS.reports },
         { type: 'divider' },
         { id: 'reports-installations', label: translate('nav.installations', 'Installations'), icon: RocketLaunchOutlinedIcon, path: APP_PATHS.installationsReport },
-        { id: 'reports-focus-groups', label: translate('nav.focusGroups', 'Focus Groups'), icon: GroupsOutlinedIcon, path: APP_PATHS.focusGroupsReport },
         { id: 'reports-latest-changes', label: translate('nav.latestChanges', 'Latest Changes'), icon: SyncOutlinedIcon, path: APP_PATHS.latestChanges },
+        { id: 'reports-field-trials', label: translate('nav.fieldTrials', 'Field Trials'), icon: ScienceOutlinedIcon, path: APP_PATHS.fieldTrials },
+        { id: 'reports-business-development', label: translate('nav.globalOverview', 'Global Overview'), icon: PublicOutlinedIcon, path: APP_PATHS.businessDevelopment },
+        { type: 'divider' },
+        { id: 'reports-focus-groups', label: translate('nav.focusGroups', 'Focus Groups'), icon: GroupsOutlinedIcon, path: APP_PATHS.focusGroupsReport },
         { id: 'reports-issues', label: translate('nav.issues', 'Issues'), icon: ReportProblemOutlinedIcon, path: APP_PATHS.issuesReport },
       ],
     },

@@ -7,13 +7,14 @@ import {
   ice2027DashboardPath,
   ice2027EvaluationPath,
   ice2027HubPath,
+  ice2027MediaPath,
   ice2027ProgressPath,
   eventSlugFromSearch,
   useAppPath,
 } from '@/routing'
 import { icePillGroupSx, icePillSx } from './IceChrome'
 
-export type IceTab = 'tasks' | 'questionnaire' | 'evaluation' | 'admin' | 'dashboard' | 'progress' | 'events'
+export type IceTab = 'tasks' | 'questionnaire' | 'evaluation' | 'media' | 'admin' | 'dashboard' | 'progress' | 'events'
 
 export function IceTabs({
   current,
@@ -40,6 +41,8 @@ export function IceTabs({
           navigate(ice2027HubPath(eventSlug))
         } else if (next === 'evaluation') {
           navigate(ice2027EvaluationPath(undefined, eventSlug))
+        } else if (next === 'media') {
+          navigate(ice2027MediaPath(eventSlug))
         } else if (next === 'admin') {
           navigate(ice2027AdminPath(eventSlug))
         } else if (next === 'dashboard') {
@@ -65,6 +68,11 @@ export function IceTabs({
       {attendant ? (
         <ToggleButton value="evaluation" sx={icePillSx}>
           Evaluation
+        </ToggleButton>
+      ) : null}
+      {attendant || admin ? (
+        <ToggleButton value="media" sx={icePillSx}>
+          Pictures
         </ToggleButton>
       ) : null}
       {admin ? (

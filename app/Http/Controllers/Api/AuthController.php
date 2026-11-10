@@ -39,6 +39,12 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // Keep at most a few concurrent API sessions per user.
+        $existing = $user->tokens()->orderByDesc('id')->skip(4)->pluck('id');
+        if ($existing->isNotEmpty()) {
+            $user->tokens()->whereIn('id', $existing)->delete();
+        }
+
         $token = $user->createToken('api')->plainTextToken;
 
         try {
@@ -55,6 +61,7 @@ class AuthController extends Controller
             'token' => $token,
             'token_type' => 'Bearer',
             'user' => new UserResource($user->load('role')),
+            'expires_in' => (int) config('sanctum.expiration', 480) * 60,
         ]);
     }
 
@@ -135,9 +142,10 @@ class AuthController extends Controller
 
         $user->password = Hash::make($data['password']);
         $user->save();
+        $user->tokens()->delete();
 
         return response()->json([
-            'message' => 'Password changed.',
+            'message' => 'Password changed. Please sign in again.',
         ]);
     }
 

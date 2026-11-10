@@ -12,6 +12,7 @@ use App\Models\Ice2027TeamMember;
 use App\Models\ScoutAttendant;
 use App\Models\ScoutEvent;
 use App\Models\ScoutQuestionnaire;
+use App\Models\ScoutQuestionnaireDraft;
 use App\Models\ScoutQuestionnaireHistory;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -37,7 +38,7 @@ class Ice2027Service
 
     public const PHOTO_MAX_BYTES = 10 * 1024 * 1024;
 
-    public const VIDEO_MAX_BYTES = 150 * 1024 * 1024;
+    public const VIDEO_MAX_BYTES = 400 * 1024 * 1024;
 
     public const WOULD_PLAY = ['yes', 'no', 'unsure'];
 
@@ -49,6 +50,45 @@ class Ice2027Service
         'true_persistence' => 'True Persistence',
         'combination_persist_hold' => 'Second Screen Bonus',
         'freegames' => 'Freegames',
+        'unlocked_reels' => 'Unlocked Reels',
+        'multiplier' => 'Multiplier',
+        'cash_on_reels' => 'Cash on Reels',
+        'respin' => 'Respin',
+        'expanding_wild' => 'Expanding Wild',
+        'sticky_wild' => 'Sticky Wild',
+        'collection' => 'Collection / Trail',
+        'pick_bonus' => 'Pick Bonus',
+    ];
+
+    /** Short shared definitions so teams use the same words for each mechanic. */
+    public const MECHANICS_HELP = [
+        'hold_and_spin' => 'Symbols lock in place and the remaining positions spin again until the feature ends.',
+        'perceived_persistence' => 'The game looks as if progress carries over, but it is not really stored for a later session.',
+        'feature_in_feature' => 'A feature can start another feature before the first one ends.',
+        'cash_collect' => 'Cash or credit symbols are gathered and paid as a prize.',
+        'true_persistence' => 'Progress is actually stored and continues on a later spin or session.',
+        'combination_persist_hold' => 'The bonus plays on a second screen, separate from the base reels.',
+        'freegames' => 'A set of spins that play without a new wager, often with an extra rule.',
+        'unlocked_reels' => 'One or more reels stay free to spin, or spin on their own, while others are held.',
+        'multiplier' => 'A win is multiplied by a value, which may grow during the feature.',
+        'cash_on_reels' => 'Symbols show credit amounts on the reels that can be collected.',
+        'respin' => 'One or more reels spin again after the first result, without a new game start.',
+        'expanding_wild' => 'A wild grows to cover more positions, often the whole reel.',
+        'sticky_wild' => 'A wild stays in place for the following spins of the feature.',
+        'collection' => 'Something is collected across spins, such as a trail, coins, or a meter, until it triggers.',
+        'pick_bonus' => 'The player chooses hidden prizes instead of spinning.',
+    ];
+
+    /**
+     * Shared 1–5 scale. Every team and country uses these meanings.
+     * 5 is best, 1 is worst. 3 is a typical game, not a disappointing one.
+     */
+    public const RATING_SCALE = [
+        5 => 'We would want this',
+        4 => 'Above average for this kind of game',
+        3 => 'Typical for this kind of game',
+        2 => 'Below average for this kind of game',
+        1 => 'Well below what we would put on the floor',
     ];
 
     public const THEME_WORLDS = [
@@ -200,7 +240,10 @@ class Ice2027Service
             'all_games' => $this->games(),
             'game_types' => self::GAME_TYPES,
             'mechanics_options' => self::MECHANICS_OPTIONS,
+            'mechanics_help' => self::MECHANICS_HELP,
+            'rating_scale' => self::RATING_SCALE,
             'theme_worlds' => $this->themeWorlds(),
+            'video_max_bytes' => self::VIDEO_MAX_BYTES,
             'event' => [
                 'ID' => $this->eventId(),
                 'slug' => $this->event()->slug,
@@ -1073,6 +1116,16 @@ class Ice2027Service
             ['payload' => $store, 'submitted_at' => now()],
         );
 
+        foreach ($store['products'] as $product) {
+            if (! is_array($product)) {
+                continue;
+            }
+            $draftKey = trim((string) ($product['draft_key'] ?? ''));
+            if ($draftKey !== '') {
+                $this->deleteQuestionnaireDraft($userId, (int) $team['ID'], $competitorId, $draftKey);
+            }
+        }
+
         return 'Questionnaire saved.';
     }
 
@@ -1220,24 +1273,246 @@ class Ice2027Service
             ];
         }
 
+        $shareDrafts = ! $open
+            && $teamId > 0
+            && empty($assigned['hidden'])
+            && ! $this->isStorageCompetitorName((string) ($assigned['name'] ?? ''));
+        $drafts = $shareDrafts
+            ? array_map(function (array $product) use ($competitorId, $owner) {
+                $product['photos'] = $this->photosFromProduct($product, $competitorId, $owner);
+
+                return $product;
+            }, $this->questionnaireDrafts($teamId, $competitorId, (int) $user->ID))
+            : [];
+
         return [
             'competitor' => $displayCompetitor,
             'products' => $products,
+            'drafts' => $drafts,
             'games' => $open ? $this->games() : $games,
             'all_competitors' => $this->competitors(),
             'all_games' => $this->games(),
             'game_types' => self::GAME_TYPES,
             'mechanics_options' => self::MECHANICS_OPTIONS,
+            'mechanics_help' => self::MECHANICS_HELP,
             'theme_worlds' => $this->themeWorlds(),
             'open' => $open,
             'need_competitor_name' => $open,
             'force_new_product' => $forceNew && ! $open,
+            'share_drafts' => $shareDrafts,
             'team_members' => $memberNames,
             'updated_by' => $row?->updater?->displayName(),
             'updated_at' => optional($row?->updated_at)->format('d M Y H:i'),
             'history' => $history,
-            'started' => ! empty($coverage['started']) || $row !== null,
+            'started' => ! empty($coverage['started']) || $row !== null || $drafts !== [],
             'complete' => ! empty($coverage['complete']),
+        ];
+    }
+
+    /**
+     * Unsaved team games for this competitor. Each teammate sees their own scores.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function questionnaireDrafts(int $teamId, int $competitorId, int $userId): array
+    {
+        if (! Schema::hasTable('scout_questionnaire_drafts')) {
+            return [];
+        }
+
+        $rows = DB::table('scout_questionnaire_drafts as d')
+            ->leftJoin('dynamic__users as u', 'u.ID', '=', 'd.updated_by')
+            ->where('d.event_ID', $this->eventId())
+            ->where('d.team_ID', $teamId)
+            ->where('d.competitor_ID', $competitorId)
+            ->orderByDesc('d.updated_at')
+            ->orderByDesc('d.ID')
+            ->get([
+                'd.draft_key',
+                'd.payload',
+                'd.ratings',
+                'd.updated_at',
+                'u.firstname',
+                'u.lastname',
+                'u.username',
+            ]);
+
+        $out = [];
+        foreach ($rows as $row) {
+            $product = json_decode((string) $row->payload, true);
+            if (! is_array($product)) {
+                continue;
+            }
+            $ratings = json_decode((string) ($row->ratings ?? ''), true);
+            $mine = is_array($ratings) ? ($ratings[(string) $userId] ?? null) : null;
+            if (is_array($mine)) {
+                $product['rating'] = is_array($mine['rating'] ?? null) ? $mine['rating'] : [];
+                $product['would_play'] = (string) ($mine['would_play'] ?? '');
+                $product['eval_note'] = (string) ($mine['eval_note'] ?? '');
+            }
+            $product['draft_key'] = (string) $row->draft_key;
+            $product['is_draft'] = true;
+            $name = trim(implode(' ', array_filter([(string) ($row->firstname ?? ''), (string) ($row->lastname ?? '')])));
+            $product['draft_by'] = $name !== '' ? $name : (string) ($row->username ?? '');
+            $product['draft_at'] = (string) ($row->updated_at ?? '');
+            $out[] = $product;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $product
+     * @return array<string, mixed>
+     */
+    public function saveQuestionnaireDraft(int $userId, int $competitorId, string $draftKey, array $product): array
+    {
+        if (! Schema::hasTable('scout_questionnaire_drafts')) {
+            throw new InvalidArgumentException('Draft storage is not installed yet.');
+        }
+        if (! preg_match('/^[A-Za-z0-9:_-]{1,80}$/', $draftKey)) {
+            throw new InvalidArgumentException('That draft could not be saved.');
+        }
+
+        $team = $this->teamForUser($userId);
+        if ($team === null) {
+            throw new InvalidArgumentException('Drafts are kept for a scouting team.');
+        }
+        $teamId = (int) $team['ID'];
+        $competitor = $this->competitorAccessibleToUser($userId, $competitorId);
+        if ($competitor === null || ! empty($competitor['hidden'])) {
+            throw new InvalidArgumentException('That competitor is not assigned to your team.');
+        }
+
+        $personal = [
+            'rating' => is_array($product['rating'] ?? null) ? $product['rating'] : [],
+            'would_play' => (string) ($product['would_play'] ?? ''),
+            'eval_note' => trim((string) ($product['eval_note'] ?? '')),
+        ];
+        unset($product['rating'], $product['would_play'], $product['eval_note'], $product['draft_by'], $product['draft_at'], $product['is_draft']);
+        $product['draft_key'] = $draftKey;
+        $photos = [];
+        foreach (is_array($product['photos'] ?? null) ? $product['photos'] : [] as $photo) {
+            if (! is_array($photo) || ! empty($photo['pending']) || empty($photo['id'])) {
+                continue;
+            }
+            $photos[] = $photo;
+        }
+        $product['photos'] = $photos;
+        $payloadJson = json_encode($product, JSON_UNESCAPED_UNICODE);
+
+        DB::transaction(function () use ($teamId, $competitorId, $draftKey, $payloadJson, $userId, $personal) {
+            DB::table('scout_questionnaire_drafts')->updateOrInsert(
+                [
+                    'event_ID' => $this->eventId(),
+                    'team_ID' => $teamId,
+                    'competitor_ID' => $competitorId,
+                    'draft_key' => $draftKey,
+                ],
+                [
+                    'payload' => $payloadJson,
+                    'updated_by' => $userId,
+                    'updated_at' => now(),
+                ]
+            );
+
+            $existing = DB::table('scout_questionnaire_drafts')
+                ->where('event_ID', $this->eventId())
+                ->where('team_ID', $teamId)
+                ->where('competitor_ID', $competitorId)
+                ->where('draft_key', $draftKey)
+                ->lockForUpdate()
+                ->first(['ID', 'ratings']);
+
+            $ratings = [];
+            if ($existing) {
+                $decoded = json_decode((string) ($existing->ratings ?? ''), true);
+                if (is_array($decoded)) {
+                    $ratings = $decoded;
+                }
+            }
+            $ratings[(string) $userId] = $personal;
+            DB::table('scout_questionnaire_drafts')
+                ->where('ID', (int) ($existing->ID ?? 0))
+                ->update(['ratings' => json_encode($ratings, JSON_UNESCAPED_UNICODE)]);
+        });
+
+        $product['rating'] = $personal['rating'];
+        $product['would_play'] = $personal['would_play'];
+        $product['eval_note'] = $personal['eval_note'];
+        $product['is_draft'] = true;
+        $user = User::query()->find($userId);
+        $product['draft_by'] = $user?->displayName() ?: (string) ($user?->username ?? '');
+        $product['draft_at'] = now()->format('Y-m-d H:i:s');
+        $product['photos'] = $this->photosFromProduct($product, $competitorId, $this->mediaOwnerForUser($userId));
+
+        return $product;
+    }
+
+    public function deleteQuestionnaireDraft(int $userId, int $competitorId, string $draftKey): void
+    {
+        if (! Schema::hasTable('scout_questionnaire_drafts')) {
+            return;
+        }
+        if (! preg_match('/^[A-Za-z0-9:_-]{1,80}$/', $draftKey)) {
+            return;
+        }
+        $team = $this->teamForUser($userId);
+        if ($team === null) {
+            throw new InvalidArgumentException('You are not a member of that team.');
+        }
+        $competitor = $this->competitorAccessibleToUser($userId, $competitorId);
+        if ($competitor === null || ! empty($competitor['hidden'])) {
+            throw new InvalidArgumentException('That competitor is not assigned to your team.');
+        }
+
+        DB::table('scout_questionnaire_drafts')
+            ->where('event_ID', $this->eventId())
+            ->where('team_ID', (int) $team['ID'])
+            ->where('competitor_ID', $competitorId)
+            ->where('draft_key', $draftKey)
+            ->delete();
+    }
+
+    /**
+     * Attendant gallery of questionnaire pictures/videos for this event.
+     *
+     * @return array{games: list<array<string, mixed>>, by_competitor: array<string, array<string, list<array<string, mixed>>>>}
+     */
+    public function mediaLibrary(): array
+    {
+        $index = $this->questionnairePhotoIndex();
+        $byCompetitor = [];
+        foreach ($index['games'] as $game) {
+            $competitor = trim((string) ($game['competitor'] ?? ''));
+            if ($competitor === '' || strcasecmp($competitor, 'Unknown competitor') === 0) {
+                $competitor = 'Competitor not named';
+            }
+            $gameName = trim((string) ($game['game'] ?? ''));
+            if ($gameName === '') {
+                $gameName = 'Game';
+            }
+            if (! isset($byCompetitor[$competitor][$gameName])) {
+                $byCompetitor[$competitor][$gameName] = [];
+            }
+            foreach ($game['photos'] ?? [] as $photo) {
+                if (! is_array($photo) || empty($photo['id']) || empty($photo['url'])) {
+                    continue;
+                }
+                $byCompetitor[$competitor][$gameName][(string) $photo['id']] = $photo;
+            }
+        }
+        ksort($byCompetitor, SORT_NATURAL | SORT_FLAG_CASE);
+        foreach ($byCompetitor as $competitor => $games) {
+            ksort($games, SORT_NATURAL | SORT_FLAG_CASE);
+            foreach ($games as $gameName => $photos) {
+                $byCompetitor[$competitor][$gameName] = array_values($photos);
+            }
+        }
+
+        return [
+            'games' => $index['games'],
+            'by_competitor' => $byCompetitor,
         ];
     }
 
@@ -2125,7 +2400,7 @@ class Ice2027Service
         }
 
         $dash = $this->evaluationDashboard();
-        $header = ['Rater', 'From', 'Team', 'Competitor', 'Game', 'Type', 'New product'];
+        $header = ['Rater', 'Filled by', 'From', 'Team', 'Competitor', 'Game', 'Type', 'New product'];
         foreach (self::EVAL_CRITERIA as $label) {
             $header[] = $label;
         }
@@ -2136,14 +2411,33 @@ class Ice2027Service
         $header[] = 'Times evaluated (attendants)';
         $header[] = 'Times evaluated (total)';
         $counts = $this->excelGameSourceCounts($dash['ratings']);
+        $questionnaireKeys = $this->teamQuestionnaireKeys();
+        $memberNamesByTeam = [];
+        foreach ($this->teams() as $team) {
+            $names = [];
+            foreach ($team['members'] as $member) {
+                $name = trim((string) ($member['name'] ?? ''));
+                if ($name !== '') {
+                    $names[] = $name;
+                }
+            }
+            $memberNamesByTeam[(int) $team['ID']] = $names;
+        }
         $rows = [$header];
         foreach ($dash['ratings'] as $rating) {
             $fromTeam = ($rating['source'] ?? '') !== 'attendants';
+            $teamId = (int) ($rating['team_ID'] ?? 0);
+            $onQuestionnaire = $fromTeam && isset($questionnaireKeys[$teamId][(string) ($rating['key'] ?? '')]);
+            $people = $memberNamesByTeam[$teamId] ?? [];
+            $filledBy = ($onQuestionnaire && $people !== [])
+                ? implode(', ', $people)
+                : (string) $rating['rater'];
             $type = (string) ($rating['game_type'] ?? '');
             $stats = $counts[(string) ($rating['key'] ?? '')] ?? ['teams' => 0, 'attendants' => 0, 'total' => 0];
             $row = [
                 (string) $rating['rater'],
-                $fromTeam ? 'Scouting team' : 'Attendant',
+                $filledBy,
+                $onQuestionnaire ? 'Questionnaire' : ($fromTeam ? 'Scouting team' : 'Attendant'),
                 $fromTeam && trim((string) ($rating['team'] ?? '')) !== '' ? (string) $rating['team'] : '—',
                 (string) $rating['competitor'],
                 (string) $rating['game'],
@@ -2260,6 +2554,43 @@ class Ice2027Service
         }
 
         return $rows;
+    }
+
+    /**
+     * Games already stored on each team's questionnaire, keyed the same way as a rating row.
+     *
+     * @return array<int, array<string, true>>
+     */
+    private function teamQuestionnaireKeys(): array
+    {
+        $competitors = [];
+        foreach ($this->competitors() as $competitor) {
+            $competitors[(int) $competitor['ID']] = $competitor;
+        }
+        $games = [];
+        foreach ($this->games() as $game) {
+            $games[(int) $game['ID']] = $game;
+        }
+        $keys = [];
+        foreach (
+            ScoutQuestionnaire::query()
+                ->where('event_ID', $this->eventId())
+                ->get(['team_ID', 'competitor_ID', 'payload']) as $row
+        ) {
+            $payload = is_array($row->payload) ? $row->payload : [];
+            $teamId = (int) $row->team_ID;
+            $competitorId = (int) $row->competitor_ID;
+            foreach ($this->questionnaireProducts($payload) as $product) {
+                $resolved = $this->resolveQuestionnaireProduct($product, $competitorId, $competitors, $games);
+                $key = (string) ($resolved['key'] ?? '');
+                if ($key === '') {
+                    continue;
+                }
+                $keys[$teamId][$key] = true;
+            }
+        }
+
+        return $keys;
     }
 
     /**
@@ -3947,7 +4278,7 @@ HTML;
         }
         $maxBytes = $isVideo ? self::VIDEO_MAX_BYTES : self::PHOTO_MAX_BYTES;
         if ($file->getSize() < 1 || $file->getSize() > $maxBytes) {
-            throw new InvalidArgumentException($isVideo ? 'Videos must be 150 MB or smaller.' : 'Pictures must be 10 MB or smaller.');
+            throw new InvalidArgumentException($isVideo ? 'Videos must be 400 MB or smaller.' : 'Pictures must be 10 MB or smaller.');
         }
         $original = basename((string) $file->getClientOriginalName() ?: ($isVideo ? 'video.mp4' : 'photo.jpg'));
         if ($isVideo) {
