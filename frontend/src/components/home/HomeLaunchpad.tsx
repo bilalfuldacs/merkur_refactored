@@ -1,5 +1,5 @@
 import Box from '@mui/material/Box'
-import { homeLaunchpadCards, homeLaunchpadGrid } from '@/config/homeLaunchpad'
+import { homeLaunchpadCards, homeLaunchpadGrid, homeLaunchpadMoreCards, homeLaunchpadMoreGrid } from '@/config/homeLaunchpad'
 import { useI18n } from '@/i18n'
 import { LaunchpadCard } from './LaunchpadCard'
 
@@ -30,6 +30,20 @@ export function HomeLaunchpad() {
               minWidth: 0,
             }}
           >
+            <LaunchpadCard item={item} />
+          </Box>
+        ))}
+      </Box>
+      <Box
+        sx={{
+          display: 'grid',
+          ...homeLaunchpadMoreGrid,
+          alignItems: 'stretch',
+          mt: 2,
+        }}
+      >
+        {homeLaunchpadMoreCards.map((item) => (
+          <Box key={item.id} sx={{ minWidth: 0 }}>
             <LaunchpadCard item={item} />
           </Box>
         ))}

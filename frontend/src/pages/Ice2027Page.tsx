@@ -252,9 +252,9 @@ export default function Ice2027Page() {
             title={competitor ? competitor.name : eventName}
           >
             {competitor
-              ? 'Add each product in a dialog. New products get a name; existing ones are chosen from this competitor’s games.'
+              ? 'Add each product in a dialog. The questionnaire, your 1–5 rating, and the photos for a game are one form. New products get a name; existing ones are chosen from this competitor’s games.'
               : me?.scout
-                ? 'Open your assigned competitor to fill the questionnaire and the evaluation.'
+                ? 'Open your assigned competitor to fill the questionnaire and rate each game in one form. The Evaluation tab shows all your ratings in one table.'
                 : 'Evaluation is optional. Questionnaires are only for scouting team members.'}
           </IceHero>
 
@@ -299,7 +299,16 @@ export default function Ice2027Page() {
                   Questionnaires <strong>{me.questionnaires_started ?? me.questionnaires_done}/{me.questionnaires_total}</strong> started
                   {me.questionnaires_done ? ` · ${me.questionnaires_done} done` : ''}
                 </Box>
-                Evaluation {statusChip(evalKind, evalLabel)}
+                Ratings {statusChip(evalKind, evalLabel)}
+                <AppButton
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  sx={{ ml: 1 }}
+                  onClick={() => navigate(ice2027EvaluationPath(undefined, eventSlug))}
+                >
+                  {t('ice.evaluationTable', 'Evaluation table')} · {evalButton}
+                </AppButton>
               </Typography>
               {evalProgress?.started && !evalProgress.complete ? (
                 <Alert severity="warning" sx={{ mb: 2 }}>
@@ -337,12 +346,15 @@ export default function Ice2027Page() {
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
                           <Box>
                             <Typography sx={{ fontWeight: 700 }}>
-                              Questionnaire{' '}
+                              Questionnaire &amp; rating{' '}
                               <Box component="span" sx={{ color: 'text.secondary', fontWeight: 400, fontSize: 13 }}>
                                 (shared)
                               </Box>
                             </Typography>
                             {statusChip(qKind, qLabel)}
+                            <Typography sx={{ color: 'text.secondary', fontSize: 12, mt: 0.5 }}>
+                              Your 1–5 rating is saved with each game and stays yours.
+                            </Typography>
                           </Box>
                           <AppButton
                             size="small"
@@ -350,19 +362,6 @@ export default function Ice2027Page() {
                             onClick={() => navigate(ice2027QuestionnairePath(item.ID, eventSlug))}
                           >
                             {qButton}
-                          </AppButton>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, pt: 1.5, mt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
-                          <Box>
-                            <Typography sx={{ fontWeight: 700 }}>Evaluation</Typography>
-                            {statusChip(evalKind, evalLabel)}
-                          </Box>
-                          <AppButton
-                            size="small"
-                            variant={evalProgress?.complete ? 'outlined' : 'contained'}
-                            onClick={() => navigate(ice2027EvaluationPath(item.ID, eventSlug))}
-                          >
-                            {evalButton}
                           </AppButton>
                         </Box>
                       </Paper>
@@ -449,6 +448,7 @@ export default function Ice2027Page() {
                 drafts={drafts}
                 games={games}
                 competitorId={competitor.ID}
+                competitorName={openMode ? '' : competitor.name}
                 teamMembers={openMode ? [] : teamMembers}
                 updatedBy={updatedBy}
                 updatedAt={updatedAt}

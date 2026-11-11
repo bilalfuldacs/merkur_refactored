@@ -17,7 +17,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import type { ProductBuild, ProductCompatibilityGroup, ProductMarket, ProductVersion } from '@/api'
 import { tableBrowsePath } from '@/config/tablePages'
-import { APP_PATHS, productGamesListPath, releaseInformationSheetPath } from '@/routing'
+import { APP_PATHS, installationsReportPath, productGamesListPath, releaseInformationSheetPath } from '@/routing'
 import { countLabel, formatDate, jurisdictionLabel, statusLabel, versionTitle } from './format'
 import { StatusBadge } from './StatusBadge'
 
@@ -271,7 +271,17 @@ function OverviewTab({ version, onOpen }: { version: ProductVersion; onOpen: (pa
               onClick={() => onOpen(APP_PATHS.focusGroupsReport)}
               sx={{ ...linkButtonSx, ml: 1, color: 'info.main', fontWeight: 700 }}
             >
-              Open report
+              Focus groups report
+            </Box>
+          ) : null}
+          {version.installations_count > 0 ? (
+            <Box
+              component="button"
+              type="button"
+              onClick={() => onOpen(installationsReportPath(version.ID))}
+              sx={{ ...linkButtonSx, ml: 1, color: 'info.main', fontWeight: 700 }}
+            >
+              Installations report
             </Box>
           ) : null}
         </Typography>

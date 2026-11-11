@@ -39,13 +39,14 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Keep at most a few concurrent API sessions per user.
-        $existing = $user->tokens()->orderByDesc('id')->skip(4)->pluck('id');
-        if ($existing->isNotEmpty()) {
-            $user->tokens()->whereIn('id', $existing)->delete();
-        }
-
         $token = $user->createToken('api')->plainTextToken;
+
+        // Keep at most a few concurrent API sessions per user.
+        // Use LIMIT (not bare OFFSET) so MariaDB accepts the query.
+        $keepIds = $user->tokens()->orderByDesc('id')->limit(4)->pluck('id');
+        $user->tokens()
+            ->whereNotIn('id', $keepIds)
+            ->delete();
 
         try {
             $user->logins()->create([

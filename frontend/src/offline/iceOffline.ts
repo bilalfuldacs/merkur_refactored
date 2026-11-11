@@ -484,7 +484,22 @@ export function iceProductDraftHasContent(item: IceScoutProduct | null | undefin
   if (item.progressive_jp === 'yes' || item.integrated_jp === 'yes' || item.uhd === 'yes' || item.video_button_panel === 'yes') {
     return true
   }
+  if (item.played_at === 'field' || (item.denominations ?? []).length > 0) {
+    return true
+  }
+  if (item.rating && Object.values(item.rating).some((score) => String(score ?? '').trim() !== '')) {
+    return true
+  }
+  if (['yes', 'no', 'unsure'].includes(String(item.would_play ?? ''))) {
+    return true
+  }
   const fields: Array<keyof IceScoutProduct> = [
+    'eval_note',
+    'field_market',
+    'field_venue',
+    'bet_other',
+    'denomination_other',
+    'progressive_reset',
     'win_lines',
     'denomination',
     'bets',

@@ -10,7 +10,7 @@
     "roadmapVersions": "… by Versions",
     "roadmapGames": "… by Games",
     "roadmapDocs": "Roadmap Docs",
-    "roadmapTeam": "Team Roadmap",
+    "roadmapTeam": "SIH Roadmap",
     "exhibition": "Exhibition",
     "inactiveEvent": "{name} (inactive)",
     "community": "Community",
@@ -1036,7 +1036,7 @@
     "pickRange": "Select a start date, then an end date"
   },
   "teamRoadmap": {
-    "crumb": "Team Roadmap",
+    "crumb": "SIH Roadmap",
     "title": "SIH Roadmap",
     "subtitle": "What the Strategic Intelligence Hub is building, quarter by quarter.",
     "editorHint": "You can add and update milestones. Everyone else can follow along.",

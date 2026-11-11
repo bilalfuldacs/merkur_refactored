@@ -6,6 +6,9 @@ import HouseOutlinedIcon from '@mui/icons-material/HouseOutlined'
 import LayersOutlinedIcon from '@mui/icons-material/LayersOutlined'
 import PhoneIphoneOutlinedIcon from '@mui/icons-material/PhoneIphoneOutlined'
 import SearchIcon from '@mui/icons-material/Search'
+import SwapHorizOutlinedIcon from '@mui/icons-material/SwapHorizOutlined'
+import BusinessCenterOutlinedIcon from '@mui/icons-material/BusinessCenterOutlined'
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined'
 import Box from '@mui/material/Box'
 import Chip from '@mui/material/Chip'
 import FormControlLabel from '@mui/material/FormControlLabel'
@@ -29,6 +32,8 @@ import {
   sortPersonRows,
   sortUnassignedMarkets,
 } from '@/components/peopleMarkets'
+import { ORG_VIEW_LABELS, OrgGroupsView } from '@/components/peopleMarkets/OrgGroupsView'
+import type { OrgView } from '@/components/peopleMarkets/OrgGroupsView'
 import type { SegmentView, SortDirection } from '@/components/peopleMarkets'
 import { marketCountLabel, marketTitle, peopleCountLabel, personLabel } from '@/components/peopleMarkets/format'
 import { UserAvatar } from '@/components/user'
@@ -73,6 +78,7 @@ const pillSx = {
 }
 
 type BrowseMode = 'market' | 'person'
+type PanoramaView = 'directory' | OrgView
 
 export default function PeopleMarketsPage() {
   const { t } = useI18n()
@@ -80,6 +86,7 @@ export default function PeopleMarketsPage() {
   const { user, setDecolorizeAvatars } = useAuth()
   const [payload, setPayload] = useState<PeopleMarketsPayload | null>(null)
   const [failed, setFailed] = useState(false)
+  const [view, setView] = useState<PanoramaView>('directory')
   const [browse, setBrowse] = useState<BrowseMode>('market')
   const [query, setQuery] = useState('')
   const [segment, setSegment] = useState<SegmentView>('both')
@@ -89,6 +96,7 @@ export default function PeopleMarketsPage() {
   const [selectedPersonId, setSelectedPersonId] = useState<number | null>(null)
 
   const decolorize = Boolean(user?.decolorize_avatars)
+  const isDirectory = view === 'directory'
 
   useEffect(() => {
     document.title = `${t('pages.peoplePanorama', 'People & Markets Panorama')} | MERKURflow`
@@ -173,6 +181,11 @@ export default function PeopleMarketsPage() {
     }
   }, [browse, markets, unassigned, selectedMarketId, selectedPerson, selectedPersonId])
 
+  const marketCounts = useMemo(
+    () => new Map((payload?.people_to_markets ?? []).map((row) => [row.person.ID, row.markets.length] as const)),
+    [payload],
+  )
+
   const myMarketCount = payload?.people_to_markets.find((row) => row.person.ID === user?.ID)?.markets.length ?? 0
 
   function openMarket(marketId: number) {
@@ -226,35 +239,65 @@ export default function PeopleMarketsPage() {
               <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <ToggleButtonGroup
                   exclusive
-                  value={browse}
-                  onChange={(_event, value: BrowseMode | null) => {
+                  value={view}
+                  onChange={(_event, value: PanoramaView | null) => {
                     if (value) {
-                      setBrowse(value)
+                      setView(value)
                     }
                   }}
-                  aria-label="Browse mode"
+                  aria-label="Panorama view"
                   sx={pillGroupSx}
                 >
-                  <ToggleButton value="market" sx={pillSx}>
-                    <PublicOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
-                    Browse by market
+                  <ToggleButton value="directory" sx={pillSx}>
+                    <SwapHorizOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
+                    Markets ↔ People
                   </ToggleButton>
-                  <ToggleButton value="person" sx={pillSx}>
-                    <PersonOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
-                    Browse by person
+                  <ToggleButton value="product-sales" sx={pillSx}>
+                    <BusinessCenterOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
+                    {ORG_VIEW_LABELS['product-sales']}
+                  </ToggleButton>
+                  <ToggleButton value="leadership" sx={pillSx}>
+                    <AccountTreeOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
+                    {ORG_VIEW_LABELS.leadership}
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
+
+              {isDirectory ? (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                  <ToggleButtonGroup
+                    exclusive
+                    value={browse}
+                    onChange={(_event, value: BrowseMode | null) => {
+                      if (value) {
+                        setBrowse(value)
+                      }
+                    }}
+                    aria-label="Browse mode"
+                    sx={pillGroupSx}
+                  >
+                    <ToggleButton value="market" sx={pillSx}>
+                      <PublicOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
+                      Browse by market
+                    </ToggleButton>
+                    <ToggleButton value="person" sx={pillSx}>
+                      <PersonOutlinedIcon sx={{ fontSize: 18, mr: 0.75 }} />
+                      Browse by person
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                </Box>
+              ) : null}
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
                 <AppTextField
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={t('search.markets', 'Search markets or people')}
+                  placeholder={isDirectory ? t('search.markets', 'Search markets or people') : 'Search people'}
                   size="small"
                   startIcon={<SearchIcon />}
                   sx={{ flex: '1 1 280px', minWidth: 220 }}
                 />
+                {isDirectory ? (
                 <ToggleButtonGroup
                   exclusive
                   size="small"
@@ -280,7 +323,8 @@ export default function PeopleMarketsPage() {
                     Both
                   </ToggleButton>
                 </ToggleButtonGroup>
-                {payload.can_show_deputies ? (
+                ) : null}
+                {isDirectory && payload.can_show_deputies ? (
                   <FormControlLabel
                     sx={{ mr: 0 }}
                     control={
@@ -298,6 +342,22 @@ export default function PeopleMarketsPage() {
                 />
               </Box>
 
+              {view !== 'directory' ? (
+                <OrgGroupsView
+                  view={view}
+                  groups={payload.groups}
+                  query={query}
+                  currentUserId={user?.ID ?? payload.current_user_id}
+                  marketCounts={marketCounts}
+                  decolorize={decolorize}
+                  onSelectPerson={(personId) => {
+                    setView('directory')
+                    setQuery('')
+                    setSegment('both')
+                    browsePerson(personId)
+                  }}
+                />
+              ) : (
               <Box
                 sx={{
                   display: 'grid',
@@ -409,6 +469,7 @@ export default function PeopleMarketsPage() {
                   )}
                 </DirectoryList>
               </Box>
+              )}
             </>
           )}
         </Box>

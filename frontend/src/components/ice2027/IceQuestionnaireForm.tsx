@@ -24,10 +24,12 @@ import Tooltip from '@mui/material/Tooltip'
 import Typography from '@mui/material/Typography'
 import useMediaQuery from '@mui/material/useMediaQuery'
 import { useTheme } from '@mui/material/styles'
-import { ApiError } from '@/api'
+import { ApiError, getStoredUser } from '@/api'
+import type { AuthUser } from '@/api'
 import type {
   IceCompetitor,
   IceGame,
+  IceGameMediaPhoto,
   IceMultigameProduct,
   IceProgressPhoto,
   IceQuestionnaireHistory,
@@ -39,9 +41,13 @@ import type {
 import {
   deleteIceDraft,
   deleteIcePhoto,
+  getIceGameMedia,
+  ICE_DENOMINATIONS,
+  ICE_EVAL_CRITERIA,
   ICE_GAME_TYPES,
   ICE_MECHANICS_HELP,
   ICE_MECHANICS_OPTIONS,
+  ICE_RATING_SCALE,
   saveIceDraft,
   uploadIcePhoto,
 } from '@/api/ice2027'
@@ -111,12 +117,62 @@ const emptyDraft = (): IceScoutProduct => ({
   functionality: [],
   mechanics_description: '',
   bets: [],
+  bet_other: '',
+  denominations: [],
+  denomination_other: '',
+  progressive_reset: '',
+  played_at: 'show',
+  field_market: '',
+  field_venue: '',
+  rating: {},
+  would_play: '',
+  eval_note: '',
   number_of_monitors: '',
   monitor_size: '',
   uhd: 'no',
   video_button_panel: 'no',
   vbp_functions: '',
 })
+
+/** A 1–5 score as the select value ('' when not rated). */
+function scoreValue(value: string | number | undefined | null): string {
+  const score = Number.parseInt(String(value ?? ''), 10)
+  return score >= 1 && score <= 5 ? String(score) : ''
+}
+
+/**
+ * Bring a saved/draft product into form shape: defaults, all eight score keys,
+ * and legacy free-text denomination split into the checkbox list.
+ */
+function hydrateProduct(item: IceScoutProduct): IceScoutProduct {
+  const base = { ...emptyDraft(), ...item, photos: item.photos ?? [], game_ids: item.game_ids ?? [] }
+  const rating: Record<string, string> = {}
+  for (const { key } of ICE_EVAL_CRITERIA) {
+    rating[key] = scoreValue(item.rating?.[key])
+  }
+  let denominations = Array.isArray(item.denominations) ? item.denominations.map(String) : []
+  let denominationOther = String(item.denomination_other ?? '')
+  if (denominations.length === 0 && !denominationOther && item.denomination) {
+    for (const part of String(item.denomination).split(/[,;/]+/).map((value) => value.trim()).filter(Boolean)) {
+      if (part in ICE_DENOMINATIONS) {
+        denominations.push(part)
+      } else {
+        denominationOther = denominationOther ? `${denominationOther}, ${part}` : part
+      }
+    }
+  }
+  denominations = denominations.filter((value) => value in ICE_DENOMINATIONS)
+  return {
+    ...base,
+    rating,
+    would_play: ['yes', 'no', 'unsure'].includes(String(item.would_play ?? '')) ? String(item.would_play) : '',
+    eval_note: String(item.eval_note ?? ''),
+    played_at: item.played_at === 'field' ? 'field' : 'show',
+    denominations,
+    denomination_other: denominationOther,
+    category: item.category === 'new_product' ? '' : item.category ?? '',
+  }
+}
 
 export function emptyProducts(
   saved?: IceQuestionnaireProducts | IceQuestionnaireSectioned | IceScoutProduct[] | null,
@@ -166,16 +222,30 @@ function FieldLabel({ children, required }: { children: string; required?: boole
   )
 }
 
+/** Soft warning: shown under the field, never blocks a save. */
+function Warn({ text }: { text?: string }) {
+  if (!text) {
+    return null
+  }
+  return (
+    <Typography role="status" sx={{ color: 'warning.dark', fontSize: 12.5, fontWeight: 600, mt: 0.5 }}>
+      {text}
+    </Typography>
+  )
+}
+
 function YesNo({
   value,
   onChange,
   label,
   required,
+  warn,
 }: {
   value: string
   onChange: (next: 'yes' | 'no') => void
   label: string
   required?: boolean
+  warn?: string
 }) {
   const current = value === 'yes' ? 'yes' : 'no'
   return (
@@ -199,6 +269,7 @@ function YesNo({
         <ToggleButton value="no">No</ToggleButton>
         <ToggleButton value="yes">Yes</ToggleButton>
       </ToggleButtonGroup>
+      <Warn text={warn} />
     </Box>
   )
 }
@@ -210,6 +281,7 @@ function StandardFields({
   cabinet,
   mechanicsOptions,
   mechanicsHelp,
+  warns = {},
 }: {
   product: IceStandardProduct
   onChange: (next: IceStandardProduct) => void
@@ -217,7 +289,9 @@ function StandardFields({
   cabinet?: boolean
   mechanicsOptions?: Record<string, string>
   mechanicsHelp?: Record<string, string>
+  warns?: Record<string, string>
 }) {
+  const inField = product.played_at === 'field'
   const functions = Array.isArray(product.functionality) ? product.functionality : []
   const jpYes = product.progressive_jp === 'yes'
   const theme = String(product.theme ?? '')
@@ -243,6 +317,7 @@ function StandardFields({
               value={product.number_of_monitors ?? ''}
               onChange={(event) => onChange({ ...product, number_of_monitors: event.target.value })}
             />
+            <Warn text={warns.monitors} />
           </Box>
           <Box>
             <FieldLabel required>Monitor size</FieldLabel>
@@ -254,11 +329,13 @@ function StandardFields({
               value={product.monitor_size ?? ''}
               onChange={(event) => onChange({ ...product, monitor_size: event.target.value })}
             />
+            <Warn text={warns.monitor_size} />
           </Box>
         </Box>
-        <YesNo required label="UHD" value={String(product.uhd ?? 'no')} onChange={(next) => onChange({ ...product, uhd: next })} />
+        <YesNo required label="UHD" warn={warns.uhd} value={String(product.uhd ?? 'no')} onChange={(next) => onChange({ ...product, uhd: next })} />
         <YesNo
           required
+          warn={warns.vbp}
           label="Video Button Panel"
           value={String(product.video_button_panel ?? 'no')}
           onChange={(next) => onChange({ ...product, video_button_panel: next, vbp_functions: next === 'yes' ? product.vbp_functions : '' })}
@@ -274,6 +351,7 @@ function StandardFields({
               value={product.vbp_functions ?? ''}
               onChange={(event) => onChange({ ...product, vbp_functions: event.target.value })}
             />
+            <Warn text={warns.vbp_functions} />
           </Box>
         ) : null}
       </>
@@ -300,6 +378,7 @@ function StandardFields({
               value={product.no_progressives ?? ''}
               onChange={(event) => onChange({ ...product, no_progressives: event.target.value })}
             />
+            <Warn text={warns.no_progressives} />
           </Box>
           <Box>
             <FieldLabel required>Static</FieldLabel>
@@ -311,6 +390,21 @@ function StandardFields({
               value={product.no_static ?? ''}
               onChange={(event) => onChange({ ...product, no_static: event.target.value })}
             />
+            <Warn text={warns.no_static} />
+          </Box>
+          <Box sx={{ gridColumn: { sm: '1 / -1' } }}>
+            <Typography sx={{ fontWeight: 700, mb: 0.75 }}>Progressive reset values</Typography>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="Optional. Example: Mini 250, Major 2,500, Grand 10,000"
+              value={product.progressive_reset ?? ''}
+              onChange={(event) => onChange({ ...product, progressive_reset: event.target.value })}
+            />
+            <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mt: 0.5 }}>
+              Reset values depend on the market. Leave this blank at a show when the figure is not a real floor value.
+            </Typography>
           </Box>
         </Box>
       ) : null}
@@ -385,17 +479,65 @@ function StandardFields({
           />
         </Box>
       </FormGroup>
+      <Warn text={warns.mechanics} />
 
-      <Box sx={{ mb: 2 }}>
+      <Box sx={{ mb: 2, mt: 2 }}>
         <FieldLabel required>Win-Lines</FieldLabel>
         <AppTextField size="small" fullWidth sx={mobileFieldSx} value={product.win_lines ?? ''} onChange={(event) => onChange({ ...product, win_lines: event.target.value })} />
+        <Warn text={warns.win_lines} />
       </Box>
       <Box sx={{ mb: 2 }}>
-        <Typography sx={{ mb: 0.75 }}>Denomination</Typography>
-        <AppTextField size="small" fullWidth sx={mobileFieldSx} value={product.denomination ?? ''} onChange={(event) => onChange({ ...product, denomination: event.target.value })} />
+        <FieldLabel required={inField}>Denomination</FieldLabel>
+        <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mb: 0.75 }}>
+          Required when the game was played live in a casino. Optional at a show, because show values are often not the real market.
+        </Typography>
+        <FormGroup sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5 }}>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, minmax(0, 1fr))' }, columnGap: 1 }}>
+            {Object.entries(ICE_DENOMINATIONS).map(([value, label]) => {
+              const selected = product.denominations ?? []
+              return (
+                <FormControlLabel
+                  key={value}
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={selected.includes(value)}
+                      onChange={(event) => {
+                        const next = event.target.checked ? [...selected.filter((item) => item !== value), value] : selected.filter((item) => item !== value)
+                        const ordered = Object.keys(ICE_DENOMINATIONS).filter((item) => next.includes(item))
+                        const other = String(product.denomination_other ?? '').trim()
+                        onChange({ ...product, denominations: ordered, denomination: [...ordered, ...(other ? [other] : [])].join(', ') })
+                      }}
+                    />
+                  }
+                  label={label}
+                />
+              )
+            })}
+          </Box>
+          <Box sx={{ my: 1 }}>
+            <Typography sx={{ mb: 0.5, fontSize: 14 }}>Other denomination</Typography>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="Type a denomination that is not in the list"
+              value={product.denomination_other ?? ''}
+              onChange={(event) => {
+                const other = event.target.value.trim()
+                const ordered = product.denominations ?? []
+                onChange({ ...product, denomination_other: event.target.value, denomination: [...ordered, ...(other ? [other] : [])].join(', ') })
+              }}
+            />
+          </Box>
+        </FormGroup>
+        <Warn text={warns.denoms} />
       </Box>
       <Box sx={{ mb: 2 }}>
-        <Typography sx={{ mb: 0.75 }}>Bets</Typography>
+        <FieldLabel required={inField}>Bets</FieldLabel>
+        <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mb: 0.75 }}>
+          Required for a live casino play. Optional at a show. Use the box below if the bet is not listed.
+        </Typography>
         <FormGroup sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, px: 1.5, py: 0.5 }}>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, minmax(0, 1fr))' }, columnGap: 1 }}>
             {BET_LEVELS.map((level) => {
@@ -421,7 +563,19 @@ function StandardFields({
               )
             })}
           </Box>
+          <Box sx={{ my: 1 }}>
+            <Typography sx={{ mb: 0.5, fontSize: 14 }}>Other bet</Typography>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="Type a bet that is not in the list"
+              value={product.bet_other ?? ''}
+              onChange={(event) => onChange({ ...product, bet_other: event.target.value })}
+            />
+          </Box>
         </FormGroup>
+        <Warn text={warns.bets} />
       </Box>
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ mb: 0.75 }}>Theme</Typography>
@@ -509,7 +663,177 @@ function releasePending(items: PendingPhoto[]) {
   items.forEach((item) => URL.revokeObjectURL(item.url))
 }
 
-function DraftPhotoThumb({ photo, onRemove }: { photo: IceProgressPhoto; onRemove: () => void }) {
+const PHOTO_UPLOAD_CONCURRENCY = 3
+const PHOTO_MAX_BYTES = 10 * 1024 * 1024
+const VIDEO_MAX_BYTES = 400 * 1024 * 1024
+
+/** Uploader user id encoded in the stored file name ("{userId}~{time}~{rand}~~name"). */
+function photoUploaderId(photo: { id: string }): number {
+  const match = /^(\d+)~/.exec(String(photo.id))
+  return match ? Number(match[1]) : 0
+}
+
+/** Competitor folder the file was stored under (from its URL), falling back to the open questionnaire's own. */
+function photoCompetitorId(photo: { url: string }, fallback: number): number {
+  const match = /[?&]c=(\d+)/.exec(photo.url || '')
+  return match ? Number(match[1]) : fallback
+}
+
+function PlayedAtFields({
+  product,
+  onChange,
+  warns,
+}: {
+  product: IceScoutProduct
+  onChange: (next: Partial<IceScoutProduct>) => void
+  warns: Record<string, string>
+}) {
+  const inField = product.played_at === 'field'
+  return (
+    <Box sx={{ mb: 2 }}>
+      <FieldLabel required>Where was this played?</FieldLabel>
+      <ToggleButtonGroup
+        exclusive
+        fullWidth
+        size="small"
+        value={inField ? 'field' : 'show'}
+        onChange={(_, next: 'show' | 'field' | null) => {
+          if (next) {
+            onChange({ played_at: next })
+          }
+        }}
+        sx={{ maxWidth: { sm: 360 }, '& .MuiToggleButton-root': { minHeight: { xs: 42 }, flex: 1 } }}
+      >
+        <ToggleButton value="show">At a show</ToggleButton>
+        <ToggleButton value="field">In the field</ToggleButton>
+      </ToggleButtonGroup>
+      <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mt: 0.5 }}>
+        At a show, bets and denominations are optional. In the field they are required, and the market and venue are required too.
+      </Typography>
+      <Warn text={warns.played_at} />
+      {inField ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5, mt: 1.5 }}>
+          <Box>
+            <FieldLabel required>Market</FieldLabel>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="Example: Nevada, UK, NSW"
+              value={product.field_market ?? ''}
+              onChange={(event) => onChange({ field_market: event.target.value })}
+            />
+            <Warn text={warns.field_market} />
+          </Box>
+          <Box>
+            <FieldLabel required>Venue</FieldLabel>
+            <AppTextField
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              placeholder="Example: Aria, Hippodrome"
+              value={product.field_venue ?? ''}
+              onChange={(event) => onChange({ field_venue: event.target.value })}
+            />
+            <Warn text={warns.field_venue} />
+          </Box>
+        </Box>
+      ) : null}
+    </Box>
+  )
+}
+
+/** Personal 1–5 rating. Stored in this user's evaluation, never in the shared questionnaire. */
+function RatingFields({
+  product,
+  onChange,
+  warns,
+}: {
+  product: IceScoutProduct
+  onChange: (next: Partial<IceScoutProduct>) => void
+  warns: Record<string, string>
+}) {
+  const rating = product.rating ?? {}
+  const scale = Object.entries(ICE_RATING_SCALE)
+    .map(([score, label]) => [Number(score), label] as const)
+    .sort((a, b) => b[0] - a[0])
+  return (
+    <Box sx={{ mb: 2, p: { xs: 1.25, md: 1.5 }, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+      <Typography sx={{ fontWeight: 800, mb: 0.5 }}>
+        Your rating
+        <RequiredStar />
+      </Typography>
+      <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1 }}>
+        Required to save the game, including when the game is typical. The same meaning is used by every team. Your score is added to your own
+        evaluation and is not shared with your teammate. A photo can still be saved first with <strong>Save photo now</strong>.
+      </Typography>
+      <Box component="ul" sx={{ m: 0, mb: 1.5, pl: 2.5, fontSize: 13, color: 'text.secondary' }}>
+        {scale.map(([score, label]) => (
+          <li key={score}>
+            <strong>{score}</strong> {label}
+          </li>
+        ))}
+      </Box>
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 1.5 }}>
+        {ICE_EVAL_CRITERIA.map(({ key, label }) => (
+          <Box key={key}>
+            <FieldLabel required>{label}</FieldLabel>
+            <AppTextField
+              select
+              size="small"
+              fullWidth
+              sx={mobileFieldSx}
+              value={scoreValue(rating[key])}
+              onChange={(event) => onChange({ rating: { ...rating, [key]: event.target.value } })}
+            >
+              <MenuItem value="">Select…</MenuItem>
+              {scale.map(([score, text]) => (
+                <MenuItem key={score} value={String(score)}>
+                  {score} — {text}
+                </MenuItem>
+              ))}
+            </AppTextField>
+          </Box>
+        ))}
+      </Box>
+      <Warn text={warns.rating} />
+      <Box sx={{ mt: 2 }}>
+        <FieldLabel required>Would you play this game at a casino?</FieldLabel>
+        <ToggleButtonGroup
+          exclusive
+          fullWidth
+          size="small"
+          value={product.would_play ?? ''}
+          onChange={(_, next: string | null) => onChange({ would_play: next ?? '' })}
+          sx={{ maxWidth: { sm: 360 }, '& .MuiToggleButton-root': { minHeight: { xs: 42 }, flex: 1 } }}
+        >
+          <ToggleButton value="yes">Yes</ToggleButton>
+          <ToggleButton value="no">No</ToggleButton>
+          <ToggleButton value="unsure">Unsure</ToggleButton>
+        </ToggleButtonGroup>
+        <Warn text={warns.would_play} />
+      </Box>
+      <Box sx={{ mt: 2 }}>
+        <FieldLabel>Rating note</FieldLabel>
+        <AppTextField
+          multiline
+          minRows={2}
+          size="small"
+          fullWidth
+          sx={mobileFieldSx}
+          placeholder="Optional. Example: Strong theme, but the feature takes too long on the floor."
+          value={product.eval_note ?? ''}
+          onChange={(event) => onChange({ eval_note: event.target.value })}
+        />
+        <Typography sx={{ color: 'text.secondary', fontSize: 12.5, mt: 0.5 }}>
+          Optional. A sentence on why you scored it this way is enough. It is stored with your evaluation, not scored automatically.
+        </Typography>
+      </Box>
+    </Box>
+  )
+}
+
+function DraftPhotoThumb({ photo, onRemove }: { photo: IceProgressPhoto; onRemove?: () => void }) {
   const src = useAuthFileUrl(photo.url)
   const isVideo = photo.kind === 'video' || /\.(mp4|mov|m4v|webm)($|\?)/i.test(`${photo.name}${photo.id}`)
   return (
@@ -525,24 +849,38 @@ function DraftPhotoThumb({ photo, onRemove }: { photo: IceProgressPhoto; onRemov
       ) : (
         <Box sx={{ width: 140, height: 105, bgcolor: 'action.hover', borderRadius: 1 }} />
       )}
-      <IconButton size="small" onClick={onRemove} aria-label={`Remove ${photo.name}`} sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper', boxShadow: 1 }}>
-        <CloseOutlinedIcon sx={{ fontSize: 16 }} />
-      </IconButton>
+      {onRemove ? (
+        <IconButton size="small" onClick={onRemove} aria-label={`Remove ${photo.name}`} sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper', boxShadow: 1 }}>
+          <CloseOutlinedIcon sx={{ fontSize: 16 }} />
+        </IconButton>
+      ) : null}
     </Box>
   )
 }
 
-function LocalPhotoThumb({ item, onRemove }: { item: PendingPhoto; onRemove: () => void }) {
+/** Placeholder shown while a picked file is being uploaded; replaced by the server photo when done. */
+function LocalPhotoThumb({ item }: { item: PendingPhoto }) {
   return (
     <Box sx={{ position: 'relative', width: 140, height: 105 }}>
       {item.kind === 'video' ? (
-        <Box component="video" src={item.url} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black' }} />
+        <Box component="video" src={item.url} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', bgcolor: 'common.black', opacity: 0.55 }} />
       ) : (
-        <Box component="img" src={item.url} alt={item.file.name} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
+        <Box component="img" src={item.url} alt={item.file.name} sx={{ width: 140, height: 105, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider', opacity: 0.55 }} />
       )}
-      <IconButton size="small" onClick={onRemove} aria-label={`Remove ${item.file.name}`} sx={{ position: 'absolute', top: -8, right: -8, bgcolor: 'background.paper', boxShadow: 1 }}>
-        <CloseOutlinedIcon sx={{ fontSize: 16 }} />
-      </IconButton>
+      <Box
+        sx={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 12,
+          fontWeight: 700,
+          color: 'text.primary',
+        }}
+      >
+        Uploading…
+      </Box>
     </Box>
   )
 }
@@ -562,11 +900,7 @@ function ProductThumb({ photo }: { photo: IceProgressPhoto }) {
       />
     )
   }
-  return <Box component="img" src={src} alt="" sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
-}
-
-function freshDraftKey(): string {
-  return (`d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`).slice(0, 80)
+  return <Box component="img" src={src ?? undefined} alt="" sx={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }} />
 }
 
 function gameDraftKey(item: IceScoutProduct | null | undefined): string {
@@ -585,17 +919,6 @@ function gameDraftKey(item: IceScoutProduct | null | undefined): string {
   return id ? `g:${id}` : ''
 }
 
-function resolvedDraftKey(item: IceScoutProduct, activeKey: string): string {
-  const gameKey = gameDraftKey(item)
-  if (gameKey) {
-    return gameKey
-  }
-  if (item.draft_key) {
-    return String(item.draft_key).slice(0, 80)
-  }
-  return activeKey || freshDraftKey()
-}
-
 function productTitle(item: IceScoutProduct, games: IceGame[]): string {
   if (item.is_new_product) {
     return item.game_name?.trim() || 'Untitled new product'
@@ -607,70 +930,143 @@ function productTitle(item: IceScoutProduct, games: IceGame[]): string {
   return ids.map((id) => games.find((game) => game.ID === id)?.name ?? `Game #${id}`).join(', ')
 }
 
-function draftErrors(
+type DraftWarning = { key: string; message: string }
+
+function savedPhotoCount(item: IceScoutProduct): number {
+  return (item.photos ?? []).filter((photo) => photo && photo.id && !String(photo.id).startsWith('pending-')).length
+}
+
+/**
+ * Same split as the original scout form: identity problems always block, the personal rating
+ * blocks "Save game" only, and the rest of the questionnaire is a soft warning that stays
+ * marked on the game until it is filled in.
+ */
+function draftIssues(
   item: IceScoutProduct,
   games: IceGame[],
   usedIds: Set<number>,
-  options: { needCompetitor?: boolean; forceNew?: boolean },
-): string[] {
-  const errors: string[] = []
-  if (!item.category) {
-    errors.push('Select a category.')
+  options: { needCompetitor?: boolean; forceNew?: boolean; photoOnly?: boolean; uploading?: boolean },
+): { blocking: string[]; warnings: DraftWarning[] } {
+  const blocking: string[] = []
+  const warnings: DraftWarning[] = []
+  const warn = (key: string, message: string) => warnings.push({ key, message })
+  const photoOnly = Boolean(options.photoOnly)
+  const photoSaved = savedPhotoCount(item) > 0
+
+  if (photoOnly && !photoSaved) {
+    blocking.push(options.uploading ? 'Wait until the photo or video has finished uploading.' : 'Add a photo or video first.')
+  } else if (options.uploading) {
+    blocking.push('Wait until the photo or video has finished uploading.')
+  }
+  if (!item.category && !photoOnly && !photoSaved) {
+    blocking.push('Select a category.')
+  } else if (!item.category && (photoOnly || photoSaved)) {
+    warn('category', 'Category and the other questionnaire fields can be filled in later.')
   }
   if (options.needCompetitor) {
     const typed = (item.competitor_name ?? item.competitor ?? '').trim()
     if (!typed && !(Number(item.competitor_ID) > 0)) {
-      errors.push('Select the competitor.')
+      blocking.push('Select the competitor.')
     }
   }
   if (item.is_new_product || options.forceNew) {
     if (!item.game_name?.trim()) {
-      errors.push('Enter the new product’s game name.')
+      blocking.push('Enter the new product’s game name.')
     }
   } else if (games.length === 0) {
-    errors.push('This competitor has no games yet. Turn on New product to type a name.')
+    blocking.push('This competitor has no games yet. Turn on New product to type a name.')
   } else if (!(item.game_ids ?? []).length) {
-    errors.push(games.some((game) => !usedIds.has(game.ID)) ? 'Select a game.' : 'All catalog games are already on this questionnaire. Turn on New product to add another name.')
+    blocking.push(
+      games.some((game) => !usedIds.has(game.ID))
+        ? 'Select the game this product belongs to.'
+        : 'All catalog games are already on this questionnaire. Turn on New product to add another name.',
+    )
   } else {
     for (const id of item.game_ids ?? []) {
       if (usedIds.has(id)) {
-        errors.push('That game is already on this questionnaire. Pick a different game.')
+        blocking.push('That game is already on this questionnaire. Pick a different game.')
         break
+      }
+    }
+  }
+
+  if (item.category && item.played_at !== 'show' && item.played_at !== 'field') {
+    warn('played_at', 'Say whether this was played at a show or in the field.')
+  }
+  if (item.played_at === 'field') {
+    if (!String(item.field_market ?? '').trim()) {
+      warn('field_market', 'Enter the market where the game was played.')
+    }
+    if (!String(item.field_venue ?? '').trim()) {
+      warn('field_venue', 'Enter the venue where the game was played.')
+    }
+  }
+  const slotSpecs = Boolean(item.category) && item.category !== 'cabinet' && item.category !== 'multigame'
+  if (slotSpecs) {
+    if (item.progressive_jp === 'yes') {
+      if (item.no_progressives === '' || item.no_progressives == null) {
+        warn('no_progressives', 'Enter the number of progressives.')
+      }
+      if (item.no_static === '' || item.no_static == null) {
+        warn('no_static', 'Enter the number of static jackpots.')
+      }
+    }
+    if (!(item.functionality ?? []).length) {
+      warn('mechanics', 'Select at least one mechanic. Tap ? beside a name if the term is unfamiliar.')
+    }
+    if (!String(item.win_lines ?? '').trim()) {
+      warn('win_lines', 'Enter win-lines.')
+    }
+    if (item.played_at === 'field') {
+      const hasBet = selectedBets(item.bets).length > 0 || String(item.bet_other ?? '').trim() !== ''
+      const hasDenom =
+        (item.denominations ?? []).length > 0 || String(item.denomination_other ?? '').trim() !== '' || String(item.denomination ?? '').trim() !== ''
+      if (!hasBet) {
+        warn('bets', 'Enter at least one bet for a live casino play, or type it under Other bet.')
+      }
+      if (!hasDenom) {
+        warn('denoms', 'Enter at least one denomination for a live casino play, or type it under Other denomination.')
       }
     }
   }
   if (item.category === 'cabinet') {
     if (item.number_of_monitors === '' || item.number_of_monitors == null) {
-      errors.push('Enter the number of monitors.')
+      warn('monitors', 'Enter the number of monitors.')
     }
     if (!String(item.monitor_size ?? '').trim()) {
-      errors.push('Enter the monitor size.')
+      warn('monitor_size', 'Enter the monitor size.')
     }
     if (item.uhd !== 'yes' && item.uhd !== 'no') {
-      errors.push('Select UHD yes or no.')
+      warn('uhd', 'Select UHD yes or no.')
     }
     if (item.video_button_panel !== 'yes' && item.video_button_panel !== 'no') {
-      errors.push('Select Video Button Panel yes or no.')
+      warn('vbp', 'Select Video Button Panel yes or no.')
     } else if (item.video_button_panel === 'yes' && !String(item.vbp_functions ?? '').trim()) {
-      errors.push('Enter the functions of the Video Button Panel.')
-    }
-  } else if (item.category !== 'multigame') {
-    if (item.progressive_jp === 'yes') {
-      if (item.no_progressives === '' || item.no_progressives == null) {
-        errors.push('Enter the number of progressives.')
-      }
-      if (item.no_static === '' || item.no_static == null) {
-        errors.push('Enter the number of static jackpots.')
-      }
-    }
-    if (!(item.functionality ?? []).length) {
-      errors.push('Select at least one mechanics option.')
-    }
-    if (!String(item.win_lines ?? '').trim()) {
-      errors.push('Enter win-lines.')
+      warn('vbp_functions', 'Enter the functions of the Video Button Panel.')
     }
   }
-  return errors
+
+  const rating = item.rating ?? {}
+  if (ICE_EVAL_CRITERIA.some(({ key }) => scoreValue(rating[key]) === '')) {
+    warn('rating', 'Rate every criterion from 1 to 5. 5 means we would want this, 3 means typical, and 1 means well below what we would put on the floor.')
+    if (!photoOnly) {
+      blocking.push('Rate every criterion from 1 to 5 before saving the game. Use 3 when the game is typical.')
+    }
+  }
+  if (!['yes', 'no', 'unsure'].includes(String(item.would_play ?? ''))) {
+    warn('would_play', 'Say whether you would play this game at a casino.')
+    if (!photoOnly) {
+      blocking.push('Say whether you would play this game at a casino.')
+    }
+  }
+  return { blocking, warnings }
+}
+
+function productRated(item: IceScoutProduct): boolean {
+  const rating = item.rating ?? {}
+  return (
+    ICE_EVAL_CRITERIA.every(({ key }) => scoreValue(rating[key]) !== '') && ['yes', 'no', 'unsure'].includes(String(item.would_play ?? ''))
+  )
 }
 
 function ensureDraftKey(product: IceScoutProduct): string {
@@ -685,6 +1081,7 @@ export function IceQuestionnaireForm({
   drafts = [],
   games,
   competitorId,
+  competitorName = '',
   teamMembers,
   updatedBy,
   updatedAt,
@@ -703,6 +1100,8 @@ export function IceQuestionnaireForm({
   drafts?: IceScoutProduct[]
   games: IceGame[]
   competitorId: number
+  /** Assigned competitor's name (used to look up shared game media). Open questionnaires pick one per product. */
+  competitorName?: string
   teamMembers?: string[]
   updatedBy?: string | null
   updatedAt?: string | null
@@ -722,9 +1121,17 @@ export function IceQuestionnaireForm({
   const [draft, setDraft] = useState<IceScoutProduct>(emptyDraft())
   const [editingIndex, setEditingIndex] = useState<number | null>(null)
   const [errors, setErrors] = useState<string[]>([])
-  const [uploading, setUploading] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [pendingPhotos, setPendingPhotos] = useState<PendingPhoto[]>([])
-  const [removedPhotoIds, setRemovedPhotoIds] = useState<string[]>([])
+  const [removedPhotos, setRemovedPhotos] = useState<Array<{ id: string; competitorId: number }>>([])
+  const [sharedPhotos, setSharedPhotos] = useState<IceGameMediaPhoto[]>([])
+  const [showWarnings, setShowWarnings] = useState(false)
+  /** Bumped whenever the dialog opens or closes so late uploads from an old session are discarded. */
+  const sessionRef = useRef(0)
+  const uploadQueueRef = useRef<Array<{ item: PendingPhoto; session: number; competitorId: number }>>([])
+  const uploadsInFlightRef = useRef(0)
+  const uploadedThisSessionRef = useRef<Set<string>>(new Set())
+  const currentUserId = getStoredUser<AuthUser>()?.ID ?? 0
   const [productDraft, setProductDraft] = useState<{ item: IceScoutProduct; index: number } | null>(null)
   const [modalDirty, setModalDirty] = useState(false)
   const modalLockedRef = useRef(false)
@@ -831,11 +1238,37 @@ export function IceQuestionnaireForm({
       return
     }
     const index = productDraft.index
-    setDraft({ ...emptyDraft(), ...productDraft.item, photos: productDraft.item.photos ?? [], game_ids: productDraft.item.game_ids ?? [] })
+    clearPendingPhotos()
+    setDraft(hydrateProduct(productDraft.item))
     setEditingIndex(Number.isFinite(index) && index >= 0 && index < products.length ? index : null)
     setErrors([])
+    setShowWarnings(true)
     setModalDirty(false)
     setOpen(true)
+  }
+
+  /** Continue a team draft (same fields; your own scores only). */
+  function openServerDraft(item: IceScoutProduct) {
+    clearPendingPhotos()
+    const rest: IceScoutProduct = { ...item }
+    delete rest.is_draft
+    delete rest.draft_by
+    delete rest.draft_at
+    setDraft(hydrateProduct(rest))
+    setEditingIndex(null)
+    setErrors([])
+    setShowWarnings(true)
+    setModalDirty(false)
+    setOpen(true)
+  }
+
+  function discardServerDraft(item: IceScoutProduct) {
+    const key = item.draft_key
+    if (!key || !window.confirm('Discard this draft? The questionnaire is not changed.')) {
+      return
+    }
+    onDraftsChange?.(drafts.filter((entry) => entry.draft_key !== key))
+    void deleteIceDraft(competitorId, key).catch(() => undefined)
   }
 
   const usedIds = (except: number | null) => {
@@ -851,12 +1284,17 @@ export function IceQuestionnaireForm({
     return used
   }
 
+  /** Forget queued/in-flight uploads from the closing dialog and release local previews. */
   function clearPendingPhotos() {
+    sessionRef.current += 1
+    uploadQueueRef.current = []
+    uploadedThisSessionRef.current = new Set()
     setPendingPhotos((current) => {
       releasePending(current)
       return []
     })
-    setRemovedPhotoIds([])
+    setRemovedPhotos([])
+    setSharedPhotos([])
   }
 
   function openAdd() {
@@ -864,16 +1302,17 @@ export function IceQuestionnaireForm({
     setDraft({ ...emptyDraft(), is_new_product: forceNewProduct })
     setEditingIndex(null)
     setErrors([])
+    setShowWarnings(false)
     setModalDirty(false)
     setOpen(true)
   }
 
   function openEdit(index: number) {
     clearPendingPhotos()
-    const item = products[index]
-    setDraft({ ...emptyDraft(), ...item, photos: item.photos ?? [], game_ids: item.game_ids ?? [] })
+    setDraft(hydrateProduct(products[index]))
     setEditingIndex(index)
     setErrors([])
+    setShowWarnings(true)
     setModalDirty(false)
     setOpen(true)
   }
@@ -892,38 +1331,73 @@ export function IceQuestionnaireForm({
     }
   }
 
-  async function saveDraft() {
+  /** The product as sent to the server (legacy denomination text kept in sync with the checkboxes). */
+  function productForSave(item: IceScoutProduct): IceScoutProduct {
+    const out: IceScoutProduct = { ...item }
+    const ordered = Object.keys(ICE_DENOMINATIONS).filter((value) => (item.denominations ?? []).includes(value))
+    const other = String(item.denomination_other ?? '').trim()
+    out.denominations = ordered
+    out.denomination_other = other
+    out.denomination = [...ordered, ...(other ? [other] : [])].join(', ')
+    out.bet_other = String(item.bet_other ?? '').trim()
+    out.played_at = item.played_at === 'field' ? 'field' : 'show'
+    out.field_market = out.played_at === 'field' ? String(item.field_market ?? '').trim() : ''
+    out.field_venue = out.played_at === 'field' ? String(item.field_venue ?? '').trim() : ''
+    out.eval_note = String(item.eval_note ?? '').trim()
+    if (!openMode && !String(out.competitor_name ?? '').trim() && competitorName) {
+      out.competitor_name = competitorName
+    }
+    out.photos = (item.photos ?? []).filter((photo) => photo && photo.id && !String(photo.id).startsWith('pending-'))
+    return out
+  }
+
+  /** Saved product for the same catalog game / new-product name, so a draft replaces it instead of duplicating. */
+  function officialIndexFor(item: IceScoutProduct): number {
+    const key = gameDraftKey(item)
+    if (!key) {
+      return -1
+    }
+    return products.findIndex((entry) => gameDraftKey(entry) === key)
+  }
+
+  /**
+   * Save game (photoOnly = false): identity and the full personal rating are required.
+   * Save photo now (photoOnly = true): needs a saved photo; everything else stays a warning.
+   */
+  async function commitDraft(photoOnly: boolean) {
     const used = usedIds(editingIndex)
-    const found = draftErrors(draft, gamesForDraft, used, { needCompetitor: openMode, forceNew: forceNewProduct })
-    if (found.length) {
-      setErrors(found)
+    const issues = draftIssues(draft, gamesForDraft, used, {
+      needCompetitor: openMode,
+      forceNew: forceNewProduct,
+      photoOnly,
+      uploading: pendingPhotos.length > 0,
+    })
+    setShowWarnings(true)
+    if (issues.blocking.length) {
+      setErrors(issues.blocking)
       return
     }
-    setUploading(true)
+    setErrors([])
+    setSaving(true)
     try {
-      const uploaded: IceProgressPhoto[] = []
-      for (const item of pendingPhotos) {
-        const ready = item.kind === 'video' ? item.file : await compressPhoto(item.file)
-        const result = await uploadIcePhoto(competitorId, ready)
-        uploaded.push(result.photo)
-      }
-      const product: IceScoutProduct = { ...draft, photos: [...(draft.photos ?? []), ...uploaded] }
-      setDraft(product)
-      releasePending(pendingPhotos)
-      setPendingPhotos([])
+      const product = productForSave(draft)
       const next = [...products]
-      if (editingIndex === null) {
-        next.push(product)
+      const index = editingIndex !== null ? editingIndex : officialIndexFor(product)
+      if (index >= 0 && index < next.length) {
+        next[index] = product
       } else {
-        next[editingIndex] = product
+        next.push(product)
       }
       await persist(next)
-      for (const id of removedPhotoIds) {
+      for (const removed of removedPhotos) {
         try {
-          await deleteIcePhoto(competitorId, id)
+          await deleteIcePhoto(removed.competitorId, removed.id)
         } catch {
           // The picture is already gone from the saved questionnaire.
         }
+      }
+      if (!openMode && product.draft_key) {
+        void deleteIceDraft(competitorId, product.draft_key).catch(() => undefined)
       }
       await clearStoredProductDraft()
       clearPendingPhotos()
@@ -932,7 +1406,7 @@ export function IceQuestionnaireForm({
     } catch (error) {
       setErrors([error instanceof ApiError ? error.message : 'Could not save the questionnaire.'])
     } finally {
-      setUploading(false)
+      setSaving(false)
     }
   }
 
@@ -948,36 +1422,125 @@ export function IceQuestionnaireForm({
     }
   }
 
+  function pumpUploads() {
+    while (uploadsInFlightRef.current < PHOTO_UPLOAD_CONCURRENCY && uploadQueueRef.current.length > 0) {
+      const job = uploadQueueRef.current.shift()
+      if (!job) {
+        break
+      }
+      uploadsInFlightRef.current += 1
+      void runUpload(job).finally(() => {
+        uploadsInFlightRef.current -= 1
+        pumpUploads()
+      })
+    }
+  }
+
+  async function runUpload(job: { item: PendingPhoto; session: number; competitorId: number }) {
+    const { item } = job
+    const stale = () => job.session !== sessionRef.current
+    try {
+      const ready = item.kind === 'video' ? item.file : await compressPhoto(item.file)
+      const limit = item.kind === 'video' ? VIDEO_MAX_BYTES : PHOTO_MAX_BYTES
+      if (ready.size > limit) {
+        throw new Error(item.kind === 'video' ? 'Videos must be 400 MB or smaller.' : 'Pictures must be 10 MB or smaller.')
+      }
+      const result = await uploadIcePhoto(job.competitorId, ready)
+      if (stale()) {
+        // The dialog was closed or reopened meanwhile: do not leave an orphan file behind.
+        void deleteIcePhoto(job.competitorId, result.photo.id).catch(() => undefined)
+        return
+      }
+      uploadedThisSessionRef.current.add(result.photo.id)
+      // Replace the placeholder with the server photo id.
+      setPendingPhotos((current) => {
+        const found = current.find((entry) => entry.id === item.id)
+        if (found) {
+          URL.revokeObjectURL(found.url)
+        }
+        return current.filter((entry) => entry.id !== item.id)
+      })
+      setDraft((current) => ({ ...current, photos: [...(current.photos ?? []), result.photo] }))
+      setModalDirty(true)
+    } catch (error) {
+      if (stale()) {
+        return
+      }
+      setPendingPhotos((current) => {
+        const found = current.find((entry) => entry.id === item.id)
+        if (found) {
+          URL.revokeObjectURL(found.url)
+        }
+        return current.filter((entry) => entry.id !== item.id)
+      })
+      const message = error instanceof Error ? error.message : 'Could not upload the file.'
+      setErrors((current) => [...current.filter((entry) => !entry.startsWith(`${item.file.name}:`)), `${item.file.name}: ${message}`])
+    }
+  }
+
+  /** Photos upload as soon as they are picked; the placeholder is replaced by the server photo. */
   function queuePhotos(files: FileList | null) {
     if (!files || files.length === 0) {
       return
     }
-    const queued: PendingPhoto[] = Array.from(files).map((file) => ({
-      id: `${Date.now()}-${file.name}-${Math.random()}`,
-      file,
-      url: URL.createObjectURL(file),
-      kind: file.type.startsWith('video/') ? 'video' : 'image',
-    }))
-    setModalDirty(true)
-    setPendingPhotos((current) => [...current, ...queued])
-  }
-
-  function dropPendingPhoto(id: string) {
-    setPendingPhotos((current) => {
-      const item = current.find((entry) => entry.id === id)
-      if (item) URL.revokeObjectURL(item.url)
-      return current.filter((entry) => entry.id !== id)
-    })
-  }
-
-  function removePhoto(index: number) {
-    const photo = draft.photos?.[index]
-    if (!photo) {
+    const problems: string[] = []
+    const queued: PendingPhoto[] = []
+    for (const file of Array.from(files)) {
+      const isVideo = file.type.startsWith('video/') || /\.(mp4|mov|m4v|webm)$/i.test(file.name)
+      if (isVideo && file.size > VIDEO_MAX_BYTES) {
+        problems.push('Videos must be 400 MB or smaller.')
+        continue
+      }
+      if (!isVideo && file.size > 40 * 1024 * 1024) {
+        problems.push('That picture is too large to prepare for upload.')
+        continue
+      }
+      queued.push({
+        id: `pending-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        file,
+        url: URL.createObjectURL(file),
+        kind: isVideo ? 'video' : 'image',
+      })
+    }
+    if (problems.length) {
+      setErrors(problems)
+    } else if (queued.length) {
+      setErrors([])
+    }
+    if (queued.length === 0) {
       return
     }
-    setRemovedPhotoIds((current) => (current.includes(photo.id) ? current : [...current, photo.id]))
     setModalDirty(true)
-    setDraft((current) => ({ ...current, photos: (current.photos ?? []).filter((_, i) => i !== index) }))
+    setPendingPhotos((current) => [...current, ...queued])
+    for (const item of queued) {
+      uploadQueueRef.current.push({ item, session: sessionRef.current, competitorId })
+    }
+    pumpUploads()
+  }
+
+  function canDeletePhoto(photo: { id: string }): boolean {
+    return currentUserId > 0 && photoUploaderId(photo) === currentUserId
+  }
+
+  /** Remove a picture from this product. Only the uploader may delete the file itself. */
+  function removePhoto(photo: IceProgressPhoto) {
+    if (!canDeletePhoto(photo)) {
+      return
+    }
+    setModalDirty(true)
+    setSharedPhotos((current) => current.filter((entry) => entry.id !== photo.id))
+    const inProduct = (draft.photos ?? []).some((entry) => entry.id === photo.id)
+    setDraft((current) => ({ ...current, photos: (current.photos ?? []).filter((entry) => entry.id !== photo.id) }))
+    if (uploadedThisSessionRef.current.has(photo.id) || !inProduct) {
+      // Uploaded in this dialog (not in any saved product yet), or a file from another saved product of yours.
+      uploadedThisSessionRef.current.delete(photo.id)
+      void deleteIcePhoto(photoCompetitorId(photo, competitorId), photo.id).catch(() => undefined)
+      return
+    }
+    // Part of the saved product: delete the file only once the product is saved without it.
+    setRemovedPhotos((current) =>
+      current.some((entry) => entry.id === photo.id) ? current : [...current, { id: photo.id, competitorId: photoCompetitorId(photo, competitorId) }],
+    )
   }
 
   const isNew = Boolean(draft.is_new_product) || forceNewProduct
@@ -991,6 +1554,45 @@ export function IceQuestionnaireForm({
   const available = gamesForDraft.filter((game) => !usedIds(editingIndex).has(game.ID) || game.ID === selectedGameId)
   const pastHistory = (history ?? []).filter((entry) => !entry.is_current)
   const gamePlaceholder = games.length === 0 ? 'No games for this competitor' : available.length === 0 ? 'All games already on this questionnaire' : 'Select a game…'
+  const uploading = pendingPhotos.length > 0
+  const mediaGameName = isNew ? String(draft.game_name ?? '').trim() : (games.find((game) => game.ID === selectedGameId)?.name ?? '')
+  const mediaGameId = isNew ? 0 : selectedGameId
+  const mediaCompetitorName = openMode ? String(draft.competitor_name ?? '').trim() : competitorName
+
+  // Pictures already saved for this competitor + game (every questionnaire), refreshed when the game changes.
+  useEffect(() => {
+    if (!open || (mediaGameId < 1 && !mediaGameName)) {
+      setSharedPhotos([])
+      return
+    }
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      void getIceGameMedia({ gameId: mediaGameId, gameName: mediaGameName, competitorName: mediaCompetitorName })
+        .then((result) => {
+          if (!cancelled) {
+            setSharedPhotos(result.photos ?? [])
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setSharedPhotos([])
+          }
+        })
+    }, 350)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [open, mediaGameId, mediaGameName, mediaCompetitorName])
+
+  // Soft warnings: shown next to the fields once the game was opened for editing or a save was tried.
+  const warns: Record<string, string> = {}
+  if (open && showWarnings) {
+    for (const warning of draftIssues(draft, gamesForDraft, usedIds(editingIndex), { needCompetitor: openMode, forceNew: forceNewProduct }).warnings) {
+      warns[warning.key] = warning.message
+    }
+  }
+  const sharedExtra = sharedPhotos.filter((photo) => !(draft.photos ?? []).some((entry) => entry.id === photo.id))
 
   return (
     <>
@@ -1064,7 +1666,7 @@ export function IceQuestionnaireForm({
         />
         <Box sx={{ p: 2.5 }}>
           <Typography sx={{ color: 'text.secondary', mb: 2 }}>
-            Use <strong>Add product</strong> for each game you scout. It is saved as soon as you add or edit it. Fields marked with <strong>*</strong> are required.
+            The questionnaire and your rating for each game are one form. <strong>Save game</strong> needs your 1–5 score on every criterion and whether you would play it. Your score goes into your own evaluation and is not shared with your teammate. Other missing details stay marked. A photo or video can be saved on its own with <strong>Save photo now</strong>. Fields marked with <strong>*</strong> are required.
             {openMode
               ? ' Select the competitor, or type a new competitor name, then pick a catalog game or turn on New product. You can upload pictures and video.'
               : forceNewProduct
@@ -1087,7 +1689,15 @@ export function IceQuestionnaireForm({
                           {item.draft_at ? ` · ${item.draft_at}` : ''}
                         </Typography>
                       </Box>
-                      <Chip size="small" color="warning" label="Draft" sx={{ fontWeight: 700 }} />
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                        <Chip size="small" color="warning" label="Draft" sx={{ fontWeight: 700 }} />
+                        <AppButton size="small" variant="outlined" color="secondary" onClick={() => openServerDraft(item)}>
+                          Continue
+                        </AppButton>
+                        <AppButton size="small" variant="outlined" color="error" onClick={() => discardServerDraft(item)}>
+                          Discard
+                        </AppButton>
+                      </Box>
                     </Box>
                   </Paper>
                 ))}
@@ -1116,7 +1726,14 @@ export function IceQuestionnaireForm({
                   }}
                 >
                   <Box sx={{ flex: 1, minWidth: 180 }}>
-                    <Typography sx={{ fontWeight: 800 }}>{productTitle(item, games)}</Typography>
+                    <Typography sx={{ fontWeight: 800 }}>
+                      {productTitle(item, games)}{' '}
+                      {productRated(item) ? (
+                        <Chip size="small" color="success" label="Rated" sx={{ fontWeight: 700, ml: 0.5 }} />
+                      ) : (
+                        <Chip size="small" color="warning" variant="outlined" label="Rating missing" sx={{ fontWeight: 700, ml: 0.5 }} />
+                      )}
+                    </Typography>
                     <Typography sx={{ color: 'text.secondary', fontSize: 13 }}>
                       {(ICE_GAME_TYPES[(item.category ?? '') as keyof typeof ICE_GAME_TYPES] ?? item.category ?? 'Product')
                         + (item.is_new_product ? ' · New product' : '')
@@ -1214,6 +1831,7 @@ export function IceQuestionnaireForm({
                 </MenuItem>
               ))}
             </AppTextField>
+            <Warn text={warns.category} />
           </Box>
 
           {openMode ? (
@@ -1294,6 +1912,8 @@ export function IceQuestionnaireForm({
             </Box>
           )}
 
+          <PlayedAtFields product={draft} warns={warns} onChange={(next) => patchDraft((current) => ({ ...current, ...next }))} />
+
           {isMultigame ? (
             <MultigameFields product={draft} onChange={(next) => patchDraft((current) => ({ ...current, ...next }))} />
           ) : (
@@ -1303,9 +1923,12 @@ export function IceQuestionnaireForm({
               themeWorlds={themeWorlds}
               mechanicsOptions={mechanicsOptions}
               mechanicsHelp={mechanicsHelp}
+              warns={warns}
               onChange={(next) => patchDraft((current) => ({ ...current, ...next }))}
             />
           )}
+
+          <RatingFields product={draft} warns={warns} onChange={(next) => patchDraft((current) => ({ ...current, ...next }))} />
 
           <Box sx={{ mt: 1 }}>
             <Typography sx={{ mb: 1 }}>Game pictures</Typography>
@@ -1318,10 +1941,10 @@ export function IceQuestionnaireForm({
                 '& .MuiButton-root': { minHeight: 44, width: '100%' },
               }}
             >
-              <AppButton size="small" variant="outlined" color="secondary" startIcon={<PhotoCameraOutlinedIcon />} disabled={uploading} onClick={() => cameraRef.current?.click()}>
+              <AppButton size="small" variant="outlined" color="secondary" startIcon={<PhotoCameraOutlinedIcon />} onClick={() => cameraRef.current?.click()}>
                 Take photo
               </AppButton>
-              <AppButton size="small" variant="outlined" color="secondary" startIcon={<PhotoLibraryOutlinedIcon />} disabled={uploading} onClick={() => libraryRef.current?.click()}>
+              <AppButton size="small" variant="outlined" color="secondary" startIcon={<PhotoLibraryOutlinedIcon />} onClick={() => libraryRef.current?.click()}>
                 Upload from phone
               </AppButton>
               <AppButton
@@ -1329,7 +1952,6 @@ export function IceQuestionnaireForm({
                 variant="outlined"
                 color="secondary"
                 startIcon={<VideocamOutlinedIcon />}
-                disabled={uploading}
                 onClick={() => videoRef.current?.click()}
                 sx={{ gridColumn: '1 / -1' }}
               >
@@ -1337,12 +1959,12 @@ export function IceQuestionnaireForm({
               </AppButton>
             </Box>
             <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1 }}>
-              On a phone, Take photo opens the camera. Upload from phone opens the gallery. JPG, PNG, or MP4 (videos up to 400 MB).
+              Pick the competitor and the game, add a photo or video, then press <strong>Save photo now</strong>. Category, mechanics, bets, and the rating can be filled in later; they stay marked on the game. On a phone, Take photo opens the camera and Upload from phone opens the gallery. JPG, PNG, and HEIC are accepted; video (MP4/MOV) up to 400 MB.
             </Typography>
             <input
               ref={cameraRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               capture="environment"
               hidden
               onChange={(event) => {
@@ -1353,7 +1975,7 @@ export function IceQuestionnaireForm({
             <input
               ref={libraryRef}
               type="file"
-              accept="image/*"
+              accept="image/*,.heic,.heif"
               multiple
               hidden
               onChange={(event) => {
@@ -1371,16 +1993,28 @@ export function IceQuestionnaireForm({
                 event.target.value = ''
               }}
             />
+            {uploading ? (
+              <Typography sx={{ color: 'warning.dark', fontSize: 13, fontWeight: 700, mb: 1 }} role="status">
+                Uploading {pendingPhotos.length} file{pendingPhotos.length === 1 ? '' : 's'}… Wait before saving.
+              </Typography>
+            ) : null}
             <Typography sx={{ color: 'text.secondary', fontSize: 13, mb: 1 }}>
-              Pictures stay in this dialog until you save the product. Remove any you do not want.
+              Files upload as soon as you pick them. Pictures already saved for this game are shown below; only a file you uploaded has a remove button.
             </Typography>
-            {(draft.photos ?? []).length > 0 || pendingPhotos.length > 0 ? (
+            {(draft.photos ?? []).length > 0 || pendingPhotos.length > 0 || sharedExtra.length > 0 ? (
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
-                {(draft.photos ?? []).map((photo, index) => (
-                  <DraftPhotoThumb key={photo.id} photo={photo} onRemove={() => removePhoto(index)} />
+                {(draft.photos ?? []).map((photo) => (
+                  <DraftPhotoThumb key={photo.id} photo={photo} onRemove={canDeletePhoto(photo) ? () => removePhoto(photo) : undefined} />
                 ))}
                 {pendingPhotos.map((item) => (
-                  <LocalPhotoThumb key={item.id} item={item} onRemove={() => dropPendingPhoto(item.id)} />
+                  <LocalPhotoThumb key={item.id} item={item} />
+                ))}
+                {sharedExtra.map((photo) => (
+                  <DraftPhotoThumb
+                    key={`shared-${photo.id}`}
+                    photo={photo}
+                    onRemove={photo.can_delete ? () => removePhoto(photo) : undefined}
+                  />
                 ))}
               </Box>
             ) : null}
@@ -1405,8 +2039,11 @@ export function IceQuestionnaireForm({
           <AppButton size="medium" variant="outlined" color="secondary" onClick={() => closeDialog(true)}>
             Cancel
           </AppButton>
-          <AppButton size="medium" color="secondary" disabled={uploading} onClick={() => void saveDraft()}>
-            {uploading ? 'Saving…' : editingIndex === null ? 'Add to questionnaire' : 'Save product'}
+          <AppButton size="medium" variant="outlined" color="secondary" disabled={saving} onClick={() => void commitDraft(true)}>
+            {saving ? 'Saving…' : 'Save photo now'}
+          </AppButton>
+          <AppButton size="medium" color="secondary" disabled={saving} onClick={() => void commitDraft(false)}>
+            {saving ? 'Saving…' : 'Save game'}
           </AppButton>
         </DialogActions>
       </Dialog>

@@ -25,6 +25,7 @@ export const APP_PATHS = {
   roadmap: '/roadmap',
   roadmapGames: '/roadmap/games',
   roadmapDocs: '/roadmap/docs',
+  roadmapAnalyst: '/roadmap/analyst',
   teamRoadmap: '/team-roadmap',
   tasks: '/tasks',
   find: '/find',
@@ -64,6 +65,10 @@ export function productGamesDocsPackagePath(versionId: number): string {
 
 export function releaseInformationSheetPath(releaseId: number): string {
   return `${APP_PATHS.releaseInformationSheet}?id=${releaseId}`
+}
+
+export function installationsReportPath(versionId: number): string {
+  return `${APP_PATHS.installationsReport}?v=${versionId}`
 }
 
 export function ice2027QuestionnairePath(competitorId: number, eventSlug?: string): string {

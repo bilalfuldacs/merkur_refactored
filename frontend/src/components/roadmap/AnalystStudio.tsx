@@ -38,7 +38,40 @@ function slicesFromGames(games: RoadmapGame[], perspective: Perspective, emptyLa
   return [...buckets.values()].sort((a, b) => b.count - a.count)
 }
 
-export function AnalystStudio({ games }: { games: RoadmapGame[] }) {
+const clickableSx = {
+  cursor: 'pointer',
+  border: 0,
+  p: 0,
+  bgcolor: 'transparent',
+  font: 'inherit',
+  color: 'inherit',
+  textAlign: 'inherit' as const,
+} as const
+
+const chosenOutlineSx = { outline: '2px solid', outlineColor: 'merkur.pink', outlineOffset: 1 } as const
+
+function isChosen(label: string, search: string): boolean {
+  const chosen = search.trim().toLowerCase()
+  return chosen !== '' && label.trim().toLowerCase() === chosen
+}
+
+type SliceHandlers = {
+  search: string
+  emptyLabel: string
+  onSelect: (label: string) => void
+}
+
+export function AnalystStudio({
+  games,
+  search = '',
+  onFilterChange,
+}: {
+  games: RoadmapGame[]
+  /** Current games roadmap search value; the matching category is highlighted. */
+  search?: string
+  /** Called with a category label (studio / target market) to filter the games roadmap; empty string clears. */
+  onFilterChange?: (label: string) => void
+}) {
   const { t } = useI18n()
   const [perspective, setPerspective] = useState<Perspective>('pry-design-target-mkt')
   const [chartType, setChartType] = useState<ChartType>('bar')
@@ -48,6 +81,18 @@ export function AnalystStudio({ games }: { games: RoadmapGame[] }) {
   const emptyLabel = t('roadmap.emptyNull', '∅ (NULL)')
   const slices = useMemo(() => slicesFromGames(games, perspective, emptyLabel), [games, perspective, emptyLabel])
   const total = slices.reduce((sum, slice) => sum + slice.count, 0)
+  const handlers: SliceHandlers | null = onFilterChange
+    ? {
+        search,
+        emptyLabel,
+        onSelect: (label) => {
+          if (label === emptyLabel) {
+            return
+          }
+          onFilterChange(isChosen(label, search) ? '' : label)
+        },
+      }
+    : null
   const title = perspective === 'studio' ? t('roadmap.studio', 'Studio') : t('roadmap.targetMarketTitle', 'Primary Design Target Market')
 
   return (
@@ -87,18 +132,40 @@ export function AnalystStudio({ games }: { games: RoadmapGame[] }) {
             {slices.length === 0 ? (
               <Typography color="text.secondary">{t('roadmap.noGamesPeriod', 'No games in the current period.')}</Typography>
             ) : chartType === 'bar' || chartType === 'column' ? (
-              <BarChart slices={slices} total={total} percent={percent} columns={chartType === 'column'} />
+              <BarChart slices={slices} total={total} percent={percent} columns={chartType === 'column'} handlers={handlers} />
             ) : (
-              <PieChart slices={slices} total={total} percent={percent} donut={chartType === 'donut'} />
+              <PieChart slices={slices} total={total} percent={percent} donut={chartType === 'donut'} handlers={handlers} />
             )}
             {legend ? (
               <Box sx={{ mt: 1.5, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {slices.map((slice) => (
-                  <Typography key={slice.label} sx={{ fontSize: 13, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Box component="span" sx={{ width: 10, height: 10, bgcolor: slice.color, display: 'inline-block', borderRadius: 0.5 }} />
-                    {slice.label} ({percent && total ? `${Math.round((slice.count / total) * 100)}%` : slice.count})
-                  </Typography>
-                ))}
+                {slices.map((slice) => {
+                  const interactive = Boolean(handlers) && slice.label !== emptyLabel
+                  const chosen = isChosen(slice.label, search)
+                  return (
+                    <Typography
+                      key={slice.label}
+                      component={interactive ? 'button' : 'p'}
+                      type={interactive ? 'button' : undefined}
+                      onClick={interactive ? () => handlers?.onSelect(slice.label) : undefined}
+                      aria-pressed={interactive ? chosen : undefined}
+                      sx={{
+                        fontSize: 13,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        m: 0,
+                        px: 0.5,
+                        borderRadius: 1,
+                        fontWeight: chosen ? 800 : 400,
+                        ...(interactive ? { ...clickableSx, '&:hover': { textDecoration: 'underline' } } : {}),
+                        ...(chosen ? chosenOutlineSx : {}),
+                      }}
+                    >
+                      <Box component="span" sx={{ width: 10, height: 10, bgcolor: slice.color, display: 'inline-block', borderRadius: 0.5 }} />
+                      {slice.label} ({percent && total ? `${Math.round((slice.count / total) * 100)}%` : slice.count})
+                    </Typography>
+                  )
+                })}
               </Box>
             ) : null}
           </Box>
@@ -113,11 +180,13 @@ function BarChart({
   total,
   percent,
   columns,
+  handlers,
 }: {
   slices: Slice[]
   total: number
   percent: boolean
   columns: boolean
+  handlers: SliceHandlers | null
 }) {
   const max = Math.max(...slices.map((slice) => slice.count), 1)
   if (columns) {
@@ -125,10 +194,17 @@ function BarChart({
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, height: 180 }}>
         {slices.map((slice) => {
           const value = percent && total ? Math.round((slice.count / total) * 100) : slice.count
+          const interactive = Boolean(handlers) && slice.label !== handlers?.emptyLabel
+          const chosen = isChosen(slice.label, handlers?.search ?? '')
           return (
-            <Box key={slice.label} sx={{ flex: 1, textAlign: 'center' }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 700 }}>{value}{percent ? '%' : ''}</Typography>
+            <Box
+              key={slice.label}
+              {...sliceInteraction(slice.label, interactive, handlers)}
+              sx={{ flex: 1, textAlign: 'center', borderRadius: 1, ...(interactive ? { cursor: 'pointer' } : {}), ...(chosen ? chosenOutlineSx : {}) }}
+            >
+              <Typography sx={{ fontSize: 12, fontWeight: chosen ? 800 : 700 }}>{value}{percent ? '%' : ''}</Typography>
               <Box sx={{ height: `${Math.max(8, (slice.count / max) * 140)}px`, bgcolor: slice.color, borderRadius: 1 }} />
+              <Typography sx={{ fontSize: 11, fontWeight: chosen ? 800 : 500, mt: 0.25, wordBreak: 'break-word' }}>{slice.label}</Typography>
             </Box>
           )
         })}
@@ -140,9 +216,23 @@ function BarChart({
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
       {slices.map((slice) => {
         const value = percent && total ? Math.round((slice.count / total) * 100) : slice.count
+        const interactive = Boolean(handlers) && slice.label !== handlers?.emptyLabel
+        const chosen = isChosen(slice.label, handlers?.search ?? '')
         return (
-          <Box key={slice.label} sx={{ display: 'grid', gridTemplateColumns: 'minmax(80px, 140px) 1fr auto', alignItems: 'center', gap: 1 }}>
-            <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{slice.label}</Typography>
+          <Box
+            key={slice.label}
+            {...sliceInteraction(slice.label, interactive, handlers)}
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(80px, 140px) 1fr auto',
+              alignItems: 'center',
+              gap: 1,
+              borderRadius: 1,
+              ...(interactive ? { cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } } : {}),
+              ...(chosen ? chosenOutlineSx : {}),
+            }}
+          >
+            <Typography sx={{ fontSize: 13, fontWeight: chosen ? 800 : 700 }}>{slice.label}</Typography>
             <Box sx={{ height: 18, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
               <Box sx={{ width: `${(slice.count / max) * 100}%`, height: '100%', bgcolor: slice.color }} />
             </Box>
@@ -159,11 +249,13 @@ function PieChart({
   total,
   percent,
   donut,
+  handlers,
 }: {
   slices: Slice[]
   total: number
   percent: boolean
   donut: boolean
+  handlers: SliceHandlers | null
 }) {
   let offset = 0
   const segments = slices.map((slice) => {
@@ -176,20 +268,45 @@ function PieChart({
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center' }}>
       <svg viewBox="0 0 120 120" width="180" height="180">
-        {segments.map((segment) => (
-          <path
-            key={segment.label}
-            d={arcPath(60, 60, donut ? 28 : 0, 52, segment.start, segment.sweep)}
-            fill={segment.color}
-          >
-            <title>
-              {segment.label}: {percent && total ? `${Math.round((segment.count / total) * 100)}%` : segment.count}
-            </title>
-          </path>
-        ))}
+        {segments.map((segment) => {
+          const interactive = Boolean(handlers) && segment.label !== handlers?.emptyLabel
+          const chosen = isChosen(segment.label, handlers?.search ?? '')
+          return (
+            <path
+              key={segment.label}
+              {...sliceInteraction(segment.label, interactive, handlers)}
+              d={arcPath(60, 60, donut ? 28 : 0, chosen ? 56 : 52, segment.start, segment.sweep)}
+              fill={segment.color}
+              stroke={chosen ? '#E83181' : 'none'}
+              strokeWidth={chosen ? 2 : 0}
+              style={interactive ? { cursor: 'pointer' } : undefined}
+            >
+              <title>
+                {segment.label}: {percent && total ? `${Math.round((segment.count / total) * 100)}%` : segment.count}
+              </title>
+            </path>
+          )
+        })}
       </svg>
     </Box>
   )
+}
+
+function sliceInteraction(label: string, interactive: boolean, handlers: SliceHandlers | null) {
+  if (!interactive || !handlers) {
+    return {}
+  }
+  return {
+    role: 'button' as const,
+    tabIndex: 0,
+    onClick: () => handlers.onSelect(label),
+    onKeyDown: (event: { key: string; preventDefault: () => void }) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        handlers.onSelect(label)
+      }
+    },
+  }
 }
 
 function arcPath(cx: number, cy: number, inner: number, outer: number, start: number, sweep: number): string {

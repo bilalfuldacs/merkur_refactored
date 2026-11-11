@@ -1066,6 +1066,9 @@ class Ice2027Service
             ? $payload
             : ['products' => $payload];
         $store = ['products' => $this->questionnaireProducts($incoming)];
+        // Ratings belong to the person: keep them for the evaluation sync, never in the shared payload.
+        $rated = $store['products'];
+        $store['products'] = $this->stripPersonalEvaluation($store['products']);
         $isStorage = $open || ! empty($competitor['hidden']) || $this->isStorageCompetitorName((string) ($competitor['name'] ?? ''));
 
         if ($isStorage) {
@@ -1075,6 +1078,7 @@ class Ice2027Service
                 ['user_ID' => $userId, 'competitor_ID' => $competitorId],
                 ['payload' => $store, 'submitted_at' => now()],
             );
+            $this->syncEvaluationFromProducts($userId, $rated, null);
 
             return 'Questionnaire saved.';
         }
@@ -1122,9 +1126,11 @@ class Ice2027Service
             }
             $draftKey = trim((string) ($product['draft_key'] ?? ''));
             if ($draftKey !== '') {
-                $this->deleteQuestionnaireDraft($userId, (int) $team['ID'], $competitorId, $draftKey);
+                $this->deleteQuestionnaireDraft($userId, $competitorId, $draftKey);
             }
         }
+
+        $this->syncEvaluationFromProducts($userId, $rated, $competitor);
 
         return 'Questionnaire saved.';
     }
@@ -1199,7 +1205,7 @@ class Ice2027Service
             $product['photos'] = $this->photosFromProduct($product, $competitorId, $owner);
 
             return $product;
-        }, $this->questionnaireProducts($raw));
+        }, $this->stripPersonalEvaluation($this->questionnaireProducts($raw)));
 
         $games = array_values(array_filter(
             $this->games(),
@@ -1285,9 +1291,12 @@ class Ice2027Service
             }, $this->questionnaireDrafts($teamId, $competitorId, (int) $user->ID))
             : [];
 
+        // Show only this user's own scores on the products they already rated.
+        $productsOut = $this->attachEvaluationToProducts((int) $user->ID, $products, $open ? null : $assigned);
+
         return [
             'competitor' => $displayCompetitor,
-            'products' => $products,
+            'products' => $productsOut,
             'drafts' => $drafts,
             'games' => $open ? $this->games() : $games,
             'all_competitors' => $this->competitors(),
@@ -1640,6 +1649,291 @@ class Ice2027Service
         }
 
         return null;
+    }
+
+    /**
+     * Ratings belong to the person, not the shared team questionnaire.
+     *
+     * @param  list<array<string, mixed>>  $products
+     * @return list<array<string, mixed>>
+     */
+    public function stripPersonalEvaluation(array $products): array
+    {
+        foreach ($products as &$product) {
+            if (! is_array($product)) {
+                continue;
+            }
+            unset($product['rating'], $product['would_play'], $product['eval_note']);
+        }
+        unset($product);
+
+        return array_values($products);
+    }
+
+    /**
+     * @param  array<string, mixed>  $product
+     */
+    public function productEvaluationComplete(array $product): bool
+    {
+        $rating = is_array($product['rating'] ?? null) ? $product['rating'] : [];
+        foreach (array_keys(self::EVAL_CRITERIA) as $field) {
+            $score = (int) ($rating[$field] ?? 0);
+            if ($score < 1 || $score > 5) {
+                return false;
+            }
+        }
+
+        return in_array((string) ($product['would_play'] ?? ''), self::WOULD_PLAY, true);
+    }
+
+    /**
+     * Show this user's existing scores on the questionnaire products they already rated.
+     *
+     * @param  list<array<string, mixed>>  $products
+     * @param  array<string, mixed>|null  $bucket
+     * @return list<array<string, mixed>>
+     */
+    public function attachEvaluationToProducts(int $userId, array $products, ?array $bucket): array
+    {
+        if ($products === []) {
+            return $products;
+        }
+        $ctx = $this->evaluationSyncContext();
+        $byKey = [];
+        foreach ($this->savedEvaluationRows($userId) as $row) {
+            if ($this->evaluationRowState($row)['missing'] !== []) {
+                continue;
+            }
+            $byKey[$this->evaluationSyncKey($row, $ctx)] = $row;
+        }
+        if ($byKey === []) {
+            return $products;
+        }
+        foreach ($products as &$product) {
+            if (! is_array($product)) {
+                continue;
+            }
+            $row = $this->evaluationRowFromProduct($product, $bucket, $ctx);
+            $match = $byKey[$this->evaluationSyncKey($row, $ctx)] ?? null;
+            if ($match === null && (int) ($row['game_ID'] ?? 0) > 0) {
+                $alias = $row;
+                $alias['game_ID'] = 0;
+                $match = $byKey[$this->evaluationSyncKey($alias, $ctx)] ?? null;
+            }
+            if ($match === null) {
+                continue;
+            }
+            $rating = [];
+            foreach (array_keys(self::EVAL_CRITERIA) as $field) {
+                $rating[$field] = (int) ($match[$field] ?? 0);
+            }
+            $product['rating'] = $rating;
+            $product['would_play'] = (string) ($match['would_play'] ?? '');
+            $product['eval_note'] = (string) ($match['note'] ?? '');
+        }
+        unset($product);
+
+        return $products;
+    }
+
+    /**
+     * Write this person's questionnaire ratings onto their own evaluation.
+     * A complete score is required (all eight criteria and would-play). Games already rated are
+     * updated, a new game gets its own evaluation row, and other rows are left as they are.
+     *
+     * @param  list<array<string, mixed>>  $products
+     * @param  array<string, mixed>|null  $bucket
+     */
+    public function syncEvaluationFromProducts(int $userId, array $products, ?array $bucket): void
+    {
+        $ctx = null;
+        $updates = [];
+        $aliasOf = [];
+        foreach ($products as $product) {
+            if (! is_array($product) || ! $this->productEvaluationComplete($product)) {
+                continue;
+            }
+            $ctx ??= $this->evaluationSyncContext();
+            $new = $this->evaluationRowFromProduct($product, $bucket, $ctx);
+            $primary = $this->evaluationSyncKey($new, $ctx);
+            $updates[$primary] = $new;
+            if ((int) ($new['game_ID'] ?? 0) > 0) {
+                $alias = $new;
+                $alias['game_ID'] = 0;
+                $aliasOf[$this->evaluationSyncKey($alias, $ctx)] = $primary;
+            }
+        }
+        if ($updates === [] || $ctx === null) {
+            return;
+        }
+
+        $existing = [];
+        foreach ($this->savedEvaluationRows($userId) as $row) {
+            if ($this->evaluationRowState($row)['filled'] !== []) {
+                $existing[] = $row;
+            }
+        }
+
+        $out = [];
+        $used = [];
+        foreach ($existing as $row) {
+            $key = $this->evaluationSyncKey($row, $ctx);
+            $primary = isset($updates[$key]) ? $key : ($aliasOf[$key] ?? '');
+            if ($primary !== '' && isset($updates[$primary])) {
+                if (isset($used[$primary])) {
+                    continue;
+                }
+                $out[] = array_merge($row, $updates[$primary]);
+                $used[$primary] = true;
+
+                continue;
+            }
+            $out[] = $row;
+        }
+        foreach ($updates as $key => $row) {
+            if (! isset($used[$key])) {
+                $out[] = $row;
+            }
+        }
+
+        $top5 = [];
+        $rank = 1;
+        foreach ($out as $row) {
+            if ((string) ($row['game_ID'] ?? '') === '__new__') {
+                $row['game_ID'] = 0;
+            }
+            if ((string) ($row['competitor_ID'] ?? '') === '__new__') {
+                $row['competitor_ID'] = 0;
+            }
+            $clean = $this->sanitizeEvalRow($row, $ctx['list']);
+            $clean['is_new_product'] = ((int) ($clean['game_ID'] ?? 0) < 1 && $this->evaluationIsNewProduct($row)) ? 1 : 0;
+            $top5[(string) $rank] = $clean;
+            $rank++;
+            if ($rank > self::EVAL_MAX_ROWS) {
+                break;
+            }
+        }
+
+        Ice2027Evaluation::query()->updateOrCreate(
+            ['user_ID' => $userId, 'event_ID' => $this->eventId()],
+            $this->withLegacyEvent('ice2027_evaluations', [
+                'payload' => ['top5' => $top5],
+                'submitted_at' => now(),
+            ]),
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function savedEvaluationRows(int $userId): array
+    {
+        $saved = $this->evaluationPayload($userId)['top5'] ?? [];
+        if (! is_array($saved)) {
+            return [];
+        }
+        $rows = [];
+        foreach ($saved as $row) {
+            if (is_array($row)) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Catalog lookups reused while matching many rows (competitors by id, games by id).
+     *
+     * @return array{list: list<array<string, mixed>>, competitors: array<int, array<string, mixed>>, games: array<int, array<string, mixed>>}
+     */
+    private function evaluationSyncContext(): array
+    {
+        $list = $this->competitors();
+        $competitors = [];
+        foreach ($list as $competitor) {
+            $competitors[(int) $competitor['ID']] = $competitor;
+        }
+        $games = [];
+        foreach ($this->games() as $game) {
+            $games[(int) $game['ID']] = $game;
+        }
+
+        return ['list' => $list, 'competitors' => $competitors, 'games' => $games];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  array{list: list<array<string, mixed>>, competitors: array<int, array<string, mixed>>, games: array<int, array<string, mixed>>}  $ctx
+     */
+    private function evaluationSyncKey(array $row, array $ctx): string
+    {
+        return $this->resolveEvaluationGame($row, $ctx['competitors'], $ctx['games'])['key'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $product
+     * @param  array<string, mixed>|null  $bucket
+     * @param  array{list: list<array<string, mixed>>, competitors: array<int, array<string, mixed>>, games: array<int, array<string, mixed>>}  $ctx
+     * @return array<string, mixed>
+     */
+    private function evaluationRowFromProduct(array $product, ?array $bucket, array $ctx): array
+    {
+        $gameId = 0;
+        if (empty($product['is_new_product'])) {
+            $gameId = (int) (is_array($product['game_ids'] ?? null) ? ($product['game_ids'][0] ?? 0) : 0);
+            if ($gameId < 1) {
+                $gameId = (int) ($product['game_ID'] ?? 0);
+            }
+        }
+        $gameName = trim((string) ($product['game_name'] ?? ''));
+        $competitorId = (int) ($product['competitor_ID'] ?? 0);
+        $competitorName = trim((string) ($product['competitor_name'] ?? $product['competitor'] ?? ''));
+        if (
+            $bucket !== null
+            && empty($bucket['hidden'])
+            && ! $this->isStorageCompetitorName((string) ($bucket['name'] ?? ''))
+        ) {
+            $competitorId = (int) $bucket['ID'];
+            $competitorName = (string) $bucket['name'];
+        }
+        if ($competitorId < 1 && $competitorName !== '') {
+            $competitorId = $this->visibleCompetitorIdByName($ctx['competitors'], $competitorName);
+            if ($competitorId > 0) {
+                $competitorName = (string) $ctx['competitors'][$competitorId]['name'];
+            }
+        }
+        if ($gameId < 1 && $gameName !== '' && $competitorId > 0) {
+            foreach ($ctx['games'] as $id => $game) {
+                if ((int) $game['competitor_ID'] === $competitorId && strcasecmp(trim((string) $game['name']), $gameName) === 0) {
+                    $gameId = (int) $id;
+                    break;
+                }
+            }
+        }
+        if ($gameName === '' && $gameId > 0 && isset($ctx['games'][$gameId])) {
+            $gameName = (string) $ctx['games'][$gameId]['name'];
+        }
+        $category = trim((string) ($product['category'] ?? ''));
+        if (! isset(self::EVAL_CATEGORIES[$category])) {
+            $category = '';
+        }
+        $row = [
+            'competitor_ID' => $competitorId,
+            'competitor' => $competitorName,
+            'game_ID' => $gameId,
+            'game_name' => $gameName,
+            'game_type' => $category,
+            'is_new_product' => ! empty($product['is_new_product']) ? 1 : 0,
+            'would_play' => (string) ($product['would_play'] ?? ''),
+            'note' => mb_substr(trim((string) ($product['eval_note'] ?? '')), 0, 500),
+        ];
+        $rating = is_array($product['rating'] ?? null) ? $product['rating'] : [];
+        foreach (array_keys(self::EVAL_CRITERIA) as $field) {
+            $row[$field] = (string) (int) ($rating[$field] ?? 0);
+        }
+
+        return $row;
     }
 
     /**
@@ -4217,14 +4511,80 @@ HTML;
         if ($competitor === null) {
             return false;
         }
-        if ($this->canManage($user)) {
-            return true;
-        }
-        if (! $this->isAttendant($user) || $this->competitorAccessibleToUser((int) $user->ID, $competitorId) === null) {
-            return false;
+
+        // Any attendant of this show can view every picture and video.
+        // Adding or removing a file still stays with the person who uploaded it.
+        return $this->canManage($user) || $this->isAttendant($user);
+    }
+
+    /**
+     * Uploader user id encoded in the stored file name ("{userId}~{time}~{rand}~~name").
+     */
+    public function mediaUploaderId(string $fileId): int
+    {
+        if (preg_match('/^(\d+)~/', $fileId, $matches) !== 1) {
+            return 0;
         }
 
-        return $owner === $this->mediaOwnerForUser((int) $user->ID);
+        return (int) $matches[1];
+    }
+
+    public function userCanDeleteProductPhoto(int $userId, string $fileId): bool
+    {
+        $uploader = $this->mediaUploaderId($fileId);
+
+        return $uploader > 0 && $uploader === $userId;
+    }
+
+    /**
+     * Pictures and videos already saved for one competitor + game, from every questionnaire.
+     * Questionnaire answers are not included.
+     *
+     * @return list<array{id:string,name:string,url:string,kind:string,can_delete:bool}>
+     */
+    public function sharedGameMedia(int $userId, int $gameId, string $gameName, string $competitorName): array
+    {
+        $gameName = strtolower(trim($gameName));
+        $competitorName = strtolower(trim($competitorName));
+        if ($gameId < 1 && $gameName === '') {
+            return [];
+        }
+        $seen = [];
+        $out = [];
+        foreach ($this->questionnairePhotoIndex()['games'] as $game) {
+            $sameId = $gameId > 0 && (int) ($game['game_ID'] ?? 0) === $gameId;
+            $sameName = $gameName !== ''
+                && $competitorName !== ''
+                && strtolower(trim((string) ($game['game'] ?? ''))) === $gameName
+                && strtolower(trim((string) ($game['competitor'] ?? ''))) === $competitorName;
+            if (! $sameId && ! $sameName) {
+                continue;
+            }
+            foreach ($game['photos'] ?? [] as $photo) {
+                if (! is_array($photo) || empty($photo['id']) || empty($photo['url'])) {
+                    continue;
+                }
+                $fileId = (string) $photo['id'];
+                if (isset($seen[$fileId]) || $this->isPendingMediaId($fileId)) {
+                    continue;
+                }
+                $seen[$fileId] = true;
+                $name = (string) ($photo['name'] ?? $fileId);
+                $kind = (string) ($photo['kind'] ?? '');
+                if ($kind !== 'video' && $kind !== 'image') {
+                    $kind = preg_match('/\.(mp4|mov|m4v|webm)($|\?)/i', $name.$fileId) ? 'video' : 'image';
+                }
+                $out[] = [
+                    'id' => $fileId,
+                    'name' => $name,
+                    'url' => (string) $photo['url'],
+                    'kind' => $kind,
+                    'can_delete' => $this->userCanDeleteProductPhoto($userId, $fileId),
+                ];
+            }
+        }
+
+        return $out;
     }
 
     private function photoFileAllowed(string $fileId): bool
@@ -4269,35 +4629,61 @@ HTML;
         $ext = strtolower((string) pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
         $isVideo = in_array($mime, ['video/mp4', 'video/quicktime', 'video/webm'], true) || in_array($ext, ['mp4', 'mov', 'm4v', 'webm'], true);
         $isImage = in_array($mime, ['image/jpeg', 'image/png'], true) || in_array($ext, ['jpg', 'jpeg', 'png'], true);
+        $sourcePath = (string) $file->getRealPath();
+        $originalName = (string) $file->getClientOriginalName();
+        $converted = null;
+        $size = (int) $file->getSize();
         if (! $isVideo && ! $isImage) {
-            $originalName = (string) $file->getClientOriginalName();
-            if (preg_match('/\.(heic|heif)$/i', $originalName) === 1) {
-                throw new InvalidArgumentException('HEIC photos are not supported. Please upload JPG or PNG.');
+            if ($sourcePath !== '' && $this->isHeicFile($sourcePath, $originalName)) {
+                $converted = $this->convertHeicToJpeg($sourcePath);
+                if ($converted === null) {
+                    throw new InvalidArgumentException('This HEIC photo could not be converted. On iPhone, set Camera → Formats to Most Compatible, or export a JPG. The server needs ImageMagick with HEIF support to accept HEIC.');
+                }
+                $isImage = true;
+                $mime = 'image/jpeg';
+                $ext = 'jpg';
+                $size = (int) filesize($converted);
+                $originalName = (preg_replace('/\.(heic|heif)$/i', '.jpg', $originalName) ?: 'photo.jpg');
+            } else {
+                throw new InvalidArgumentException('Only JPG, PNG, HEIC, and MP4 files are allowed.');
             }
-            throw new InvalidArgumentException('Only JPG, PNG, and MP4 files are allowed.');
         }
-        $maxBytes = $isVideo ? self::VIDEO_MAX_BYTES : self::PHOTO_MAX_BYTES;
-        if ($file->getSize() < 1 || $file->getSize() > $maxBytes) {
-            throw new InvalidArgumentException($isVideo ? 'Videos must be 400 MB or smaller.' : 'Pictures must be 10 MB or smaller.');
+
+        try {
+            $maxBytes = $isVideo ? self::VIDEO_MAX_BYTES : self::PHOTO_MAX_BYTES;
+            if ($size < 1 || $size > $maxBytes) {
+                throw new InvalidArgumentException($isVideo ? 'Videos must be 400 MB or smaller.' : 'Pictures must be 10 MB or smaller.');
+            }
+            $original = basename($originalName !== '' ? $originalName : ($isVideo ? 'video.mp4' : 'photo.jpg'));
+            if ($isVideo) {
+                $original = in_array($ext, ['mp4', 'mov', 'm4v', 'webm'], true) ? $original : 'video.mp4';
+            } elseif (! in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
+                $original = 'photo.'.($mime === 'image/png' ? 'png' : 'jpg');
+            }
+            $dir = rtrim((string) config('merkur.assets_path'), '/').'/scout/'.$this->eventId().'/'.$owner.'/'.$competitorId.'/';
+            if (! is_dir($dir) && ! @mkdir($dir, 0777, true) && ! is_dir($dir)) {
+                throw new RuntimeException('Could not create the picture folder. Check that ASSETS_PATH is writable.');
+            }
+            $fileId = $user->ID.'~'.time().'~'.bin2hex(random_bytes(3)).'~~'.$original;
+            if ($converted !== null) {
+                if (! @copy($converted, $dir.$fileId)) {
+                    throw new RuntimeException('Could not save the file. Check that ASSETS_PATH is writable.');
+                }
+            } else {
+                $file->move($dir, $fileId);
+            }
+        } finally {
+            if ($converted !== null) {
+                @unlink($converted);
+            }
         }
-        $original = basename((string) $file->getClientOriginalName() ?: ($isVideo ? 'video.mp4' : 'photo.jpg'));
-        if ($isVideo) {
-            $original = in_array($ext, ['mp4', 'mov', 'm4v', 'webm'], true) ? $original : 'video.mp4';
-        } elseif (! in_array($ext, ['jpg', 'jpeg', 'png'], true)) {
-            $original = 'photo.'.($mime === 'image/png' ? 'png' : 'jpg');
-        }
-        $dir = rtrim((string) config('merkur.assets_path'), '/').'/scout/'.$this->eventId().'/'.$owner.'/'.$competitorId.'/';
-        if (! is_dir($dir) && ! @mkdir($dir, 0777, true) && ! is_dir($dir)) {
-            throw new RuntimeException('Could not create the picture folder. Check that ASSETS_PATH is writable.');
-        }
-        $fileId = $user->ID.'~'.time().'~'.bin2hex(random_bytes(3)).'~~'.$original;
-        $file->move($dir, $fileId);
 
         return [
             'id' => $fileId,
             'name' => $original,
             'url' => $this->photoApiPath($competitorId, $fileId, $owner),
             'kind' => $isVideo ? 'video' : 'image',
+            'owner' => $owner,
         ];
     }
 
@@ -4306,11 +4692,71 @@ HTML;
         if ($this->competitorAccessibleToUser((int) $user->ID, $competitorId) === null) {
             throw new InvalidArgumentException('That competitor is not assigned to your team.');
         }
+        if (! $this->userCanDeleteProductPhoto((int) $user->ID, $fileId)) {
+            throw new InvalidArgumentException('Only the person who uploaded this file can remove it.');
+        }
         $owner = $this->mediaOwnerForUser((int) $user->ID);
         $path = $this->productPhotoPath($owner, $competitorId, $fileId);
         if ($path) {
             @unlink($path);
         }
+    }
+
+    private function isHeicFile(string $path, string $name): bool
+    {
+        if (preg_match('/\.(heic|heif)$/i', $name) === 1) {
+            return true;
+        }
+        $head = @file_get_contents($path, false, null, 0, 16);
+        if (! is_string($head) || strlen($head) < 12) {
+            return false;
+        }
+
+        return in_array(substr($head, 8, 4), ['heic', 'heix', 'hevc', 'hevx', 'mif1', 'msf1', 'heim', 'heis'], true);
+    }
+
+    /**
+     * Convert a HEIC/HEIF photo to JPEG with ImageMagick or macOS sips when available.
+     * Returns the converted temp file path, or null when no converter works.
+     */
+    private function convertHeicToJpeg(string $source): ?string
+    {
+        if (! function_exists('proc_open') || ! function_exists('shell_exec')) {
+            return null;
+        }
+        $scratch = tempnam(sys_get_temp_dir(), 'scoutheic');
+        if ($scratch === false) {
+            return null;
+        }
+        $jpeg = $scratch.'.jpg';
+        @unlink($scratch);
+        $commands = [
+            ['magick', [$source, $jpeg]],
+            ['convert', [$source, $jpeg]],
+            ['sips', ['-s', 'format', 'jpeg', $source, '--out', $jpeg]],
+        ];
+        foreach ($commands as [$bin, $args]) {
+            $found = trim((string) @shell_exec('command -v '.escapeshellarg($bin).' 2>/dev/null'));
+            if ($found === '' || ! is_file($found)) {
+                continue;
+            }
+            $proc = @proc_open(array_merge([$found], $args), [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+            if (! is_resource($proc)) {
+                continue;
+            }
+            foreach ($pipes as $pipe) {
+                if (is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+            proc_close($proc);
+            if (is_file($jpeg) && filesize($jpeg) > 0) {
+                return $jpeg;
+            }
+            @unlink($jpeg);
+        }
+
+        return null;
     }
 
     private function photoApiPath(int $competitorId, string $fileId, ?string $owner = null): string

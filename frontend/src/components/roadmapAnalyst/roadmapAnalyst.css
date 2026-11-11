@@ -1,0 +1,833 @@
+/* Roadmap Analyst – scoped to .ra-root (imported only by the analyst component). */
+.ra-root {
+  --merkur-pink: #e83181;
+  --merkur-dark-pink: #c1296c;
+  --merkur-light-gray: #ededed;
+  --merkur-gray: #898b8e;
+  --merkur-green: #a2c617;
+  --merkur-red: #eb0000;
+  --merkur-cyan: #009fe3;
+  --merkur-blue: #022052;
+  --accent: var(--merkur-pink);
+  --muted: #6c757d;
+  --ink: #212529;
+  --line: #dee2e6;
+  --panel: #ffffff;
+  --orange: #f07e26;
+  --blue: var(--merkur-cyan);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.ra-root *,
+.ra-root *::before,
+.ra-root *::after {
+  box-sizing: border-box;
+}
+
+.ra-root.drop {
+  outline: 2px dashed var(--accent);
+}
+
+.ra-root h2,
+.ra-root h3 {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: var(--merkur-blue);
+}
+
+.ra-root h2 {
+  font-size: 1.25rem;
+}
+
+.ra-root h3 {
+  font-size: 1.05rem;
+}
+
+.ra-root p {
+  margin: 0 0 10px;
+}
+
+.ra-root .shell {
+  max-width: 1600px;
+  margin: auto;
+  padding: 12px 0 70px;
+}
+
+.ra-root .top {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.ra-root .eyebrow {
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 2.6px;
+  font-weight: 800;
+}
+
+.ra-root .sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Bootstrap-like primitives used by the original markup */
+.ra-root .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.ra-root .btn-outline-secondary {
+  border-color: var(--merkur-gray);
+  color: var(--merkur-gray);
+  background: #fff;
+}
+
+.ra-root .btn-outline-secondary:hover {
+  background: var(--merkur-gray);
+  color: #fff;
+}
+
+.ra-root .card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  min-width: 0;
+}
+
+.ra-root .card-body {
+  padding: 16px;
+}
+
+.ra-root .card-footer {
+  display: block;
+  padding: 8px 16px;
+  border-top: 1px solid var(--line);
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ra-root .card-title {
+  margin-bottom: 4px;
+}
+
+.ra-root .text-nowrap {
+  white-space: nowrap;
+}
+
+.ra-root .filelabel {
+  display: inline-block;
+  cursor: pointer;
+}
+
+.ra-root .filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin: 20px 0;
+}
+
+.ra-root .field {
+  display: flex;
+  flex: 1 1 150px;
+  min-width: 145px;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ra-root .field label,
+.ra-root label.field {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  font-weight: 700;
+}
+
+.ra-root .field select,
+.ra-root .field input {
+  width: 100%;
+  height: 39px;
+  padding: 0 10px;
+  border: 1px solid var(--merkur-pink);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.ra-root .field input::placeholder {
+  color: #7183a1;
+}
+
+.ra-root .small {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ra-root .tabs {
+  display: flex;
+  gap: 7px;
+  overflow: auto;
+  border-bottom: 1px solid var(--merkur-light-gray);
+  margin: 22px 0;
+}
+
+.ra-root .tab {
+  padding: 12px 17px;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.ra-root .tab.active {
+  color: var(--merkur-pink);
+  border-color: var(--merkur-pink);
+}
+
+.ra-root .grid {
+  display: grid;
+  gap: 15px;
+}
+
+.ra-root .kpis {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 18px 0;
+}
+
+.ra-root .kpi .num {
+  font-size: 2em;
+  letter-spacing: -1.3px;
+  font-weight: 800;
+  color: var(--merkur-pink);
+}
+
+.ra-root .kpi .label {
+  font-size: 1.35em;
+}
+
+.ra-root .kpi .detail {
+  font-size: 0.9em;
+  color: var(--merkur-gray);
+  margin-top: 4px;
+}
+
+.ra-root .two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ra-root .third {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ra-root .hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0 0 18px;
+}
+
+.ra-root .bar-row {
+  display: grid;
+  grid-template-columns: minmax(95px, 33%) 1fr 40px;
+  gap: 12px;
+  align-items: center;
+  margin: 11px 0;
+}
+
+.ra-root .bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ra-root .bar-track {
+  height: 12px;
+  background: var(--merkur-light-gray);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.ra-root .bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--merkur-pink), var(--merkur-dark-pink));
+  border-radius: 7px;
+}
+
+.ra-root .bar-row.clickable {
+  cursor: pointer;
+}
+
+.ra-root .bar-row.clickable:hover .bar-label {
+  text-decoration: underline;
+  color: var(--accent);
+}
+
+.ra-root .bar-row.is-chosen .bar-label {
+  color: var(--merkur-pink);
+  font-weight: 800;
+}
+
+.ra-root .bar-row.is-chosen .bar-track {
+  box-shadow: 0 0 0 2px var(--merkur-pink);
+}
+
+.ra-root .field.is-on select,
+.ra-root .field.is-on input {
+  box-shadow: 0 0 0 3px #e8318155;
+}
+
+.ra-root .filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.ra-root .filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--merkur-pink);
+  background: #e8318118;
+  color: var(--merkur-pink);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.ra-root .filter-chip button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 0 0 4px;
+  cursor: pointer;
+}
+
+.ra-root .pie-wrap {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.ra-root .pie-svg {
+  width: 168px;
+  height: 168px;
+  flex: 0 0 168px;
+}
+
+.ra-root .pie-slice,
+.ra-root .pie-legend-row {
+  cursor: pointer;
+}
+
+.ra-root .pie-slice.is-chosen {
+  stroke: #022052;
+  stroke-width: 3;
+}
+
+.ra-root .pie-legend {
+  flex: 1;
+  min-width: 0;
+}
+
+.ra-root .pie-legend-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 3px 0;
+}
+
+.ra-root .pie-legend-row i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: 0 0 auto;
+}
+
+.ra-root .pie-legend-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.ra-root .pie-legend-row.is-chosen {
+  color: var(--merkur-pink);
+  font-weight: 800;
+}
+
+.ra-root .bar-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.ra-root .empty {
+  border: 1px dashed #b8c4d4;
+  border-radius: 15px;
+  padding: 54px 20px;
+  text-align: center;
+  background: #f8f9fa;
+  color: var(--muted);
+}
+
+.ra-root .empty b {
+  color: var(--ink);
+  display: block;
+  margin: 8px;
+}
+
+.ra-root .empty svg {
+  width: 42px;
+  height: 42px;
+  color: var(--accent);
+}
+
+.ra-root .table-wrap {
+  overflow: auto;
+  max-height: 620px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+
+.ra-root table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.ra-root th {
+  background: #f1f3f7;
+  text-align: left;
+  color: var(--merkur-blue);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.ra-root th,
+.ra-root td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  max-width: 290px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ra-root tbody tr:hover {
+  background: #7f7f7f2f;
+}
+
+.ra-root #warning {
+  color: var(--orange);
+  font-size: 12px;
+  margin-top: 9px;
+}
+
+.ra-root .pill {
+  display: inline-block;
+  border-radius: 30px;
+  padding: 3px 9px;
+  background: #20374e;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+.ra-root .featuregrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.ra-root .featurecard {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 17px;
+}
+
+.ra-root .featurecard .big {
+  font-size: 27px;
+  font-weight: 800;
+}
+
+.ra-root .meter {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--merkur-light-gray);
+  margin: 11px 0;
+}
+
+.ra-root .meter span:nth-child(1) {
+  background: var(--merkur-green);
+}
+
+.ra-root .meter span:nth-child(2) {
+  background: var(--merkur-red);
+}
+
+.ra-root .meter span:nth-child(3) {
+  background: #a3b0c2;
+}
+
+.ra-root .legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ra-root .dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.ra-root .headingrow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ra-root .selectsmall {
+  color: var(--ink);
+  border: 1px solid var(--merkur-pink);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+}
+
+.ra-root .quality {
+  padding: 11px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.ra-root .dimcontrols {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.ra-root .heatmap th,
+.ra-root .heatmap td {
+  min-width: 70px;
+  text-align: center;
+}
+
+.ra-root .heatmap th:first-child {
+  text-align: left;
+  min-width: 165px;
+}
+
+.ra-root .heatcell {
+  font-variant-numeric: tabular-nums;
+  border: 2px solid #fff !important;
+}
+
+.ra-root .info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 1px solid #8496b3;
+  color: #6c7a92;
+  font-size: 11px;
+  font-weight: 800;
+  margin-left: 6px;
+  cursor: help;
+  position: relative;
+  vertical-align: middle;
+}
+
+.ra-root .info:hover,
+.ra-root .info:focus {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.ra-root .info:where(:hover, :focus)::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #eaf2ff;
+  color: #0c1830;
+  font: 12px/1.45 'Segoe UI', Arial, sans-serif;
+  font-weight: 400;
+  text-align: left;
+  padding: 11px 13px;
+  border-radius: 9px;
+  min-width: 225px;
+  max-width: 310px;
+  width: max-content;
+  white-space: normal;
+  z-index: 20;
+  box-shadow: 0 8px 30px #0008;
+  pointer-events: none;
+}
+
+.ra-root .kpi {
+  overflow: visible;
+}
+
+.ra-root .feature-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.ra-root .checkchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 20px;
+  padding: 7px 11px;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ra-root .checkchip input {
+  accent-color: var(--accent);
+}
+
+.ra-root .linkgame {
+  background: transparent;
+  border: 0;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font: inherit;
+  font-weight: 650;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ra-root .modalback {
+  position: fixed;
+  inset: 0;
+  background: #050b15df;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.ra-root .modalsurface {
+  width: min(1100px, 100%);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #55718f;
+  border-radius: 18px;
+  padding: 24px;
+}
+
+.ra-root .modalhead {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.ra-root .modalhead h2 {
+  font-size: 24px;
+}
+
+.ra-root .detailgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ra-root .detailtile {
+  background: #7f7f7f1f;
+  padding: 13px;
+  border: 1px solid #cfd6df;
+  border-radius: 10px;
+  min-width: 0;
+}
+
+.ra-root .detailtile label {
+  font-size: 11px;
+  color: var(--muted);
+  display: block;
+}
+
+.ra-root .detailtile strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.ra-root .featurestatus {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 30px;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.ra-root .styes {
+  background: #e4f3b4;
+  color: #4d6409;
+}
+
+.ra-root .stno {
+  background: #fbd3d3;
+  color: #a31212;
+}
+
+.ra-root .stunk {
+  background: #e3e7ee;
+  color: #4b5565;
+}
+
+.ra-root .allfields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ra-root .fullfield {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.ra-root .fullfield small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.ra-root .fullfield span {
+  font-size: 12px;
+}
+
+.ra-root .game-row {
+  cursor: pointer;
+}
+
+.ra-root .game-row:focus {
+  outline: 2px solid var(--accent);
+}
+
+.ra-root .method {
+  background: #eef6fb;
+  border-left: 3px solid var(--blue);
+  padding: 10px 12px;
+  margin: 12px 0;
+  border-radius: 4px;
+}
+
+.ra-root .actions-list p {
+  margin: 10px 0;
+}
+
+.ra-root .subtle {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+@media (max-width: 1000px) {
+  .ra-root .kpis {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .ra-root .featuregrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 760px) {
+  .ra-root .detailgrid,
+  .ra-root .allfields {
+    grid-template-columns: 1fr;
+  }
+
+  .ra-root .info:where(:hover, :focus)::after {
+    left: auto;
+    right: -20px;
+    transform: none;
+  }
+}
+
+@media (max-width: 670px) {
+  .ra-root .shell {
+    padding: 17px 0;
+  }
+
+  .ra-root .kpis,
+  .ra-root .two,
+  .ra-root .third,
+  .ra-root .featuregrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ra-root .bar-row {
+    grid-template-columns: 90px 1fr 28px;
+  }
+
+  .ra-root .kpi .num {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 430px) {
+  .ra-root .kpis,
+  .ra-root .two,
+  .ra-root .third,
+  .ra-root .featuregrid {
+    grid-template-columns: 1fr;
+  }
+}

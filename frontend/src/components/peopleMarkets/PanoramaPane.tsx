@@ -1,34 +1,40 @@
 import type { ReactNode } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import type { SxProps, Theme } from '@mui/material/styles'
 
 export function PanoramaPane({
   title,
   hint,
   count,
   toolbar,
+  sx,
   children,
 }: {
   title: string
   hint: string
   count?: number
   toolbar?: ReactNode
+  sx?: SxProps<Theme>
   children: ReactNode
 }) {
   return (
     <Box
-      sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 280,
-        height: { xs: 'min(62vh, 560px)', lg: 'min(68vh, 760px)' },
-        border: '1px solid',
-        borderColor: 'divider',
-        borderRadius: 2,
-        overflow: 'hidden',
-        bgcolor: 'rgba(255,255,255,0.92)',
-        boxShadow: '0 10px 24px rgba(2, 32, 82, 0.06)',
-      }}
+      sx={[
+        {
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 280,
+          height: { xs: 'min(62vh, 560px)', lg: 'min(68vh, 760px)' },
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+          overflow: 'hidden',
+          bgcolor: 'rgba(255,255,255,0.92)',
+          boxShadow: '0 10px 24px rgba(2, 32, 82, 0.06)',
+        },
+        ...(Array.isArray(sx) ? sx : sx ? [sx] : []),
+      ]}
     >
       <Box
         sx={{

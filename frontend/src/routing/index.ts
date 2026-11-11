@@ -4,6 +4,7 @@ export {
   productGamesListPath,
   productGamesDocsPackagePath,
   releaseInformationSheetPath,
+  installationsReportPath,
   findPath,
   ice2027QuestionnairePath,
   ice2027EvaluationPath,

@@ -46,6 +46,7 @@ const LINKS: AdminLink[] = [
   { id: 'trash', label: 'Attachment trash', description: 'Find and permanently purge soft-deleted assets.', path: APP_PATHS.adminAttachmentsTrash },
   { id: 'activity', label: 'User activity', description: 'Login counts and last login timestamps.', path: APP_PATHS.adminUserActivity },
   { id: 'history', label: 'Table history', description: 'Status of edit-history tables and enable command.', path: APP_PATHS.adminTableHistory },
+  { id: 'scout', label: 'Scout Events', description: 'Manage scouting events and competitor lists.', path: APP_PATHS.scoutEvents },
 ]
 
 export default function AdminPage() {
@@ -95,6 +96,7 @@ export default function AdminPage() {
                 trash: ['pages.attachmentTrash', 'copy.trashLink'],
                 activity: ['pages.userActivity', 'copy.activityLink'],
                 history: ['pages.tableHistory', 'copy.historyLink'],
+                scout: ['nav.scoutEvents', 'copy.scoutEventsLink'],
               }
               const [labelKey, hintKey] = text[item.id]
               return (

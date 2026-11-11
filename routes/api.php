@@ -168,6 +168,12 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('sih-roadmap/milestones', [SihRoadmapController::class, 'store']);
     Route::patch('sih-roadmap/milestones/{milestone}', [SihRoadmapController::class, 'update'])->whereNumber('milestone');
     Route::delete('sih-roadmap/milestones/{milestone}', [SihRoadmapController::class, 'destroy'])->whereNumber('milestone');
+    Route::post('sih-roadmap/milestones/{milestone}/move', [SihRoadmapController::class, 'move'])->whereNumber('milestone');
+    Route::post('sih-roadmap/quarters', [SihRoadmapController::class, 'storeQuarter']);
+    Route::delete('sih-roadmap/quarters/{quarter}', [SihRoadmapController::class, 'destroyQuarter'])->whereNumber('quarter');
+    Route::get('sih-roadmap/editors', [SihRoadmapController::class, 'editors']);
+    Route::post('sih-roadmap/editors', [SihRoadmapController::class, 'storeEditor']);
+    Route::delete('sih-roadmap/editors/{editor}', [SihRoadmapController::class, 'destroyEditor'])->whereNumber('editor');
     Route::post('sih-roadmap/milestones/{milestone}/links', [SihRoadmapController::class, 'storeLink'])->whereNumber('milestone');
     Route::delete('sih-roadmap/milestones/{milestone}/links/{link}', [SihRoadmapController::class, 'destroyLink'])->whereNumber('milestone')->whereNumber('link');
     Route::post('sih-roadmap/milestones/{milestone}/comments', [SihRoadmapController::class, 'storeComment'])->whereNumber('milestone');
@@ -236,6 +242,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('ice2027/photo', [Ice2027Controller::class, 'uploadPhoto']);
     Route::post('ice2027/photo/delete', [Ice2027Controller::class, 'deletePhoto']);
     Route::get('ice2027/media', [Ice2027Controller::class, 'media']);
+    Route::get('ice2027/game-media', [Ice2027Controller::class, 'gameMedia']);
     Route::post('ice2027/draft', [Ice2027Controller::class, 'saveDraft']);
     Route::get('ice2027/admin', [Ice2027AdminController::class, 'show']);
     Route::post('ice2027/admin/reminders', [Ice2027AdminController::class, 'sendReminders']);

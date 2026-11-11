@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'year',
     'quarter',
     'status',
+    'target_date',
     'is_hidden',
     'sort_order',
     'created_by',
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 ])]
 class SihRoadmapMilestone extends Model
 {
-    public const STATUSES = ['planned', 'active', 'done'];
+    public const STATUSES = ['planned', 'active', 'done', 'paused'];
 
     protected $table = 'sih_roadmap_milestones';
 
@@ -37,6 +38,7 @@ class SihRoadmapMilestone extends Model
         return [
             'year' => 'integer',
             'quarter' => 'integer',
+            'target_date' => 'date',
             'is_hidden' => 'boolean',
             'sort_order' => 'integer',
             'mod_date' => 'datetime',

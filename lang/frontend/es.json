@@ -10,7 +10,7 @@
     "roadmapVersions": "… por versiones",
     "roadmapGames": "… por juegos",
     "roadmapDocs": "Docs del roadmap",
-    "roadmapTeam": "Roadmap del equipo",
+    "roadmapTeam": "Roadmap SIH",
     "exhibition": "Exhibición",
     "inactiveEvent": "{name} (inactivo)",
     "community": "Comunidad",
@@ -1036,7 +1036,7 @@
     "pickRange": "Elige primero la fecha inicial y luego la final"
   },
   "teamRoadmap": {
-    "crumb": "Roadmap del equipo",
+    "crumb": "Roadmap SIH",
     "title": "Roadmap SIH",
     "subtitle": "Lo que el Strategic Intelligence Hub está construyendo, trimestre a trimestre.",
     "editorHint": "Puedes añadir y actualizar hitos. El resto del equipo puede seguir el avance.",

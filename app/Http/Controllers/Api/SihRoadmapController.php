@@ -28,7 +28,6 @@ class SihRoadmapController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'year' => ['required', 'integer', 'min:2024', 'max:2040'],
             'quarter' => ['required', 'integer', 'between:1,4'],
-            'status' => ['sometimes', 'in:planned,active,done'],
         ]);
 
         return $this->respond(fn () => $this->roadmap->create($this->user($request), $data), 201);
@@ -41,7 +40,8 @@ class SihRoadmapController extends Controller
             'description' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'year' => ['sometimes', 'integer', 'min:2024', 'max:2040'],
             'quarter' => ['sometimes', 'integer', 'between:1,4'],
-            'status' => ['sometimes', 'in:planned,active,done'],
+            'status' => ['sometimes', 'in:planned,active,done,paused'],
+            'target_date' => ['sometimes', 'nullable', 'date_format:Y-m-d'],
             'is_hidden' => ['sometimes', 'boolean'],
         ]);
 
@@ -51,6 +51,44 @@ class SihRoadmapController extends Controller
     public function destroy(Request $request, int $milestone): JsonResponse
     {
         return $this->respond(fn () => $this->roadmap->destroy($this->user($request), $milestone));
+    }
+
+    public function move(Request $request, int $milestone): JsonResponse
+    {
+        $data = $request->validate([
+            'direction' => ['required', 'in:up,down'],
+        ]);
+
+        return $this->respond(fn () => $this->roadmap->move($this->user($request), $milestone, $data['direction']));
+    }
+
+    public function storeQuarter(Request $request): JsonResponse
+    {
+        return $this->respond(fn () => $this->roadmap->addQuarter($this->user($request)), 201);
+    }
+
+    public function destroyQuarter(Request $request, int $quarter): JsonResponse
+    {
+        return $this->respond(fn () => $this->roadmap->removeQuarter($this->user($request), $quarter));
+    }
+
+    public function editors(Request $request): JsonResponse
+    {
+        return $this->respond(fn () => $this->roadmap->editorsResult($this->user($request)));
+    }
+
+    public function storeEditor(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'username' => ['required', 'string', 'max:255'],
+        ]);
+
+        return $this->respond(fn () => $this->roadmap->addEditor($this->user($request), $data['username']), 201);
+    }
+
+    public function destroyEditor(Request $request, int $editor): JsonResponse
+    {
+        return $this->respond(fn () => $this->roadmap->removeEditor($this->user($request), $editor));
     }
 
     public function storeLink(Request $request, int $milestone): JsonResponse
@@ -91,7 +129,7 @@ class SihRoadmapController extends Controller
     public function storeAttachment(Request $request, int $milestone): JsonResponse
     {
         $request->validate([
-            'file' => ['required', 'file', 'max:20480', 'mimes:pdf,png,jpg,jpeg,webp,gif,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip'],
+            'file' => ['required', 'file', 'max:'.SihRoadmapService::FILE_MAX_KB, 'mimes:pdf,png,jpg,jpeg,webp,gif,txt,csv,doc,docx,xls,xlsx,ppt,pptx,zip'],
         ]);
         $file = $request->file('file');
         if (! $file instanceof UploadedFile) {
@@ -123,7 +161,7 @@ class SihRoadmapController extends Controller
     }
 
     /**
-     * @param  callable(): array{milestone_id: int|null, board: array<string, mixed>}  $action
+     * @param  callable(): array<string, mixed>  $action
      */
     private function respond(callable $action, int $status = 200): JsonResponse
     {

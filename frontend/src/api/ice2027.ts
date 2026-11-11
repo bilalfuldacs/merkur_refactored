@@ -131,6 +131,35 @@ export type IceProgressPhoto = {
   kind?: 'image' | 'video'
 }
 
+/** Eight 1–5 criteria, in form order (same keys as the evaluation rows). */
+export const ICE_EVAL_CRITERIA = [
+  { key: 'graphic', label: 'Graphic' },
+  { key: 'sound', label: 'Sound' },
+  { key: 'theme', label: 'Theme' },
+  { key: 'mechanics', label: 'Mechanics/Features' },
+  { key: 'entertainment', label: 'Entertainment' },
+  { key: 'innovation', label: 'Innovation' },
+  { key: 'potential', label: 'Potential' },
+  { key: 'general', label: 'General' },
+] as const
+
+export type IceEvalCriterion = (typeof ICE_EVAL_CRITERIA)[number]['key']
+
+/** This person's 1–5 scores for one game. Personal: never shared with teammates. */
+export type IceProductRating = Partial<Record<IceEvalCriterion, string | number>>
+
+/** Denominations offered on the questionnaire (value → label). */
+export const ICE_DENOMINATIONS: Record<string, string> = {
+  '0.01': '1¢',
+  '0.02': '2¢',
+  '0.05': '5¢',
+  '0.10': '10¢',
+  '0.25': '25¢',
+  '0.50': '50¢',
+  '1': '1',
+  '2': '2',
+}
+
 export type IceStandardProduct = {
   category?: string
   competitor_ID?: number | string | null
@@ -139,12 +168,20 @@ export type IceStandardProduct = {
   progressive_jp?: string
   no_progressives?: string | number
   no_static?: string | number
+  progressive_reset?: string
+  /** 'show' (default) or 'field' (played live in a casino: market, venue, bets, denominations expected). */
+  played_at?: string
+  field_market?: string
+  field_venue?: string
   functionality?: string[]
   mechanics_description?: string
   no_of_pots?: string | number
   win_lines?: string
   denomination?: string
+  denominations?: string[]
+  denomination_other?: string
   bets?: string | number | string[]
+  bet_other?: string
   theme?: string
   cabinet?: string
   target_market?: string
@@ -168,6 +205,10 @@ export type IceScoutProduct = IceStandardProduct &
     is_new_product?: boolean
     game_name?: string
     game_ids?: number[]
+    /** Personal evaluation, kept in the user's own evaluation store and stripped from the shared questionnaire. */
+    rating?: IceProductRating
+    would_play?: string
+    eval_note?: string
     photos?: IceProgressPhoto[]
     draft_key?: string
     is_draft?: boolean
@@ -386,6 +427,7 @@ export function uploadIcePhoto(competitorId: number, file: File): Promise<{ ok: 
   return apiRequest<{ ok: boolean; photo: IceProgressPhoto }>(withEvent('/ice2027/photo'), {
     method: 'POST',
     body,
+    silent: true,
   })
 }
 
@@ -420,6 +462,29 @@ export function deleteIceDraft(competitorId: number, draftKey: string): Promise<
 
 export function getIceMedia(): Promise<IceMediaLibrary> {
   return apiRequest<IceMediaLibrary>(withEvent('/ice2027/media'))
+}
+
+export type IceGameMediaPhoto = IceProgressPhoto & { can_delete?: boolean }
+
+/** Pictures and videos already saved for one competitor + game, from every questionnaire. */
+export function getIceGameMedia(params: {
+  gameId?: number
+  gameName?: string
+  competitorName?: string
+}): Promise<{ ok: boolean; photos: IceGameMediaPhoto[] }> {
+  const query = new URLSearchParams()
+  if (params.gameId && params.gameId > 0) {
+    query.set('game_ID', String(params.gameId))
+  }
+  if (params.gameName) {
+    query.set('game_name', params.gameName)
+  }
+  if (params.competitorName) {
+    query.set('competitor_name', params.competitorName)
+  }
+  return apiRequest<{ ok: boolean; photos: IceGameMediaPhoto[] }>(withEvent(`/ice2027/game-media?${query.toString()}`), {
+    silent: true,
+  })
 }
 
 export function deleteIcePhoto(competitorId: number, fileId: string): Promise<{ ok: boolean }> {

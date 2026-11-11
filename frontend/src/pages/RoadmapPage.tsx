@@ -130,6 +130,8 @@ export default function RoadmapPage() {
     [payload, filters, canShowDevelopment],
   )
   const visibleGames = useMemo(() => filterRoadmapGames(payload?.games ?? [], filters), [payload, filters])
+  // Analyst charts ignore the search box so every category stays visible while one is selected.
+  const analystGames = useMemo(() => filterRoadmapGames(payload?.games ?? [], { ...filters, search: '' }), [payload, filters])
   const total = view === 'games' ? visibleGames.length : visibleRows.length
   const lastPage = Math.max(1, Math.ceil(total / pageSize))
   const currentPage = Math.min(page, lastPage)
@@ -245,7 +247,13 @@ export default function RoadmapPage() {
                 milestoneCount={milestoneCount}
                 onChange={setFilters}
               />
-              {view === 'games' ? <AnalystStudio games={visibleGames} /> : null}
+              {view === 'games' ? (
+                <AnalystStudio
+                  games={analystGames}
+                  search={filters.search}
+                  onFilterChange={(label) => setFilters((current) => ({ ...current, search: label }))}
+                />
+              ) : null}
               <RoadmapPagination
                 page={currentPage}
                 pageSize={pageSize}

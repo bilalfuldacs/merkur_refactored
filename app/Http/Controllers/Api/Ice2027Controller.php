@@ -308,6 +308,25 @@ class Ice2027Controller extends Controller
         return response()->json($ice->mediaLibrary());
     }
 
+    /**
+     * Pictures and videos already saved for one competitor + game (shown while editing a product).
+     */
+    public function gameMedia(Request $request): JsonResponse
+    {
+        $ice = $this->iceFor($request);
+        $user = $request->user();
+        abort_unless($ice->isAttendant($user) || $ice->canManage($user), 403, 'This scouting event is only available to attendants and administrators.');
+
+        $photos = $ice->sharedGameMedia(
+            (int) $user->ID,
+            (int) $request->query('game_ID', 0),
+            (string) $request->query('game_name', ''),
+            (string) $request->query('competitor_name', ''),
+        );
+
+        return response()->json(['ok' => true, 'photos' => $photos]);
+    }
+
     public function saveDraft(Request $request): JsonResponse
     {
         $ice = $this->iceFor($request);

@@ -1,31 +1,55 @@
 import { useCallback, useEffect, useState } from 'react'
-import TimelineOutlinedIcon from '@mui/icons-material/TimelineOutlined'
+import type { FormEvent } from 'react'
+import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import IconButton from '@mui/material/IconButton'
+import AddIcon from '@mui/icons-material/Add'
+import RouteOutlinedIcon from '@mui/icons-material/RouteOutlined'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import CircularProgress from '@mui/material/CircularProgress'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
+import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import { ApiError, downloadApiFile } from '@/api'
 import {
   addSihRoadmapComment,
+  addSihRoadmapEditor,
   addSihRoadmapLink,
+  addSihRoadmapQuarter,
   createSihRoadmapMilestone,
   deleteSihRoadmapAttachment,
   deleteSihRoadmapComment,
+  deleteSihRoadmapEditor,
   deleteSihRoadmapLink,
   deleteSihRoadmapMilestone,
+  deleteSihRoadmapQuarter,
   getSihRoadmap,
+  moveSihRoadmapMilestone,
   updateSihRoadmapMilestone,
   uploadSihRoadmapAttachment,
 } from '@/api/sihRoadmap'
-import type { SihRoadmapBoard, SihRoadmapMilestone, SihRoadmapMutation, SihRoadmapPatch } from '@/api/sihRoadmap'
+import type {
+  SihRoadmapBoard,
+  SihRoadmapEditorsResult,
+  SihRoadmapMilestone,
+  SihRoadmapMutation,
+  SihRoadmapPatch,
+  SihRoadmapQuarter,
+} from '@/api/sihRoadmap'
 import { AppFooter, AppHeader, CrumbHome, PageBackground } from '@/components/layout'
 import { MilestoneDrawer } from '@/components/teamRoadmap/MilestoneDrawer'
-import { RoadStage } from '@/components/teamRoadmap/RoadStage'
-import { STATUS_COLOR, currentWork, findMilestone, milestoneIcon, quarterLabel } from '@/components/teamRoadmap/format'
+import { RoadShell, RoadStage, RoadmapCard } from '@/components/teamRoadmap/RoadStage'
+import { countByStatus, countLine, currentWork, findMilestone, quarterLabel } from '@/components/teamRoadmap/format'
+import '@/components/teamRoadmap/teamRoadmap.css'
 import { useAuth } from '@/auth'
 import { useI18n } from '@/i18n'
 import { APP_PATHS, useAppPath } from '@/routing'
+
+const toolButtonSx = { borderRadius: '0.5rem', textTransform: 'none', fontWeight: 700, boxShadow: 'none' } as const
 
 const crumbSx = {
   border: 0,
@@ -46,6 +70,10 @@ export default function TeamRoadmapPage() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
+  const [editorsOpen, setEditorsOpen] = useState(false)
+  const [editorEmail, setEditorEmail] = useState('')
+  const [editorError, setEditorError] = useState('')
+  const [editorBusy, setEditorBusy] = useState(false)
   const newTitle = t('teamRoadmap.newMilestone', 'New milestone')
 
   const load = useCallback(() => {
@@ -67,6 +95,7 @@ export default function TeamRoadmapPage() {
 
   const selected = board && selectedId != null ? findMilestone(board, selectedId) : null
   const nowItems = board ? currentWork(board) : []
+  const editors = board?.editors ?? []
 
   function apply(result: SihRoadmapMutation, nextSelected: number | null) {
     setBoard(result.board)
@@ -90,19 +119,43 @@ export default function TeamRoadmapPage() {
     setBusy(true)
     setNotice('')
     try {
-      const current = board.quarters.some((item) => item.current && item.year === year && item.quarter === quarter)
-      const result = await createSihRoadmapMilestone({
-        title: newTitle,
-        year,
-        quarter,
-        status: current ? 'active' : 'planned',
-      })
+      const result = await createSihRoadmapMilestone({ title: newTitle, year, quarter })
       apply(result, result.milestone_id)
     } catch (error) {
       setNotice(error instanceof ApiError ? error.message : t('teamRoadmap.loadFailed', 'The roadmap could not be loaded.'))
     } finally {
       setBusy(false)
     }
+  }
+
+  async function addQuarter() {
+    await run(() => addSihRoadmapQuarter(), selectedId)
+  }
+
+  async function removeQuarter(quarter: SihRoadmapQuarter) {
+    await run(() => deleteSihRoadmapQuarter(quarter.id), selectedId)
+  }
+
+  async function runEditors(action: () => Promise<SihRoadmapEditorsResult>): Promise<boolean> {
+    setEditorBusy(true)
+    setEditorError('')
+    try {
+      const result = await action()
+      setBoard(result.board)
+      return true
+    } catch (error) {
+      setEditorError(error instanceof ApiError ? error.message : t('teamRoadmap.loadFailed', 'The roadmap could not be loaded.'))
+      return false
+    } finally {
+      setEditorBusy(false)
+    }
+  }
+
+  async function submitEditor(event: FormEvent) {
+    event.preventDefault()
+    const username = editorEmail.trim()
+    if (username === '') return
+    if (await runEditors(() => addSihRoadmapEditor(username))) setEditorEmail('')
   }
 
   function patch(milestone: SihRoadmapMilestone, body: SihRoadmapPatch) {
@@ -123,34 +176,24 @@ export default function TeamRoadmapPage() {
               {t('nav.roadmap', 'Roadmap')}
             </Box>
             <Box component="span" color="text.secondary">/</Box>
-            <Box component="span">{t('teamRoadmap.crumb', 'Team Roadmap')}</Box>
+            <Box component="span">{t('teamRoadmap.crumb', 'SIH Roadmap')}</Box>
           </Box>
 
-          <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 42 }, lineHeight: 1.1 }}>
-            <TimelineOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
+          <Typography component="h1" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, fontSize: { xs: 32, md: 42 }, lineHeight: 1.1, mb: 2 }}>
+            <RouteOutlinedIcon sx={{ color: 'merkur.pink', fontSize: 36 }} />
             {t('pages.teamRoadmap', 'SIH Roadmap')}
           </Typography>
-          <Typography sx={{ mt: 1, maxWidth: 720, color: 'text.secondary', fontSize: 18 }}>
-            {t('teamRoadmap.subtitle', 'What the Strategic Intelligence Hub is building, quarter by quarter.')}
-          </Typography>
-          {board ? (
-            <Typography sx={{ mt: 0.75, color: 'text.secondary' }}>
-              {board.can_edit
-                ? t('teamRoadmap.editorHint', 'You can add and update milestones. Everyone else can follow along.')
-                : t('teamRoadmap.viewerHint', 'Hover a milestone to read the description, links, and files.')}
-            </Typography>
-          ) : null}
 
           {failed ? (
             <Alert
               severity="error"
-              sx={{ mt: 2 }}
+              sx={{ mb: 2 }}
               action={<Button color="inherit" onClick={() => load()}>{t('teamRoadmap.retry', 'Try again')}</Button>}
             >
               {t('teamRoadmap.loadFailed', 'The roadmap could not be loaded.')}
             </Alert>
           ) : null}
-          {notice ? <Alert severity="warning" sx={{ mt: 2 }} onClose={() => setNotice('')}>{notice}</Alert> : null}
+          {notice && !selected ? <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setNotice('')}>{notice}</Alert> : null}
 
           {!board && !failed ? (
             <Box sx={{ display: 'grid', placeItems: 'center', minHeight: 320 }}>
@@ -159,85 +202,105 @@ export default function TeamRoadmapPage() {
           ) : null}
 
           {board ? (
-            <Box
-              sx={{
-                mt: 3,
-                borderRadius: { xs: 3, md: '28px' },
-                overflow: 'hidden',
-                color: '#fff',
-                background: `
-                  radial-gradient(ellipse at 12% 80%, rgba(0,159,227,0.22), transparent 46%),
-                  radial-gradient(ellipse at 88% 12%, rgba(255,204,0,0.1), transparent 32%),
-                  linear-gradient(180deg, #03102b 0%, #022052 58%, #031433 100%)
-                `,
-                boxShadow: '0 28px 70px rgba(2,32,82,0.2)',
-              }}
-            >
-              <Box sx={{ px: { xs: 2, md: 3 }, pt: 2.5 }}>
-                <Typography sx={{ fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#FFCC00', fontWeight: 800 }}>
-                  {t('teamRoadmap.now', 'Right now')} · {quarterLabel(board.now.year, board.now.quarter)}
-                </Typography>
-                {nowItems.length === 0 ? (
-                  <Typography sx={{ mt: 1, color: 'rgba(255,255,255,0.7)' }}>{t('teamRoadmap.nowEmpty', 'Nothing is marked in progress this quarter.')}</Typography>
-                ) : (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1.25 }}>
-                    {nowItems.map((milestone) => {
-                      const Icon = milestoneIcon(milestone.title)
-                      return (
-                        <Box
-                          key={milestone.id}
-                          component="button"
-                          type="button"
-                          onClick={() => setSelectedId(milestone.id)}
-                          sx={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 0.75,
-                            maxWidth: '100%',
-                            px: 1.25,
-                            py: 0.7,
-                            borderRadius: 999,
-                            border: '1px solid rgba(255,204,0,0.45)',
-                            bgcolor: 'rgba(255,255,255,0.06)',
-                            color: '#fff',
-                            cursor: 'pointer',
-                            font: 'inherit',
-                            textAlign: 'left',
-                            '&:hover': { bgcolor: 'rgba(255,204,0,0.14)' },
-                          }}
-                        >
-                          <Icon sx={{ fontSize: 16, color: STATUS_COLOR[milestone.status] }} />
-                          <Box component="span" sx={{ fontWeight: 700 }}>{milestone.title}</Box>
-                        </Box>
-                      )
-                    })}
-                  </Box>
-                )}
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 2, pb: 1.5, color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
-                  <Legend color={STATUS_COLOR.planned} label={t('teamRoadmap.planned', 'Planned')} />
-                  <Legend color={STATUS_COLOR.active} label={t('teamRoadmap.active', 'In progress')} />
-                  <Legend color={STATUS_COLOR.done} label={t('teamRoadmap.done', 'Done')} />
-                  {board.can_edit ? <Legend color="transparent" dashed label={t('teamRoadmap.hidden', 'Hidden')} /> : null}
-                </Box>
-              </Box>
+            <RoadShell>
+              <header className="tr-hero">
+                <div>
+                  <p className="tr-kicker">{t('teamRoadmap.kicker', 'Strategic Intelligence Hub')}</p>
+                  <h2>{t('teamRoadmap.heroTitle', 'What we are up to')}</h2>
+                  <p className="tr-lead">
+                    {t(
+                      'teamRoadmap.lead',
+                      'The SIH plan for MERKURflow. Everyone with a login can see it. Hover a milestone, or tap it, for the description, comments, links, and files.',
+                    )}
+                  </p>
+                  <p className="tr-counts">{countLine(countByStatus(board), t)}</p>
+                </div>
+                <div className="tr-now">
+                  <p className="tr-kicker">{t('teamRoadmap.nowKicker', 'Now')}</p>
+                  <strong>{quarterLabel(board.now.year, board.now.quarter)}</strong>
+                </div>
+              </header>
+
+              <section className="tr-focus" aria-labelledby="tr-focus-title">
+                <div className="tr-section-head">
+                  <h3 id="tr-focus-title">{board.focus_label}</h3>
+                </div>
+                <div className="tr-focus-grid">
+                  {nowItems.length === 0 ? (
+                    <p className="tr-empty">{t('teamRoadmap.nowEmpty', 'Nothing is marked in progress.')}</p>
+                  ) : (
+                    nowItems.map((milestone) => (
+                      <RoadmapCard
+                        key={milestone.id}
+                        milestone={milestone}
+                        featured
+                        canEdit={board.can_edit}
+                        onOpen={(item) => setSelectedId(item.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <div className="tr-road-head">
+                <h3>{t('teamRoadmap.roadAhead', 'The road ahead')}</h3>
+                <ul className="tr-legend">
+                  <li><i className="status-active" />{t('teamRoadmap.active', 'In progress')}</li>
+                  <li><i className="status-planned" />{t('teamRoadmap.planned', 'Planned')}</li>
+                  <li><i className="status-done" />{t('teamRoadmap.done', 'Done')}</li>
+                  <li><i className="status-paused" />{t('teamRoadmap.paused', 'Paused')}</li>
+                </ul>
+                {board.can_edit ? (
+                  <div className="tr-tools">
+                    <Button
+                      size="small"
+                      variant="contained"
+                      disabled={busy}
+                      startIcon={<AddIcon />}
+                      onClick={() => void addQuarter()}
+                      sx={toolButtonSx}
+                    >
+                      {t('teamRoadmap.addQuarter', 'Add quarter')}
+                    </Button>
+                    {board.may_manage_editors ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="inherit"
+                        onClick={() => {
+                          setEditorError('')
+                          setEditorsOpen(true)
+                        }}
+                        sx={{ ...toolButtonSx, color: '#5c6b62', borderColor: 'rgba(20,48,24,0.25)' }}
+                      >
+                        {t('teamRoadmap.whoCanEdit', 'Who can edit')}
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
               <RoadStage
                 quarters={board.quarters}
                 canEdit={board.can_edit}
                 busy={busy}
                 onOpen={(milestone) => setSelectedId(milestone.id)}
                 onAdd={addAndOpen}
+                onRemoveQuarter={(quarter) => void removeQuarter(quarter)}
                 onDownload={(milestone, file) => {
                   downloadApiFile(`/sih-roadmap/milestones/${milestone.id}/attachments/${file.id}`, file.name).catch((error: unknown) => {
                     setNotice(error instanceof ApiError ? error.message : t('teamRoadmap.loadFailed', 'The roadmap could not be loaded.'))
                   })
                 }}
               />
-            </Box>
+            </RoadShell>
           ) : null}
         </Box>
       </Box>
       <MilestoneDrawer
         milestone={selected}
+        quarters={board?.quarters ?? []}
+        serverError={notice}
         canEdit={Boolean(board?.can_edit)}
         busy={busy}
         decolorize={Boolean(user?.decolorize_avatars)}
@@ -248,6 +311,9 @@ export default function TeamRoadmapPage() {
         }}
         onSave={(body) => {
           if (selected) void patch(selected, body)
+        }}
+        onMove={(direction) => {
+          if (selected) void run(() => moveSihRoadmapMilestone(selected.id, direction), selected.id)
         }}
         onDelete={() => {
           if (!selected) return
@@ -278,24 +344,66 @@ export default function TeamRoadmapPage() {
           })
         }}
       />
+      <Dialog open={editorsOpen && Boolean(board?.may_manage_editors)} onClose={() => setEditorsOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800 }}>{t('teamRoadmap.whoCanEdit', 'Who can edit')}</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary" sx={{ mb: 2 }}>
+            {t(
+              'teamRoadmap.editorsInfo',
+              'Everyone on the Strategic Intelligence Hub team can edit, and superusers always can. Add anyone else by their MERKURflow email.',
+            )}
+          </Typography>
+          {editorError ? <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setEditorError('')}>{editorError}</Alert> : null}
+          <Box component="ul" sx={{ listStyle: 'none', m: 0, p: 0, display: 'grid', gap: 0.5 }}>
+            {editors.length === 0 ? (
+              <Typography component="li" color="text.secondary">{t('teamRoadmap.noEditors', 'Nobody has been added yet.')}</Typography>
+            ) : null}
+            {editors.map((person) => (
+              <Box
+                component="li"
+                key={person.user_id}
+                sx={{ display: 'flex', alignItems: 'center', gap: 1, py: 0.5, borderBottom: '1px solid rgba(20,48,24,0.08)' }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 700 }}>{person.name}</Typography>
+                  <Typography sx={{ fontSize: 13 }} color="text.secondary">{person.jobtitle}</Typography>
+                </Box>
+                {person.removable ? (
+                  <IconButton
+                    size="small"
+                    disabled={editorBusy}
+                    aria-label={`${t('teamRoadmap.removeEditor', 'Remove')} ${person.name}`}
+                    onClick={() => void runEditors(() => deleteSihRoadmapEditor(person.user_id))}
+                  >
+                    <DeleteOutlinedIcon fontSize="small" />
+                  </IconButton>
+                ) : (
+                  <Typography sx={{ fontSize: 12, fontWeight: 700 }} color="text.secondary">
+                    {t('teamRoadmap.sihTeam', 'SIH team')}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+          <Box component="form" onSubmit={(event) => void submitEditor(event)} sx={{ display: 'flex', gap: 1, mt: 2 }}>
+            <TextField
+              size="small"
+              type="email"
+              fullWidth
+              label={t('teamRoadmap.editorEmail', 'MERKURflow email')}
+              value={editorEmail}
+              onChange={(event) => setEditorEmail(event.target.value)}
+            />
+            <Button type="submit" variant="contained" disabled={editorBusy || editorEmail.trim() === ''} sx={{ ...toolButtonSx, whiteSpace: 'nowrap' }}>
+              {t('teamRoadmap.addEditor', 'Add')}
+            </Button>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditorsOpen(false)}>{t('teamRoadmap.close', 'Close')}</Button>
+        </DialogActions>
+      </Dialog>
       <AppFooter />
     </PageBackground>
-  )
-}
-
-function Legend({ color, label, dashed = false }: { color: string; label: string; dashed?: boolean }) {
-  return (
-    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
-      <Box
-        sx={{
-          width: 10,
-          height: 10,
-          borderRadius: '50%',
-          bgcolor: dashed ? 'transparent' : color,
-          border: dashed ? '1px dashed rgba(255,255,255,0.7)' : 0,
-        }}
-      />
-      {label}
-    </Box>
   )
 }

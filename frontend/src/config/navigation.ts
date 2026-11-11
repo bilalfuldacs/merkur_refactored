@@ -116,14 +116,14 @@ export function getMainNavigation(
       labelFrom: 'xl',
       path: APP_PATHS.roadmap,
       children: [
-        { id: 'roadmap-team', label: translate('nav.roadmapTeam', 'Team Roadmap'), icon: TimelineOutlinedIcon, path: APP_PATHS.teamRoadmap },
+        { id: 'roadmap-team', label: translate('nav.roadmapTeam', 'SIH Roadmap'), icon: TimelineOutlinedIcon, path: APP_PATHS.teamRoadmap },
         { type: 'divider' },
         { id: 'roadmap-games', label: translate('nav.roadmapGames', '… by Games'), path: APP_PATHS.roadmapGames },
         { id: 'roadmap-versions', label: translate('nav.roadmapVersions', '… by Versions'), path: APP_PATHS.roadmap },
         { type: 'divider' },
         { id: 'roadmap-docs', label: translate('nav.roadmapDocs', 'Roadmap Docs'), path: APP_PATHS.roadmapDocs },
         { type: 'divider' },
-        { id: 'roadmap-analyst', label: translate('nav.roadmapAnalyst', 'Roadmap Analyst (BETA)'), path: APP_PATHS.roadmapGames },
+        { id: 'roadmap-analyst', label: translate('nav.roadmapAnalyst', 'Roadmap Analyst (BETA)'), path: APP_PATHS.roadmapAnalyst },
       ],
     },
     ...(exhibitionChildren.length > 0

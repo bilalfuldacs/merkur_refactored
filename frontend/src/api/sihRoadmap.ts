@@ -1,6 +1,6 @@
 import { apiRequest } from './client'
 
-export type SihRoadmapStatus = 'planned' | 'active' | 'done'
+export type SihRoadmapStatus = 'planned' | 'active' | 'done' | 'paused'
 
 export type SihRoadmapAuthor = {
   ID: number
@@ -41,6 +41,7 @@ export type SihRoadmapMilestone = {
   year: number
   quarter: number
   status: SihRoadmapStatus
+  target_date: string | null
   is_hidden: boolean
   can_delete: boolean
   updated_at: string | null
@@ -50,16 +51,48 @@ export type SihRoadmapMilestone = {
 }
 
 export type SihRoadmapQuarter = {
+  id: number
+  label: string
   year: number
   quarter: number
+  starts_on: string
+  ends_on: string
   current: boolean
+  is_past: boolean
+  /** True only for the trailing quarter when it has no milestones. */
+  can_remove: boolean
   milestones: SihRoadmapMilestone[]
 }
 
+export type SihRoadmapEditor = {
+  user_id: number
+  name: string
+  initials: string | null
+  jobtitle: string
+  /** `sih` = SIH job title (not removable), `added` = explicit editor row. */
+  source: 'sih' | 'added'
+  removable: boolean
+}
+
+export type SihRoadmapCounts = Record<SihRoadmapStatus, number>
+
 export type SihRoadmapBoard = {
   can_edit: boolean
-  now: { year: number; quarter: number }
+  may_manage_editors: boolean
+  now: { year: number; quarter: number; label: string }
+  /** Counts exclude hidden milestones. */
+  counts: SihRoadmapCounts
+  focus_label: string
+  focus: SihRoadmapMilestone[]
+  statuses: Record<SihRoadmapStatus, string>
   quarters: SihRoadmapQuarter[]
+  /** Present only when `may_manage_editors` is true. */
+  editors?: SihRoadmapEditor[]
+}
+
+export type SihRoadmapEditorsResult = {
+  editors: SihRoadmapEditor[]
+  board: SihRoadmapBoard
 }
 
 export type SihRoadmapMutation = {
@@ -72,7 +105,6 @@ export type SihRoadmapDraft = {
   description?: string | null
   year: number
   quarter: number
-  status?: SihRoadmapStatus
 }
 
 export type SihRoadmapPatch = Partial<{
@@ -81,6 +113,7 @@ export type SihRoadmapPatch = Partial<{
   year: number
   quarter: number
   status: SihRoadmapStatus
+  target_date: string | null
   is_hidden: boolean
 }>
 
@@ -124,4 +157,28 @@ export function uploadSihRoadmapAttachment(id: number, file: File): Promise<SihR
 
 export function deleteSihRoadmapAttachment(id: number, attachmentId: number): Promise<SihRoadmapMutation> {
   return apiRequest(`/sih-roadmap/milestones/${id}/attachments/${attachmentId}`, { method: 'DELETE' })
+}
+
+export function moveSihRoadmapMilestone(id: number, direction: 'up' | 'down'): Promise<SihRoadmapMutation> {
+  return apiRequest(`/sih-roadmap/milestones/${id}/move`, { method: 'POST', body: { direction } })
+}
+
+export function addSihRoadmapQuarter(): Promise<SihRoadmapMutation> {
+  return apiRequest('/sih-roadmap/quarters', { method: 'POST' })
+}
+
+export function deleteSihRoadmapQuarter(id: number): Promise<SihRoadmapMutation> {
+  return apiRequest(`/sih-roadmap/quarters/${id}`, { method: 'DELETE' })
+}
+
+export function getSihRoadmapEditors(): Promise<SihRoadmapEditorsResult> {
+  return apiRequest('/sih-roadmap/editors')
+}
+
+export function addSihRoadmapEditor(username: string): Promise<SihRoadmapEditorsResult> {
+  return apiRequest('/sih-roadmap/editors', { method: 'POST', body: { username } })
+}
+
+export function deleteSihRoadmapEditor(userId: number): Promise<SihRoadmapEditorsResult> {
+  return apiRequest(`/sih-roadmap/editors/${userId}`, { method: 'DELETE' })
 }

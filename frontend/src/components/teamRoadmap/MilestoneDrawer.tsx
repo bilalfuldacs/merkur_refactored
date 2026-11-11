@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward'
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward'
 import CloseIcon from '@mui/icons-material/Close'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Drawer from '@mui/material/Drawer'
@@ -11,22 +14,32 @@ import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
-import type { SihRoadmapMilestone, SihRoadmapPatch, SihRoadmapStatus } from '@/api/sihRoadmap'
+import type { SihRoadmapMilestone, SihRoadmapPatch, SihRoadmapQuarter, SihRoadmapStatus } from '@/api/sihRoadmap'
 import { UserAvatar } from '@/components/user'
 import { useI18n } from '@/i18n'
-import { STATUS_COLOR, formatFileSize, formatStamp, quarterLabel } from './format'
+import { STATUS_COLOR, formatFileSize, formatStamp, formatTargetDate, quarterLabel, statusLabel } from './format'
 
-const STATUSES: SihRoadmapStatus[] = ['planned', 'active', 'done']
+const STATUSES: SihRoadmapStatus[] = ['planned', 'active', 'done', 'paused']
+
+const MAX_LINKS = 8
+const MAX_FILES = 8
+
+const INK = '#142016'
+const MUTED = '#5c6b62'
+const LINE = 'rgba(20,48,24,0.16)'
 
 export type MilestoneDrawerProps = {
   milestone: SihRoadmapMilestone | null
+  quarters: SihRoadmapQuarter[]
   canEdit: boolean
   busy: boolean
   decolorize: boolean
   newTitle: string
+  serverError?: string
   onClose: () => void
   onPatch: (patch: SihRoadmapPatch) => void
   onSave: (patch: SihRoadmapPatch) => void
+  onMove: (direction: 'up' | 'down') => void
   onDelete: () => void
   onAddLink: (label: string, url: string) => void
   onDeleteLink: (linkId: number) => void
@@ -39,13 +52,16 @@ export type MilestoneDrawerProps = {
 
 export function MilestoneDrawer({
   milestone,
+  quarters,
   canEdit,
   busy,
   decolorize,
   newTitle,
+  serverError = '',
   onClose,
   onPatch,
   onSave,
+  onMove,
   onDelete,
   onAddLink,
   onDeleteLink,
@@ -60,8 +76,8 @@ export function MilestoneDrawer({
   const fileRef = useRef<HTMLInputElement>(null)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [year, setYear] = useState(2026)
-  const [quarter, setQuarter] = useState(4)
+  const [period, setPeriod] = useState('')
+  const [targetDate, setTargetDate] = useState('')
   const [linkLabel, setLinkLabel] = useState('')
   const [linkUrl, setLinkUrl] = useState('')
   const [comment, setComment] = useState('')
@@ -72,8 +88,8 @@ export function MilestoneDrawer({
     if (!milestone) return
     setTitle(milestone.title)
     setDescription(milestone.description ?? '')
-    setYear(milestone.year)
-    setQuarter(milestone.quarter)
+    setPeriod(`${milestone.year}-${milestone.quarter}`)
+    setTargetDate(milestone.target_date ?? '')
     setLinkLabel('')
     setLinkUrl('')
     setComment('')
@@ -85,21 +101,44 @@ export function MilestoneDrawer({
     }
   }, [milestone?.id, newTitle])
 
-  const years = yearChoices(year)
+  const siblings = useMemo(() => {
+    if (!milestone) return []
+    return quarters.find((item) => item.year === milestone.year && item.quarter === milestone.quarter)?.milestones ?? []
+  }, [milestone, quarters])
+  const position = milestone ? siblings.findIndex((item) => item.id === milestone.id) : -1
+  const selectedQuarter = quarters.find((item) => `${item.year}-${item.quarter}` === period) ?? null
+  const periodOptions = useMemo(() => {
+    const options = quarters.map((item) => ({ value: `${item.year}-${item.quarter}`, label: quarterLabel(item.year, item.quarter) }))
+    if (milestone && !options.some((option) => option.value === `${milestone.year}-${milestone.quarter}`)) {
+      options.push({ value: `${milestone.year}-${milestone.quarter}`, label: quarterLabel(milestone.year, milestone.quarter) })
+    }
+    return options
+  }, [quarters, milestone])
 
   function saveDetails(event: FormEvent) {
     event.preventDefault()
     const nextTitle = title.trim()
     if (nextTitle === '') {
-      setFormError(t('teamRoadmap.titleLabel', 'Title'))
+      setFormError(t('teamRoadmap.titleRequired', 'Add a title.'))
       return
     }
+    if (targetDate && selectedQuarter && (targetDate < selectedQuarter.starts_on || targetDate > selectedQuarter.ends_on)) {
+      setFormError(
+        t('teamRoadmap.dateOutside', 'That date is outside {quarter}. Change the quarter, or pick a date inside it.').replace(
+          '{quarter}',
+          selectedQuarter.label,
+        ),
+      )
+      return
+    }
+    const [year, quarter] = period.split('-').map(Number)
     setFormError('')
     onSave({
       title: nextTitle,
       description: description.trim() === '' ? null : description.trim(),
       year,
       quarter,
+      target_date: targetDate === '' ? null : targetDate,
     })
   }
 
@@ -130,9 +169,11 @@ export function MilestoneDrawer({
         paper: {
           sx: {
             width: { xs: '100%', sm: 440 },
-            bgcolor: '#07142f',
-            color: '#fff',
-            backgroundImage: 'radial-gradient(circle at top right, rgba(0,159,227,0.18), transparent 42%)',
+            bgcolor: '#f4f7ec',
+            color: INK,
+            backgroundImage:
+              'radial-gradient(circle at top right, rgba(0,159,227,0.14), transparent 40%), radial-gradient(rgba(2,32,82,0.07) 1.1px, transparent 1.1px)',
+            backgroundSize: 'auto, 18px 18px',
           },
         },
       }}
@@ -141,19 +182,21 @@ export function MilestoneDrawer({
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, px: 2.5, pt: 2, pb: 1.5 }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ color: STATUS_COLOR[milestone.status], fontSize: 12, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                {quarterLabel(milestone.year, milestone.quarter)}
+              <Typography sx={{ color: MUTED, fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {[quarterLabel(milestone.year, milestone.quarter), formatTargetDate(milestone.target_date)].filter(Boolean).join(' · ')}
               </Typography>
               <Typography component="h2" sx={{ fontWeight: 800, fontSize: 26, lineHeight: 1.15, mt: 0.5 }}>
                 {milestone.title}
               </Typography>
             </Box>
-            <IconButton aria-label={t('teamRoadmap.close', 'Close')} onClick={onClose} sx={{ color: '#fff' }}>
+            <IconButton aria-label={t('teamRoadmap.close', 'Close')} onClick={onClose} sx={{ color: INK }}>
               <CloseIcon />
             </IconButton>
           </Box>
 
           <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, pb: 3 }}>
+            {serverError ? <Alert severity="warning" sx={{ mb: 2 }}>{serverError}</Alert> : null}
+
             {canEdit ? (
               <ToggleButtonGroup
                 exclusive
@@ -171,24 +214,26 @@ export function MilestoneDrawer({
                     disabled={busy}
                     sx={{
                       borderRadius: '999px !important',
-                      border: '1px solid rgba(255,255,255,0.2) !important',
-                      color: '#fff',
+                      border: `1px solid ${LINE} !important`,
+                      color: INK,
+                      bgcolor: '#fff',
                       textTransform: 'none',
                       px: 1.5,
                       '&.Mui-selected': {
                         bgcolor: STATUS_COLOR[status],
-                        color: '#041433',
+                        color: status === 'planned' || status === 'active' ? '#fff' : INK,
                         fontWeight: 800,
                       },
+                      '&.Mui-selected:hover': { bgcolor: STATUS_COLOR[status] },
                     }}
                   >
-                    {t(`teamRoadmap.${status}`, status)}
+                    {statusLabel(status, t)}
                   </ToggleButton>
                 ))}
               </ToggleButtonGroup>
             ) : (
               <Typography sx={{ mb: 2, color: STATUS_COLOR[milestone.status], fontWeight: 800 }}>
-                {t(`teamRoadmap.${milestone.status}`, milestone.status)}
+                {statusLabel(milestone.status, t)}
               </Typography>
             )}
 
@@ -212,38 +257,55 @@ export function MilestoneDrawer({
                   minRows={4}
                   sx={{ ...fieldSx, mt: 1.5 }}
                 />
-                <Box sx={{ display: 'flex', gap: 1.5, mt: 1.5, alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', gap: 1.5, mt: 1.5, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                   <TextField
                     select
-                    label={t('teamRoadmap.year', 'Year')}
-                    value={year}
-                    onChange={(event) => setYear(Number(event.target.value))}
+                    label={t('teamRoadmap.when', 'Quarter')}
+                    value={period}
+                    onChange={(event) => setPeriod(event.target.value)}
                     slotProps={{ select: { native: true } }}
-                    sx={{ ...fieldSx, width: 120 }}
+                    sx={{ ...fieldSx, width: 150 }}
                   >
-                    {years.map((option) => (
-                      <option key={option} value={option}>{option}</option>
+                    {periodOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </TextField>
-                  <ToggleButtonGroup
-                    exclusive
-                    value={quarter}
-                    onChange={(_event, value: number | null) => {
-                      if (value) setQuarter(value)
+                  <TextField
+                    type="date"
+                    label={t('teamRoadmap.targetDate', 'Target date')}
+                    value={targetDate}
+                    onChange={(event) => setTargetDate(event.target.value)}
+                    slotProps={{
+                      inputLabel: { shrink: true },
+                      htmlInput: { min: selectedQuarter?.starts_on, max: selectedQuarter?.ends_on },
                     }}
-                    aria-label={t('teamRoadmap.when', 'Quarter')}
-                  >
-                    {[1, 2, 3, 4].map((value) => (
-                      <ToggleButton key={value} value={value} sx={quarterSx}>
-                        Q{value}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
+                    sx={{ ...fieldSx, flex: 1, minWidth: 160 }}
+                  />
                 </Box>
-                {formError ? <Typography sx={{ mt: 1, color: '#FFCC00' }}>{formError}</Typography> : null}
-                <Button type="submit" disabled={busy} sx={primarySx}>
-                  {busy ? t('teamRoadmap.saving', 'Saving…') : t('teamRoadmap.save', 'Save details')}
-                </Button>
+                {formError ? <Typography sx={{ mt: 1, color: '#c1296c', fontWeight: 700 }}>{formError}</Typography> : null}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5, flexWrap: 'wrap' }}>
+                  <Button type="submit" disabled={busy} sx={primarySx}>
+                    {busy ? t('teamRoadmap.saving', 'Saving…') : t('teamRoadmap.save', 'Save details')}
+                  </Button>
+                  <Box sx={{ display: 'flex', gap: 0.5, ml: 'auto' }}>
+                    <Button
+                      disabled={busy || position <= 0}
+                      onClick={() => onMove('up')}
+                      startIcon={<ArrowUpwardIcon fontSize="small" />}
+                      sx={outlineSx}
+                    >
+                      {t('teamRoadmap.moveUp', 'Move up')}
+                    </Button>
+                    <Button
+                      disabled={busy || position < 0 || position >= siblings.length - 1}
+                      onClick={() => onMove('down')}
+                      startIcon={<ArrowDownwardIcon fontSize="small" />}
+                      sx={outlineSx}
+                    >
+                      {t('teamRoadmap.moveDown', 'Move down')}
+                    </Button>
+                  </Box>
+                </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
                   <Typography>{milestone.is_hidden ? t('teamRoadmap.show', 'Show to everyone') : t('teamRoadmap.hide', 'Hide from everyone')}</Typography>
                   <Switch
@@ -255,7 +317,7 @@ export function MilestoneDrawer({
                 </Box>
               </Box>
             ) : (
-              <Typography sx={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.86)', lineHeight: 1.55 }}>
+              <Typography sx={{ whiteSpace: 'pre-wrap', color: INK, lineHeight: 1.55 }}>
                 {milestone.description?.trim() || t('teamRoadmap.hoverEmpty', 'No description yet.')}
               </Typography>
             )}
@@ -264,22 +326,25 @@ export function MilestoneDrawer({
               {milestone.links.length === 0 ? <Empty text={t('teamRoadmap.noLinks', 'No links yet.')} /> : null}
               {milestone.links.map((link) => (
                 <Box key={link.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-                  <Box component="a" href={link.url} target="_blank" rel="noreferrer" sx={{ color: '#9adfff', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <Box component="a" href={link.url} target="_blank" rel="noopener noreferrer" sx={{ color: '#0077aa', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {link.label}
                   </Box>
                   {canEdit ? (
-                    <IconButton aria-label={t('teamRoadmap.deleteLink', 'Remove link')} onClick={() => onDeleteLink(link.id)} sx={{ color: 'rgba(255,255,255,0.7)', ml: 'auto' }}>
+                    <IconButton aria-label={t('teamRoadmap.deleteLink', 'Remove link')} onClick={() => onDeleteLink(link.id)} sx={{ color: MUTED, ml: 'auto' }}>
                       <DeleteOutlinedIcon fontSize="small" />
                     </IconButton>
                   ) : null}
                 </Box>
               ))}
-              {canEdit ? (
+              {canEdit && milestone.links.length < MAX_LINKS ? (
                 <Box component="form" onSubmit={submitLink} sx={{ display: 'grid', gap: 1, mt: 1 }}>
                   <TextField label={t('teamRoadmap.linkLabel', 'Link name')} value={linkLabel} onChange={(event) => setLinkLabel(event.target.value)} sx={fieldSx} />
                   <TextField label={t('teamRoadmap.linkUrl', 'https://')} value={linkUrl} onChange={(event) => setLinkUrl(event.target.value)} placeholder="https://" sx={fieldSx} />
                   <Button type="submit" disabled={busy} sx={ghostSx}>{t('teamRoadmap.addLink', 'Add link')}</Button>
                 </Box>
+              ) : null}
+              {canEdit && milestone.links.length >= MAX_LINKS ? (
+                <Empty text={t('teamRoadmap.linksFull', 'A milestone can have up to 8 links.')} />
               ) : null}
             </Section>
 
@@ -291,19 +356,19 @@ export function MilestoneDrawer({
                     component="button"
                     type="button"
                     onClick={() => onDownload(file.id, file.name)}
-                    sx={{ border: 0, p: 0, bgcolor: 'transparent', color: '#fff', cursor: 'pointer', font: 'inherit', textAlign: 'left', '&:hover': { color: '#9adfff' } }}
+                    sx={{ border: 0, p: 0, bgcolor: 'transparent', color: INK, cursor: 'pointer', font: 'inherit', textAlign: 'left', '&:hover': { color: '#0077aa' } }}
                   >
                     {file.name}
-                    <Box component="span" sx={{ ml: 1, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{formatFileSize(file.size)}</Box>
+                    <Box component="span" sx={{ ml: 1, color: MUTED, fontSize: 12 }}>{formatFileSize(file.size)}</Box>
                   </Box>
                   {canEdit ? (
-                    <IconButton aria-label={t('teamRoadmap.deleteFile', 'Remove file')} onClick={() => onDeleteFile(file.id)} sx={{ color: 'rgba(255,255,255,0.7)', ml: 'auto' }}>
+                    <IconButton aria-label={t('teamRoadmap.deleteFile', 'Remove file')} onClick={() => onDeleteFile(file.id)} sx={{ color: MUTED, ml: 'auto' }}>
                       <DeleteOutlinedIcon fontSize="small" />
                     </IconButton>
                   ) : null}
                 </Box>
               ))}
-              {canEdit ? (
+              {canEdit && milestone.attachments.length < MAX_FILES ? (
                 <>
                   <input
                     ref={fileRef}
@@ -319,7 +384,13 @@ export function MilestoneDrawer({
                   <Button disabled={busy} onClick={() => fileRef.current?.click()} sx={ghostSx}>
                     {t('teamRoadmap.upload', 'Add file')}
                   </Button>
+                  <Typography sx={{ mt: 0.5, color: MUTED, fontSize: 12 }}>
+                    {t('teamRoadmap.fileHint', 'Up to 12 MB each, 8 files per milestone.')}
+                  </Typography>
                 </>
+              ) : null}
+              {canEdit && milestone.attachments.length >= MAX_FILES ? (
+                <Empty text={t('teamRoadmap.filesFull', 'A milestone can have up to 8 attachments.')} />
               ) : null}
             </Section>
 
@@ -331,12 +402,12 @@ export function MilestoneDrawer({
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontWeight: 700, fontSize: 14 }}>
                       {entry.author?.name ?? 'SIH'}
-                      <Box component="span" sx={{ ml: 1, fontWeight: 500, color: 'rgba(255,255,255,0.5)' }}>{formatStamp(entry.created_at)}</Box>
+                      <Box component="span" sx={{ ml: 1, fontWeight: 500, color: MUTED }}>{formatStamp(entry.created_at)}</Box>
                     </Typography>
-                    <Typography sx={{ whiteSpace: 'pre-wrap', color: 'rgba(255,255,255,0.86)' }}>{entry.body}</Typography>
+                    <Typography sx={{ whiteSpace: 'pre-wrap', color: INK }}>{entry.body}</Typography>
                   </Box>
                   {canEdit ? (
-                    <IconButton aria-label={t('teamRoadmap.deleteComment', 'Remove comment')} onClick={() => onDeleteComment(entry.id)} sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                    <IconButton aria-label={t('teamRoadmap.deleteComment', 'Remove comment')} onClick={() => onDeleteComment(entry.id)} sx={{ color: MUTED }}>
                       <DeleteOutlinedIcon fontSize="small" />
                     </IconButton>
                   ) : null}
@@ -364,16 +435,16 @@ export function MilestoneDrawer({
                     <Button color="error" variant="contained" disabled={busy} onClick={onDelete}>
                       {t('teamRoadmap.confirmRemove', 'Yes, remove it')}
                     </Button>
-                    <Button onClick={() => setConfirmRemove(false)} sx={{ color: '#fff' }}>
+                    <Button onClick={() => setConfirmRemove(false)} sx={{ color: INK }}>
                       {t('teamRoadmap.cancelRemove', 'Keep it')}
                     </Button>
                   </Box>
                 ) : (
-                  <Button onClick={() => setConfirmRemove(true)} sx={{ color: '#ffb4b4' }}>
+                  <Button onClick={() => setConfirmRemove(true)} sx={{ color: '#b3261e' }}>
                     {t('teamRoadmap.remove', 'Remove milestone')}
                   </Button>
                 )}
-                <Typography sx={{ mt: 0.5, color: 'rgba(255,255,255,0.55)', fontSize: 13 }}>
+                <Typography sx={{ mt: 0.5, color: MUTED, fontSize: 13 }}>
                   {t('teamRoadmap.removeConfirm', 'Remove this milestone? This cannot be undone.')}
                 </Typography>
               </Box>
@@ -395,52 +466,40 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 function Empty({ text }: { text: string }) {
-  return <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, mb: 1 }}>{text}</Typography>
-}
-
-function yearChoices(current: number): number[] {
-  const years = new Set<number>()
-  for (let year = 2026; year <= 2032; year += 1) years.add(year)
-  years.add(current)
-  return [...years].sort((a, b) => a - b)
+  return <Typography sx={{ color: MUTED, fontSize: 14, mb: 1 }}>{text}</Typography>
 }
 
 const fieldSx = {
-  '& .MuiOutlinedInput-root': {
-    color: '#fff',
-    bgcolor: 'rgba(255,255,255,0.06)',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.72)' },
-  '& .MuiInputLabel-root.Mui-focused': { color: '#9adfff' },
-  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.28)' },
+  '& .MuiOutlinedInput-root': { bgcolor: '#fff' },
+  '& .MuiOutlinedInput-notchedOutline': { borderColor: LINE },
   '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#009FE3' },
-  '& .MuiOutlinedInput-input, & .MuiNativeSelect-select': { color: '#fff' },
 } as const
 
 const primarySx = {
-  mt: 1.5,
   borderRadius: 999,
   bgcolor: '#FFCC00',
   color: '#022052',
   fontWeight: 800,
+  px: 2,
   '&:hover': { bgcolor: '#ffe14d' },
+} as const
+
+const outlineSx = {
+  borderRadius: 999,
+  border: `1px solid ${LINE}`,
+  color: INK,
+  bgcolor: '#fff',
+  fontWeight: 700,
+  textTransform: 'none',
+  '&:hover': { bgcolor: 'rgba(0,159,227,0.08)' },
 } as const
 
 const ghostSx = {
   justifySelf: 'start',
   borderRadius: 999,
-  color: '#041433',
-  bgcolor: '#009FE3',
+  color: '#fff',
+  bgcolor: '#022052',
   fontWeight: 800,
-  '&:hover': { bgcolor: '#3cb4ea' },
-} as const
-
-const quarterSx = {
-  color: '#fff !important',
-  borderColor: 'rgba(255,255,255,0.25) !important',
-  '&.Mui-selected': {
-    bgcolor: '#009FE3 !important',
-    color: '#041433 !important',
-  },
+  px: 2,
+  '&:hover': { bgcolor: '#0a3278' },
 } as const
